@@ -1,0 +1,4994 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EBF1F6">
+<meta name="description" content="九龍城 MONDAY BEER &amp; BASKETBALL 籃球戰術板 — 多步驟戰術編輯、動畫播放與 GIF 匯出。">
+<title>九龍城 MONDAY BEER &amp; BASKETBALL 戰術板</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='31' fill='%23EBF1F6' stroke='%23B4462F' stroke-width='4'/%3E%3Ccircle cx='32' cy='30' r='14' fill='%23F37021'/%3E%3Cpath d='M18 30h28M32 16v28' stroke='%231F2A37' stroke-width='2'/%3E%3Crect x='27' y='13' width='10' height='14' rx='3' fill='%23FFBA08'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   0. 設計 Token
+   ============================================================ */
+:root{
+  --navy-900:#E7EEF5;
+  --navy-800:#F4F8FB;
+  --navy-700:#FFFFFF;
+  --navy-600:#EEF3F8;
+  --orange:#F37021;
+  --orange-600:#D95C13;
+  --orange-soft:#FF8C3F;
+  --gold:#A8791A;
+  --gold-soft:#E8A400;
+  --brick:#B4462F;
+  --brick-600:#933722;
+  --blue:#2F6FA8;
+  --ink-soft:#4A5A6A;
+  --cream:#1F2A37;
+  --muted:#7B8C9E;
+  --line:#C9D6E2;
+  --danger:#E5484D;
+  --radius:14px;
+  --radius-sm:10px;
+  --font-display:"Barlow Condensed","Impact","Arial Black",system-ui,sans-serif;
+  --font-ui:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Segoe UI",system-ui,sans-serif;
+  --shadow-lg:0 20px 46px rgba(31,42,55,.14);
+  --shadow-md:0 10px 24px rgba(31,42,55,.12);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:var(--font-ui);
+  color:var(--cream);
+  background:
+    radial-gradient(1100px 560px at 12% -12%, rgba(180,70,47,.08) 0%, rgba(180,70,47,0) 62%),
+    radial-gradient(900px 520px at 102% -6%, rgba(47,111,168,.08) 0%, rgba(47,111,168,0) 58%),
+    linear-gradient(180deg,#EBF1F6 0%,#E4EAF1 100%);
+  background-attachment:fixed;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+
+button{font-family:inherit;color:inherit}
+input{font-family:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+[hidden]{display:none !important}
+
+body[data-mode="player"] .coach-only{display:none !important}
+body[data-mode="player"] .sidebar{display:none !important}
+body[data-mode="player"] .stage{grid-template-columns:232px minmax(0,1fr)}
+
+/* ============================================================
+   1. 版面骨架
+   ============================================================ */
+.app{
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+
+/* ── 頂部導航列 ── */
+.topbar{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding:10px 18px;
+  background:linear-gradient(180deg,rgba(255,255,255,.98) 0%,rgba(246,249,252,.97) 100%);
+  border-bottom:1px solid rgba(243,112,33,.35);
+  box-shadow:0 8px 20px rgba(31,42,55,.10);
+  z-index:30;
+  flex:0 0 auto;
+}
+.topbar::before{
+  content:"";
+  position:absolute;inset:0 0 auto 0;height:3px;
+  background:linear-gradient(90deg,var(--orange) 0%,var(--gold) 42%,rgba(243,112,33,0) 88%);
+  opacity:.9;
+}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand-logo{
+  display:grid;place-items:center;width:52px;height:52px;flex:0 0 auto;
+  filter:drop-shadow(0 4px 12px rgba(243,112,33,.45));
+}
+.brand-logo img{
+  width:52px;height:52px;display:block;object-fit:cover;object-position:center;
+  border-radius:50%;border:1px solid rgba(168,121,26,.45);vertical-align:middle;
+  background:#F4F8FB;
+}
+.brand-logo svg{width:52px;height:52px;display:block}
+.brand-text{display:flex;flex-direction:column;line-height:1.06;min-width:0}
+.brand-han{font-size:11px;letter-spacing:.42em;color:var(--gold);font-weight:800}
+.brand-title{
+  font-family:var(--font-display);
+  font-size:23px;font-weight:800;letter-spacing:.055em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.brand-title em{font-style:normal;color:var(--orange)}
+.brand-sub{font-size:10px;letter-spacing:.32em;color:var(--muted);font-weight:600}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.mode-switch{
+  display:flex;gap:3px;padding:3px;
+  background:#F0F4F8;border:1px solid var(--line);border-radius:999px;
+}
+.mode-btn{
+  border:0;background:transparent;color:var(--muted);
+  font-size:12.5px;font-weight:800;letter-spacing:.04em;
+  padding:7px 16px;border-radius:999px;cursor:pointer;
+  transition:background .18s ease,color .18s ease,box-shadow .18s ease;
+}
+.mode-btn:hover{color:var(--cream)}
+.mode-btn.is-active{
+  color:#fff;
+  background:linear-gradient(180deg,var(--orange),var(--orange-600));
+  box-shadow:0 5px 16px rgba(243,112,33,.45);
+}
+.mode-btn[data-mode="coach"].is-active{
+  background:linear-gradient(180deg,var(--gold),#E09E00);
+  color:#20180A;
+  box-shadow:0 5px 16px rgba(168,121,26,.35);
+}
+.store-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:700;letter-spacing:.04em;
+  color:var(--gold);
+  background:rgba(168,121,26,.08);
+  border:1px solid rgba(168,121,26,.32);
+  padding:5px 11px;border-radius:999px;white-space:nowrap;
+}
+.store-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.store-pill.is-cloud{color:#1E7A52;background:rgba(63,205,140,.1);border-color:rgba(63,205,140,.35)}
+.store-pill.is-cloud::before{background:#3FCD8C;box-shadow:0 0 8px #3FCD8C}
+
+/* ── 步驟控制器 ── */
+.stepbar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:8px 18px;
+  background:rgba(255,255,255,.86);
+  border-bottom:1px solid rgba(31,42,55,.06);
+  backdrop-filter:blur(8px);
+  flex:0 0 auto;
+  z-index:20;
+}
+.steps{
+  display:flex;gap:6px;align-items:center;
+  overflow-x:auto;max-width:44vw;padding:2px 1px;
+  scrollbar-width:thin;
+}
+.steps::-webkit-scrollbar{height:5px}
+.steps::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
+.step-chip{
+  display:inline-flex;align-items:center;gap:7px;
+  border:1px solid var(--line);background:#FFFFFF;color:var(--muted);
+  border-radius:var(--radius-sm);padding:6px 11px;
+  font-size:12.5px;font-weight:700;white-space:nowrap;cursor:pointer;
+  transition:border-color .16s ease,color .16s ease,background .16s ease,transform .12s ease;
+}
+.step-chip:hover{border-color:rgba(243,112,33,.65);color:var(--cream);transform:translateY(-1px)}
+.step-chip.is-active{
+  color:#fff;border-color:var(--brick);
+  background:linear-gradient(180deg,#C25239,#A83E28);
+  box-shadow:inset 0 0 0 1px rgba(243,112,33,.22);
+}
+.step-idx{
+  display:inline-grid;place-items:center;width:19px;height:19px;border-radius:6px;
+  background:rgba(31,42,55,.09);font-size:11px;font-weight:800;
+}
+.step-chip.is-active .step-idx{background:var(--orange);color:#fff}
+.step-actions{display:flex;gap:5px}
+.v-divider{width:1px;height:24px;background:rgba(31,42,55,.1)}
+.playback{display:flex;align-items:center;gap:6px}
+.frame-counter{
+  font-family:var(--font-display);font-size:13px;font-weight:700;
+  letter-spacing:.08em;color:var(--muted);
+  padding:4px 9px;border-radius:8px;background:rgba(31,42,55,.05);
+}
+.spacer{flex:1 1 auto}
+/* ============================================================
+   2. 按鈕
+   ============================================================ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border:1px solid var(--line);background:#FFFFFF;color:var(--cream);
+  font-size:12.5px;font-weight:800;letter-spacing:.02em;
+  padding:8px 14px;border-radius:var(--radius-sm);
+  cursor:pointer;white-space:nowrap;
+  transition:background .16s ease,border-color .16s ease,transform .1s ease,box-shadow .16s ease,opacity .16s ease;
+}
+.btn:hover:not(:disabled){border-color:rgba(243,112,33,.6);background:#F2F6FA;transform:translateY(-1px)}
+.btn:active:not(:disabled){transform:translateY(0)}
+.btn:disabled{opacity:.42;cursor:not-allowed}
+.btn-primary{
+  border-color:transparent;color:#fff;
+  background:linear-gradient(180deg,var(--orange),var(--orange-600));
+  box-shadow:0 6px 18px rgba(243,112,33,.35);
+}
+.btn-primary:hover:not(:disabled){background:linear-gradient(180deg,#FF8339,var(--orange));border-color:transparent}
+.btn-gold{
+  border-color:transparent;color:#231A06;
+  background:linear-gradient(180deg,var(--gold-soft),var(--gold));
+  box-shadow:0 6px 18px rgba(168,121,26,.28);
+}
+.btn-gold:hover:not(:disabled){background:linear-gradient(180deg,#FFE07A,var(--gold-soft));border-color:transparent}
+.btn-ghost{background:transparent;border-color:rgba(31,42,55,.14);color:var(--muted)}
+.btn-ghost:hover:not(:disabled){color:var(--cream);background:rgba(31,42,55,.06)}
+.btn-danger{border-color:rgba(229,72,77,.5);color:#B4342A;background:rgba(229,72,77,.1)}
+.btn-danger:hover:not(:disabled){background:rgba(229,72,77,.2);border-color:var(--danger);color:#fff}
+.btn-block{width:100%}
+.btn .ico{font-size:10px;transform:translateY(-.5px)}
+.icon-btn{
+  display:inline-grid;place-items:center;
+  width:32px;height:32px;border-radius:9px;
+  border:1px solid var(--line);background:#FFFFFF;color:var(--muted);
+  font-size:12px;cursor:pointer;
+  transition:color .16s ease,border-color .16s ease,background .16s ease;
+}
+.icon-btn:hover:not(:disabled){color:var(--cream);border-color:rgba(243,112,33,.6);background:#F2F6FA}
+.icon-btn:disabled{opacity:.35;cursor:not-allowed}
+.icon-btn.is-active{
+  color:var(--orange-soft);border-color:var(--orange);
+  background:rgba(243,112,33,.18);box-shadow:0 0 0 1px rgba(243,112,33,.35) inset;
+}
+
+/* ============================================================
+   3. 主舞台 + 球場
+   ============================================================ */
+.stage{
+  flex:1 1 auto;min-height:0;
+  display:grid;
+  --side-w:318px;
+  grid-template-columns:232px minmax(0,1fr) var(--side-w);
+  gap:14px;
+  padding:12px 16px 14px;
+  transition:grid-template-columns .22s ease,gap .22s ease;
+}
+.board-panel{min-width:0;min-height:0;display:flex;flex-direction:column;gap:8px}
+.board-restrict{
+  flex:1 1 auto;min-height:0;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.board-wrap{
+  position:relative;width:100%;
+  --board-h-chrome:258px;
+  max-width:min(100%, calc((100dvh - var(--board-h-chrome)) * 1.0638));
+  border-radius:16px;
+  border:1px solid rgba(123,140,158,.45);
+  background:#EBF1F6;
+  box-shadow:var(--shadow-lg), inset 0 0 0 1px rgba(31,42,55,.04);
+  overflow:hidden;
+}
+.board-holder{position:relative;width:100%;line-height:0}
+
+/* Fabric 會產生 .canvas-container；用 CSS 縮放維持固定邏輯解析度 1000×940 */
+.board-holder .canvas-container{
+  width:100% !important;
+  height:auto !important;
+  aspect-ratio:1000 / 940;
+  /* 手機單手拖曳球員時不要讓整頁跟著滾 */
+  touch-action:none;
+}
+.board-holder .canvas-container canvas{
+  width:100% !important;
+  height:100% !important;
+  display:block;
+  touch-action:none;
+  -webkit-user-select:none;user-select:none;
+  -webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.board-overlay{
+  position:absolute;inset:8px 8px auto 8px;
+  display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;
+  pointer-events:none;
+}
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11.5px;font-weight:800;letter-spacing:.03em;
+  padding:5px 10px;border-radius:999px;
+  backdrop-filter:blur(6px);
+  border:1px solid rgba(31,42,55,.14);
+}
+.badge-lock{background:rgba(255,255,255,.92);color:#8E3520;border-color:rgba(180,70,47,.35)}
+.badge-tool{background:rgba(168,121,26,.16);color:var(--gold);border-color:rgba(168,121,26,.45)}
+.badge-tool b{color:#1F2A37}
+.board-hint{
+  margin:0;text-align:center;min-height:16px;
+  font-size:11.5px;color:var(--muted);letter-spacing:.02em;
+}
+.board-hint.is-error{color:#B4342A}
+/* ============================================================
+   4. 教練側邊欄
+   ============================================================ */
+.sidebar{
+  min-height:0;
+  display:flex;flex-direction:column;gap:10px;
+  overflow-y:auto;padding-right:2px;
+  scrollbar-width:thin;
+}
+.sidebar::-webkit-scrollbar{width:6px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
+/* 側欄標題列 + 收起鈕 */
+.sidebar-head{
+  position:sticky;top:0;z-index:2;
+  display:flex;align-items:baseline;gap:8px;
+  padding:4px 4px 9px;
+  background:linear-gradient(180deg,rgba(235,241,246,.98) 0%,rgba(235,241,246,.88) 72%,rgba(235,241,246,0) 100%);
+}
+.sidebar-head b{font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--cream)}
+.sidebar-head span{
+  font-family:var(--font-display);font-size:10px;font-weight:700;
+  letter-spacing:.22em;color:var(--muted);
+}
+.side-collapse{
+  margin-left:auto;width:26px;height:26px;border-radius:8px;
+  display:grid;place-items:center;cursor:pointer;
+  border:1px solid var(--line);background:#FFFFFF;color:var(--ink-soft);
+  font-family:var(--font-display);font-size:15px;font-weight:800;line-height:1;
+  transition:border-color .15s,color .15s,background .15s,transform .15s;
+}
+.side-collapse:hover{border-color:var(--brick);color:var(--brick);background:rgba(180,70,47,.08);transform:translateX(1px)}
+.panel{
+  background:linear-gradient(180deg,#FFFFFF,#F7FAFC);
+  border:1px solid rgba(31,42,55,.07);
+  border-radius:var(--radius);
+  padding:12px;
+  box-shadow:0 8px 22px rgba(31,42,55,.08);
+}
+.panel-head{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.panel-head h2{margin:0;font-size:12.5px;font-weight:800;letter-spacing:.06em;color:var(--cream)}
+.panel-head span{
+  font-family:var(--font-display);font-size:10.5px;font-weight:700;
+  letter-spacing:.22em;color:var(--muted);
+}
+.node-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;justify-items:center}
+.node-grid .node{width:100%;max-width:74px}
+.node{
+  aspect-ratio:1;border-radius:50%;
+  border:2px solid transparent;
+  font-family:var(--font-display);font-size:17px;font-weight:800;
+  cursor:pointer;display:grid;place-items:center;
+  transition:transform .12s ease,box-shadow .16s ease,border-color .16s ease;
+}
+.node:hover{transform:translateY(-2px) scale(1.04)}
+.node-off{
+  background:radial-gradient(circle at 32% 26%,#C9533A,var(--brick) 78%);
+  color:#fff;box-shadow:0 6px 16px rgba(180,70,47,.30);
+}
+.node-def{
+  background:#FFFFFF;color:var(--blue);border-color:var(--blue);
+  box-shadow:0 4px 12px rgba(31,42,55,.10);
+}
+.node-off:hover{box-shadow:0 0 0 3px rgba(168,121,26,.35),0 8px 20px rgba(243,112,33,.45)}
+.node-def:hover{box-shadow:0 0 0 3px rgba(47,111,168,.22),0 8px 20px rgba(47,111,168,.24)}
+.node-ball{
+  background:radial-gradient(circle at 32% 26%,#FFFFFF,#EDF2F7 80%);
+  border-color:rgba(243,112,33,.55);
+  box-shadow:0 4px 12px rgba(31,42,55,.10);
+}
+.node-ball svg{width:72%;height:72%;display:block}
+.tool-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.tool{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:9px 4px;border-radius:11px;
+  border:1px solid var(--line);background:#FFFFFF;color:var(--muted);
+  font-size:11px;font-weight:800;cursor:pointer;
+  transition:color .16s ease,border-color .16s ease,background .16s ease,transform .12s ease;
+}
+.tool svg{width:30px;height:16px;overflow:visible}
+.tool:hover{color:var(--cream);border-color:rgba(243,112,33,.6);transform:translateY(-1px)}
+.tool.is-active{
+  color:#fff;border-color:var(--brick);
+  background:linear-gradient(180deg,#C25239,#A83E28);
+  box-shadow:inset 0 0 0 1px rgba(243,112,33,.3);
+}
+.action-col{display:flex;flex-direction:column;gap:7px}
+/* ============================================================
+   5. 對話框 / Toast / 載入遮罩
+   ============================================================ */
+.modal{
+  position:fixed;inset:0;z-index:80;
+  display:none;padding:20px;
+  background:rgba(31,42,55,.38);
+  backdrop-filter:blur(6px);
+}
+.modal:not([hidden]){display:grid;place-items:center}
+.modal-card{
+  width:min(100%,420px);
+  background:linear-gradient(180deg,#FFFFFF,#F4F8FB);
+  border:1px solid rgba(243,112,33,.3);
+  border-radius:18px;padding:22px;
+  box-shadow:var(--shadow-lg);
+  animation:pop .22s ease both;
+}
+.modal-wide{width:min(100%,560px)}
+@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+.modal-card h2{margin:0 0 8px;font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:.05em}
+.modal-desc{margin:0 0 16px;font-size:12.5px;color:var(--muted);line-height:1.7}
+.hint-code{
+  display:inline-block;margin-top:6px;padding:2px 8px;border-radius:6px;
+  background:rgba(168,121,26,.12);color:var(--gold);font-weight:700;
+}
+.field-label{display:block;margin:0 0 6px;font-size:11.5px;font-weight:700;color:var(--muted)}
+.input{
+  width:100%;padding:11px 13px;border-radius:11px;
+  border:1px solid var(--line);background:#FFFFFF;color:var(--cream);
+  font-size:13.5px;letter-spacing:.02em;
+}
+.input::placeholder{color:#9AA8B6}
+.input:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(243,112,33,.18)}
+.input.is-invalid{border-color:var(--danger);box-shadow:0 0 0 3px rgba(229,72,77,.18)}
+.form-error{margin:8px 0 0;min-height:16px;font-size:11.5px;color:#B4342A;font-weight:700}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+/* ── 防守陣型預設 ── */
+.def-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.def-btn{
+  display:flex;align-items:center;gap:6px;min-width:0;
+  padding:7px 8px;border-radius:10px;cursor:pointer;
+  border:1px solid var(--line);background:rgba(31,42,55,.04);
+  color:var(--cream);font-family:var(--font-ui);font-size:11.5px;font-weight:800;
+  letter-spacing:.01em;transition:border-color .16s,background .16s,transform .16s;
+}
+.def-btn>span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.def-btn svg{width:22px;height:22px;flex:0 0 auto}
+.def-btn:hover{border-color:var(--blue);background:rgba(47,111,168,.10);transform:translateY(-1px)}
+.def-btn:active{transform:translateY(0)}
+.def-btn.is-on{border-color:var(--blue);background:rgba(47,111,168,.12);box-shadow:0 0 0 2px rgba(47,111,168,.18)}
+/* 首選陣型（2-1-2）：金色描邊 + 徽章 */
+.def-btn.is-default{border-color:rgba(168,121,26,.5);background:rgba(168,121,26,.08)}
+.def-btn .def-badge{
+  margin-left:auto;flex:0 0 auto;
+  font-size:9px;font-weight:800;letter-spacing:0;font-style:normal;
+  padding:1px 4px;border-radius:999px;
+  background:rgba(168,121,26,.16);color:var(--gold);border:1px solid rgba(168,121,26,.42);
+}
+/* 自訂防守：整列獨占 */
+.def-btn-wide{grid-column:1 / -1;justify-content:center}
+.def-btn-wide .def-badge{display:none}
+.def-btn-wide svg{width:20px;height:20px}
+.tag{
+  font-size:10px;font-weight:800;letter-spacing:.06em;
+  padding:2px 7px;border-radius:999px;
+  background:rgba(168,121,26,.12);color:var(--gold);border:1px solid rgba(168,121,26,.3);
+}
+.tag.is-cloud{background:rgba(63,205,140,.12);color:#1E7A52;border-color:rgba(63,205,140,.34)}
+
+.toast-stack{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%);
+  z-index:120;display:flex;flex-direction:column;gap:8px;align-items:center;
+  pointer-events:none;width:min(92vw,460px);
+}
+.toast{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 16px;border-radius:999px;
+  font-size:12.5px;font-weight:700;
+  background:rgba(255,255,255,.98);
+  border:1px solid var(--line);
+  box-shadow:var(--shadow-md);
+  animation:toastIn .22s ease both;
+  max-width:100%;
+}
+.toast::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--orange);flex:0 0 auto}
+.toast.is-success::before{background:#3FCD8C}
+.toast.is-error::before{background:var(--danger)}
+.toast.is-warn::before{background:var(--orange)}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.loader{
+  position:fixed;inset:0;z-index:110;
+  display:grid;place-items:center;
+  background:rgba(31,42,55,.45);backdrop-filter:blur(5px);
+}
+.loader-card{
+  width:min(90vw,320px);text-align:center;
+  padding:26px 22px;border-radius:18px;
+  background:linear-gradient(180deg,#FFFFFF,#F4F8FB);
+  border:1px solid rgba(168,121,26,.3);
+  box-shadow:var(--shadow-lg);
+}
+.spinner{
+  width:38px;height:38px;margin:0 auto 14px;border-radius:50%;
+  border:3px solid rgba(168,121,26,.2);border-top-color:var(--gold);
+  animation:spin .9s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-label{margin:0 0 12px;font-size:12.5px;font-weight:800;color:var(--cream)}
+.progress{height:7px;border-radius:99px;background:rgba(31,42,55,.09);overflow:hidden}
+.progress span{
+  display:block;height:100%;width:0;
+  background:linear-gradient(90deg,var(--orange),var(--gold));
+  transition:width .25s ease;
+}
+.loader-pct{margin:8px 0 0;font-family:var(--font-display);font-size:12px;letter-spacing:.1em;color:var(--muted)}
+
+/* ============================================================
+   5.5 戰術手冊側欄（球員點一下即載入播放）
+   ============================================================ */
+.playbook{
+  min-height:0;display:flex;flex-direction:column;gap:8px;
+  padding:10px;border-radius:var(--radius);
+  background:linear-gradient(180deg,#FFFFFF,#F6F9FC);
+  border:1px solid var(--line);
+}
+.pb-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pb-head h2{
+  margin:0;font-family:var(--font-display);
+  font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);
+}
+.pb-refresh{
+  width:24px;height:24px;border-radius:7px;flex-shrink:0;
+  border:1px solid var(--line);background:rgba(31,42,55,.04);
+  color:var(--muted);font-size:13px;line-height:1;cursor:pointer;
+}
+.pb-refresh:hover{border-color:var(--gold);color:var(--gold)}
+.pb-list{flex:0 0 auto;display:flex;flex-direction:column;gap:6px}
+.pb-item{
+  display:flex;align-items:stretch;min-width:0;overflow:hidden;
+  border-radius:10px;border:1px solid var(--line);background:rgba(31,42,55,.03);
+  color:var(--cream);transition:border-color .18s,background .18s;
+}
+.pb-item:hover{border-color:var(--brick);background:rgba(180,70,47,.06)}
+.pb-item.is-active{border-color:var(--brick);background:rgba(180,70,47,.10)}
+.pb-main{
+  flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px;
+  padding:8px 9px;border:0;background:none;color:inherit;font:inherit;
+  text-align:left;cursor:pointer;
+}
+.pb-main:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.pb-name{
+  font-size:12.5px;font-weight:800;line-height:1.25;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.pb-meta{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)}
+.pb-actions{display:flex;align-items:center;gap:2px;padding-right:5px}
+.pb-act{
+  width:22px;height:22px;display:grid;place-items:center;
+  border-radius:6px;border:1px solid var(--line);background:rgba(31,42,55,.05);
+  color:var(--muted);font-size:12px;line-height:1;cursor:pointer;
+  transition:border-color .15s,color .15s,background .15s;
+}
+.pb-act svg{width:12px;height:12px;display:block}
+.pb-act:hover{border-color:var(--brick);color:var(--brick);background:rgba(180,70,47,.10)}
+.pb-act[data-act="delete"]:hover{border-color:var(--danger);color:#B4342A;background:rgba(229,72,77,.16)}
+body[data-mode="player"] .pb-actions{display:none}
+.pb-empty{
+  padding:14px 10px;border-radius:10px;text-align:center;line-height:1.7;
+  font-size:11.5px;color:var(--muted);border:1px dashed var(--line);
+}
+.pb-foot{margin:0;font-size:10px;color:var(--muted);text-align:center}
+
+/* ── 新增戰術（教練專用；球員模式由 .coach-only 隱藏） ── */
+.pb-new-row{display:flex;flex-direction:column;gap:6px}
+.pb-new{
+  justify-content:center;gap:6px;padding:9px 10px;
+  font-size:13px;letter-spacing:.04em;
+}
+.pb-new .pb-new-en{
+  font-family:var(--font-display);font-style:normal;
+  font-size:9.5px;font-weight:700;letter-spacing:.14em;opacity:.82;
+}
+.pb-name-field{display:flex;flex-direction:column;gap:3px}
+.pb-name-label{
+  font-family:var(--font-display);font-size:9.5px;font-weight:700;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+}
+.pb-name-input{
+  width:100%;padding:7px 9px;border-radius:9px;
+  border:1px solid var(--line);background:#FFFFFF;
+  font-family:inherit;font-size:12px;font-weight:800;color:var(--cream);
+  transition:border-color .16s,box-shadow .16s;
+}
+.pb-name-input::placeholder{font-weight:600;color:rgba(123,140,158,.9)}
+.pb-name-input:focus{
+  outline:none;border-color:var(--orange);
+  box-shadow:0 0 0 3px rgba(243,112,33,.18);
+}
+.pb-name-hint{margin:0;font-size:9.5px;line-height:1.5;color:var(--muted)}
+
+/* ── 球員名單 ── */
+.roster-grid{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;
+  max-height:260px;overflow-y:auto;padding-right:2px;
+}
+.roster-btn{
+  display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;
+  padding:5px 2px;border-radius:9px;cursor:pointer;
+  border:1px solid var(--line);background:rgba(31,42,55,.03);color:var(--cream);
+}
+.roster-btn b{font-family:var(--font-display);font-size:15px;line-height:1;color:var(--brick)}
+.roster-btn span{
+  font-size:9.5px;line-height:1.1;color:var(--muted);
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.roster-btn em{
+  font-family:var(--font-display);font-style:normal;
+  font-size:8.5px;line-height:1;letter-spacing:.06em;color:var(--blue);
+}
+.roster-btn:hover{border-color:var(--gold);background:rgba(168,121,26,.10)}
+.roster-btn.is-on{border-color:var(--brick);background:rgba(180,70,47,.12)}
+.roster-btn.is-on b{color:#8E3520}
+.roster-btn.is-on span{color:var(--cream)}
+.roster-btn.is-on em{color:var(--brick-600)}
+.roster-empty{grid-column:1/-1;padding:8px 2px;font-size:10.5px;color:var(--muted);text-align:center}
+.panel-note{margin:6px 0 0;font-size:10px;line-height:1.5;color:var(--muted);text-align:center}
+
+.fab{
+  position:fixed;right:16px;bottom:16px;z-index:60;
+  display:none;width:52px;height:52px;border-radius:50%;
+  border:1px solid rgba(243,112,33,.5);
+  background:linear-gradient(180deg,var(--orange),var(--orange-600));
+  color:#fff;font-size:20px;cursor:pointer;
+  box-shadow:0 10px 26px rgba(243,112,33,.45);
+}
+/* ============================================================
+   5.6 經典戰術庫清單 / 機會標籤 / 手機 dock
+   ============================================================ */
+.pb-head-actions{display:flex;align-items:center;gap:4px}
+.pb-close{
+  display:none;width:24px;height:24px;border-radius:7px;
+  border:1px solid var(--line);background:rgba(31,42,55,.04);
+  color:var(--muted);font-size:12px;line-height:1;cursor:pointer;
+}
+.pb-close:hover{border-color:var(--brick);color:var(--brick)}
+.pb-scroll{
+  flex:1 1 auto;min-height:0;overflow-y:auto;
+  display:flex;flex-direction:column;gap:5px;padding-right:2px;
+}
+.pb-scroll::-webkit-scrollbar{width:6px}
+.pb-scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
+.pb-group-title{
+  margin:2px 0 1px;display:flex;align-items:baseline;gap:6px;
+  font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--muted);
+}
+.pb-group-title span{font-family:var(--font-display);color:var(--brick);letter-spacing:.08em}
+.pb-cat{border:1px solid var(--line);border-radius:10px;background:rgba(31,42,55,.02);overflow:hidden}
+.pb-cat > summary{
+  display:flex;align-items:center;gap:6px;cursor:pointer;list-style:none;
+  padding:6px 8px;font-size:11.5px;font-weight:800;color:var(--cream);
+  background:rgba(47,111,168,.07);
+}
+.pb-cat > summary::-webkit-details-marker{display:none}
+.pb-cat > summary::before{content:"▸";font-size:9px;color:var(--blue);transition:transform .18s}
+.pb-cat[open] > summary::before{transform:rotate(90deg)}
+.pb-cat-label{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pb-cat-en{font-family:var(--font-display);font-size:9px;letter-spacing:.06em;color:var(--muted);white-space:nowrap;flex:0 0 auto}
+.pb-cat-count{
+  display:inline-grid;place-items:center;min-width:16px;height:16px;padding:0 4px;
+  border-radius:999px;background:rgba(47,111,168,.14);color:var(--blue);
+  font-size:9.5px;font-weight:800;
+}
+.pb-cat-list{display:flex;flex-direction:column;gap:4px;padding:5px}
+.pb-lib{
+  display:flex;align-items:center;gap:6px;text-align:left;
+  padding:6px 8px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--line);background:#FFFFFF;color:var(--cream);
+  transition:border-color .15s,background .15s,transform .12s;
+}
+.pb-lib:hover{border-color:var(--brick);background:rgba(180,70,47,.06);transform:translateX(2px)}
+.pb-lib.is-active{border-color:var(--brick);background:rgba(180,70,47,.10);box-shadow:inset 2px 0 0 var(--brick)}
+.pb-lib-name{
+  flex:1 1 auto;min-width:0;font-size:11.5px;font-weight:800;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.pb-lib-meta{display:flex;align-items:center;gap:4px;font-size:9.5px;color:var(--muted);white-space:nowrap}
+.pb-lib-meta b{
+  font-weight:800;padding:1px 4px;border-radius:4px;
+  background:rgba(47,111,168,.12);color:var(--blue);
+}
+
+/* ── 機會標籤（cue） ── */
+.cue-tag{
+  position:absolute;right:10px;top:8px;max-width:calc(100% - 150px);
+  display:inline-flex;align-items:center;gap:7px;
+  padding:6px 12px;border-radius:999px;
+  font-size:12.5px;font-weight:800;letter-spacing:.02em;
+  color:#8E3520;background:rgba(255,255,255,.95);
+  border:1px solid rgba(180,70,47,.45);
+  box-shadow:0 8px 20px rgba(180,70,47,.16);
+  pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cue-tag::before{
+  content:"";width:7px;height:7px;border-radius:50%;flex:0 0 auto;
+  background:var(--orange);box-shadow:0 0 0 3px rgba(243,112,33,.18);
+}
+.cue-tag.is-pop{animation:cuePop .42s cubic-bezier(.2,.9,.25,1.2) both}
+@keyframes cuePop{from{opacity:0;transform:translateY(-6px) scale(.94)}to{opacity:1;transform:none}}
+
+/* ── 手機 dock：步驟縮圖 + 解說卡 ── */
+.mobile-dock{display:none;flex-direction:column;gap:6px;flex:0 0 auto}
+.def-quick{display:flex;gap:5px;overflow-x:auto;padding-bottom:1px}
+.def-quick button{
+  flex:0 0 auto;padding:4px 9px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line);background:#FFFFFF;color:var(--ink-soft);
+  font-size:10.5px;font-weight:800;white-space:nowrap;
+  transition:border-color .15s,color .15s,background .15s;
+}
+.def-quick button:hover{border-color:var(--blue);color:var(--blue);background:rgba(47,111,168,.08)}
+.dock-thumbs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.dock-thumb{
+  flex:0 0 auto;width:64px;border-radius:8px;padding:0;cursor:pointer;overflow:hidden;
+  border:1px solid var(--line);background:#FFFFFF;
+  display:flex;flex-direction:column;align-items:stretch;
+}
+.dock-thumb svg{display:block;width:100%;height:44px}
+.dock-thumb span{
+  font-size:9px;font-weight:800;color:var(--muted);padding:2px 3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.dock-thumb.is-active{border-color:var(--brick);box-shadow:0 0 0 2px rgba(180,70,47,.16)}
+.dock-thumb.is-active span{color:#8E3520}
+.dock-cards{display:flex;gap:6px;overflow-x:auto}
+.dock-card{
+  flex:0 0 min(84vw,320px);
+  border:1px solid var(--line);border-radius:10px;background:#FFFFFF;
+  padding:7px 9px;display:flex;flex-direction:column;gap:3px;
+}
+.dock-card-head{display:flex;align-items:center;gap:6px}
+.dock-card-idx{
+  display:inline-grid;place-items:center;width:17px;height:17px;border-radius:5px;
+  background:var(--brick);color:#fff;font-size:10px;font-weight:800;
+}
+.dock-card-name{font-size:11.5px;font-weight:800;color:var(--cream)}
+.dock-card-cue{
+  font-size:10px;font-weight:800;color:#8E3520;
+  background:rgba(180,70,47,.10);border:1px solid rgba(180,70,47,.24);
+  padding:1px 6px;border-radius:999px;white-space:nowrap;
+}
+.dock-card-desc{margin:0;font-size:10.5px;line-height:1.55;color:var(--ink-soft)}
+.dock-empty{font-size:10.5px;color:var(--muted)}
+.pb-toggle{display:none}
+.side-toggle{display:none}
+/* 側欄收起後的浮動展開把手 */
+.side-expand{
+  position:fixed;right:0;top:50%;transform:translateY(-50%);
+  z-index:62;display:none;
+  width:22px;height:66px;padding:0;
+  border:1px solid var(--line);border-right:0;border-radius:10px 0 0 10px;
+  background:linear-gradient(180deg,#FFFFFF,#EDF3F9);
+  color:var(--ink-soft);cursor:pointer;place-items:center;
+  font-family:var(--font-display);font-size:15px;font-weight:800;line-height:1;
+  box-shadow:-6px 0 18px rgba(31,42,55,.12);
+  transition:color .15s,width .15s,background .15s;
+}
+.side-expand:hover{color:var(--brick);width:28px;background:linear-gradient(180deg,#FFFFFF,#F6EDE9)}
+.pb-scrim{position:fixed;inset:0;z-index:65;background:rgba(31,42,55,.36);backdrop-filter:blur(2px)}
+
+/* ============================================================
+   5.9 開場歡迎畫面（Splash Landing）
+   ============================================================ */
+.splash{
+  position:fixed;inset:0;z-index:76;
+  display:flex;align-items:flex-start;justify-content:center;
+  padding:24px;overflow:auto;
+  background:
+    radial-gradient(920px 520px at 50% -8%, rgba(243,112,33,.16) 0%, rgba(243,112,33,0) 62%),
+    radial-gradient(760px 460px at 92% 108%, rgba(47,111,168,.14) 0%, rgba(47,111,168,0) 60%),
+    linear-gradient(180deg,#F7FAFD 0%,#EBF1F6 54%,#E4EAF1 100%);
+  animation:splashIn .3s ease both;
+}
+@keyframes splashIn{from{opacity:0}to{opacity:1}}
+.splash-card{
+  margin:auto;
+  width:min(100%,720px);
+  display:flex;flex-direction:column;align-items:center;text-align:center;gap:13px;
+  padding:clamp(24px,4vw,44px) clamp(20px,4vw,44px);
+  background:linear-gradient(180deg,rgba(255,255,255,.99),rgba(244,248,251,.97));
+  border:1px solid rgba(168,121,26,.34);
+  border-radius:26px;
+  box-shadow:var(--shadow-lg),0 0 0 8px rgba(255,255,255,.55);
+}
+.splash-logo{
+  width:clamp(120px,26vw,200px);aspect-ratio:1;
+  display:grid;place-items:center;border-radius:50%;
+  background:#F4F8FB;
+  border:4px solid rgba(255,255,255,.95);
+  box-shadow:0 0 0 2px rgba(168,121,26,.55),0 16px 40px rgba(31,42,55,.2),0 0 54px rgba(243,112,33,.26);
+}
+.splash-logo img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+.splash-logo-fallback{
+  font-family:var(--font-display);font-size:clamp(30px,7vw,52px);
+  font-weight:800;letter-spacing:.06em;color:var(--brick);
+}
+.splash-han{margin:2px 0 0;font-size:clamp(11px,1.6vw,13px);font-weight:800;letter-spacing:.42em;color:var(--gold)}
+.splash-title{
+  margin:0;font-family:var(--font-display);font-weight:800;
+  font-size:clamp(26px,4.6vw,46px);line-height:1.02;letter-spacing:.05em;color:var(--cream);
+}
+.splash-title em{font-style:normal;color:var(--orange)}
+.splash-sub{margin:0;font-size:clamp(10.5px,1.7vw,13.5px);font-weight:700;letter-spacing:.3em;color:var(--muted)}
+.splash-actions{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;
+  width:100%;margin-top:8px;
+}
+.splash-btn{
+  display:flex;align-items:flex-start;gap:12px;text-align:left;
+  min-height:104px;padding:16px 18px;cursor:pointer;
+  border:1px solid var(--line);border-radius:18px;
+  background:linear-gradient(180deg,#FFFFFF,#F3F7FB);color:var(--cream);
+  box-shadow:0 8px 22px rgba(31,42,55,.08);
+  transition:transform .16s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease;
+}
+.splash-btn:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(31,42,55,.16)}
+.splash-btn:active{transform:translateY(0)}
+.splash-btn-ico{font-size:26px;line-height:1;flex:0 0 auto}
+.splash-btn-txt{display:flex;flex-direction:column;gap:3px;min-width:0}
+.splash-btn-txt b{font-size:15.5px;font-weight:800;letter-spacing:.02em}
+.splash-btn-txt em{
+  font-family:var(--font-display);font-style:normal;
+  font-size:11px;letter-spacing:.16em;color:var(--muted);
+}
+.splash-btn-txt span{font-size:11px;line-height:1.55;color:var(--ink-soft)}
+.splash-btn.is-player{border-color:rgba(47,111,168,.34)}
+.splash-btn.is-player:hover{border-color:var(--blue);background:linear-gradient(180deg,#FFFFFF,#EAF2FA)}
+.splash-btn.is-player .splash-btn-txt b{color:var(--blue)}
+.splash-btn.is-coach{border-color:rgba(180,70,47,.32)}
+.splash-btn.is-coach:hover{border-color:var(--brick);background:linear-gradient(180deg,#FFFFFF,#FBEEEA)}
+.splash-btn.is-coach .splash-btn-txt b{color:var(--brick)}
+.splash-foot{margin:2px 0 0;font-size:10.5px;letter-spacing:.06em;color:var(--muted)}
+body.splash-open .app{pointer-events:none;user-select:none}
+.splash[hidden]{display:none}
+
+/* ── 頂部「切換身分 / 返回首頁」 ── */
+.home-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  height:32px;padding:0 12px;flex:0 0 auto;
+  border:1px solid var(--line);border-radius:999px;
+  background:#FFFFFF;color:var(--ink-soft);cursor:pointer;
+  font-size:12px;font-weight:800;letter-spacing:.02em;white-space:nowrap;
+  transition:border-color .15s,color .15s,background .15s,transform .15s;
+}
+.home-btn:hover{border-color:var(--orange);color:var(--orange-600);background:rgba(243,112,33,.1);transform:translateX(-1px)}
+.home-btn .hb-ico{font-family:var(--font-display);font-size:15px;font-weight:800;line-height:1}
+
+/* ── 名單位置篩選 chips ── */
+.pos-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.pos-chip{
+  border:1px solid var(--line);background:rgba(31,42,55,.03);color:var(--muted);
+  font-size:10px;font-weight:800;letter-spacing:.02em;
+  padding:4px 9px;border-radius:999px;cursor:pointer;white-space:nowrap;
+  transition:border-color .15s,color .15s,background .15s;
+}
+.pos-chip:hover{border-color:var(--gold);color:var(--gold);background:rgba(168,121,26,.1)}
+.pos-chip.is-on{border-color:var(--brick);background:rgba(180,70,47,.14);color:#8E3520}
+.pos-chip em{
+  font-family:var(--font-display);font-style:normal;
+  font-size:9px;letter-spacing:.1em;opacity:.75;margin-left:3px;
+}
+
+/* ── 可收合的側欄面板（防守與球） ── */
+.panel-collapse{padding:10px 12px}
+.panel-collapse > summary{
+  list-style:none;cursor:pointer;
+  display:flex;align-items:baseline;gap:8px;
+}
+.panel-collapse > summary::-webkit-details-marker{display:none}
+.panel-collapse > summary::marker{content:""}
+.panel-collapse > summary::after{
+  content:"▸";margin-left:auto;font-size:9px;color:var(--blue);
+  transition:transform .18s ease;
+}
+.panel-collapse[open] > summary::after{transform:rotate(90deg)}
+.panel-collapse[open] > summary{margin-bottom:10px}
+.panel-title{font-size:12.5px;font-weight:800;letter-spacing:.06em;color:var(--cream)}
+.panel-sub{
+  font-family:var(--font-display);font-size:10.5px;font-weight:700;
+  letter-spacing:.22em;color:var(--muted);
+}
+
+/* ============================================================
+   6. 響應式
+   ============================================================ */
+@media (max-width:1100px){
+  .stage{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+  body[data-mode="player"] .stage{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+  .board-wrap{max-width:100%}
+
+  /* 戰術手冊 → 左側抽屜（☰ 開關） */
+  .playbook{
+    position:fixed;top:0;bottom:0;left:0;z-index:70;
+    width:min(86vw,320px);padding:12px;gap:8px;
+    background:linear-gradient(180deg,#FFFFFF,#EEF3F8);
+    border:0;border-right:1px solid rgba(47,111,168,.3);border-radius:0;
+    box-shadow:18px 0 40px rgba(31,42,55,.18);
+    transform:translateX(-105%);
+    transition:transform .24s ease;
+  }
+  .playbook.is-open{transform:none}
+  .pb-close{display:block}
+  .pb-toggle{display:grid;place-items:center}
+  .pb-meta{display:none}
+  .mobile-dock{display:flex}
+  /* 收合鈕只在桌面出現；手機用 🛠 / 抽屜關閉 */
+  .side-collapse{display:none}
+
+  /* 教練工具列維持右側抽屜（🛠 開關） */
+  .sidebar{
+    position:fixed;top:0;right:0;bottom:0;z-index:70;
+    width:min(88vw,330px);padding:14px;gap:10px;
+    background:linear-gradient(180deg,#FFFFFF,#EEF3F8);
+    border-left:1px solid rgba(47,111,168,.3);
+    box-shadow:-18px 0 40px rgba(31,42,55,.18);
+    transform:translateX(105%);
+    transition:transform .24s ease;
+  }
+  body[data-mode="coach"] .sidebar.is-open{transform:none}
+  body[data-mode="coach"] .side-toggle{display:grid;place-items:center}
+  body[data-mode="coach"] .fab{display:none}
+  .steps{max-width:100%}
+  .brand-sub{display:none}
+  .store-pill{display:none}
+}
+@media (max-width:720px){
+  .topbar{padding:8px 12px;gap:10px}
+  .brand-title{font-size:17px}
+  .brand-logo,.brand-logo img,.brand-logo svg{width:44px;height:44px}
+  .brand-han{font-size:10px;letter-spacing:.3em}
+  .mode-btn{padding:6px 12px;font-size:11.5px}
+  .stepbar{padding:8px 12px;gap:7px}
+  .frame-counter,.v-divider{display:none}
+  .btn{padding:7px 11px;font-size:12px}
+  .stage{padding:10px 10px 12px;gap:8px}
+  .board-hint{font-size:10.5px}
+  .pb-name{font-size:11px}
+  .cue-tag{top:6px;right:6px;padding:5px 9px;font-size:11px;max-width:calc(100% - 96px)}
+  .dock-thumb{width:56px}
+  .dock-thumb svg{height:38px}
+  .dock-card{flex:0 0 min(88vw,300px)}
+  .def-quick button{font-size:10px;padding:3px 8px}
+  /* iOS 聚焦輸入框時不自動放大畫面 */
+  .pb-name-input{font-size:16px}
+}
+/* ── 側欄收起（僅桌面 / 平板 >1100px；手機本來就是抽屜 + 🛠） ── */
+@media (min-width:1101px){
+  body.side-collapsed .stage{--side-w:0px;gap:14px 0}
+  body.side-collapsed .sidebar{display:none}
+  body.side-collapsed .board-hint{display:none}
+  body.side-collapsed .board-wrap{--board-h-chrome:232px}
+  body[data-mode="coach"].side-collapsed .side-expand{display:grid}
+}
+
+@media (max-width:860px){
+  .splash{padding:16px}
+  .splash-card{gap:10px;border-radius:20px}
+  .splash-actions{grid-template-columns:minmax(0,1fr);gap:10px}
+  .splash-btn{min-height:0;padding:13px 14px;align-items:center}
+  .splash-btn-ico{font-size:22px}
+  .splash-btn-txt b{font-size:14px}
+  .splash-title{letter-spacing:.03em}
+  .splash-sub{letter-spacing:.16em;line-height:1.6}
+}
+@media (max-width:720px){
+  .home-btn{width:34px;padding:0;gap:0;justify-content:center}
+  .home-btn .hb-txt{display:none}
+  .splash-foot{font-size:10px;letter-spacing:.02em}
+}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;transition-duration:.001ms !important}
+}
+</style>
+</head>
+<body data-mode="player">
+
+<!-- ══════════ 開場歡迎畫面（球員 / 教練身分選擇） ══════════ -->
+<section class="splash" id="splash" aria-labelledby="splashTitle">
+  <div class="splash-card">
+    <span class="splash-logo">
+      <img id="splashLogo" src="./WhatsApp%20Image%202026-11-05%20at%2011.27.43%20AM.jpeg"
+           alt="九龍城 Monday Beer 隊徽"
+           onerror="this.hidden=true;var f=document.getElementById('splashLogoFallback');if(f){f.hidden=false;}">
+      <span class="splash-logo-fallback" id="splashLogoFallback" hidden>MB</span>
+    </span>
+    <p class="splash-han">九龍城</p>
+    <h1 class="splash-title" id="splashTitle">MONDAY <em>BEER &amp; BASKETBALL</em></h1>
+    <p class="splash-sub">官方球隊戰術手冊 · TACTICAL PLAYBOOK</p>
+    <div class="splash-actions">
+      <button type="button" class="splash-btn is-player" id="enterPlayer"
+              aria-label="以球員身分進入：唯讀瀏覽戰術、即點即播">
+        <span class="splash-btn-ico" aria-hidden="true">🏃</span>
+        <span class="splash-btn-txt">
+          <b>我是球員</b><em>PLAYER MODE</em>
+          <span>唯讀瀏覽戰術手冊、即點即播、動畫教學</span>
+        </span>
+      </button>
+      <button type="button" class="splash-btn is-coach" id="enterCoach"
+              aria-label="以教練身分進入：需要教練密碼">
+        <span class="splash-btn-ico" aria-hidden="true">📋</span>
+        <span class="splash-btn-txt">
+          <b>我是教練</b><em>COACH MODE</em>
+          <span>編輯戰術、繪製跑位、儲存與管理</span>
+        </span>
+      </button>
+    </div>
+    <p class="splash-foot">選好身分即可進入 · 進站後可按 ⎋「切換身分」隨時回到此頁</p>
+  </div>
+</section>
+
+<div class="app">
+
+  <!-- ══════════ 頂部導航列 ══════════ -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-logo">
+        <img id="brandLogo"
+             src="./WhatsApp Image 2026-11-05 at 11.27.43 AM.jpeg"
+             alt="Monday Beer Logo"
+             onerror="this.hidden=true;var f=document.getElementById('brandLogoFallback');if(f)f.hidden=false;">
+        <svg id="brandLogoFallback" viewBox="0 0 64 64" role="img" hidden aria-hidden="true">
+          <defs>
+            <linearGradient id="logoGold" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#FFBA08"/><stop offset="1" stop-color="#B4462F"/>
+            </linearGradient>
+            <linearGradient id="logoBeer" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#FFDD8A"/><stop offset="1" stop-color="#F0A945"/>
+            </linearGradient>
+          </defs>
+          <circle cx="32" cy="32" r="30" fill="#EBF1F6" stroke="url(#logoGold)" stroke-width="3.2"/>
+          <circle cx="32" cy="32" r="24.5" fill="none" stroke="#B4462F" stroke-width="1.4" opacity=".75"/>
+          <circle cx="33" cy="31" r="14" fill="#B4462F"/>
+          <path d="M19 31h28M33 17v28M22.5 21.5c6 5.5 6 13.5 0 19M43.5 21.5c-6 5.5-6 13.5 0 19"
+                stroke="#1F2A37" stroke-width="1.5" fill="none" opacity=".85"/>
+          <path d="M26 15h12v17a6 6 0 0 1-12 0z" fill="url(#logoBeer)" stroke="#1F2A37" stroke-width="1.5"/>
+          <path d="M26 15c.6-3 3.6-4.2 5.8-3.2 1.2-2.2 4.4-2.2 5.6 0 2.2-1 5.2.2 5.6 3.2z"
+                fill="#FFFBEF" opacity=".95"/>
+          <path d="M47 20l-5.4 9.6h3.8L42 38.5l8.4-11.6h-4z" fill="#B4462F"/>
+        </svg>
+      </span>
+      <span class="brand-text">
+        <span class="brand-han">九龍城</span>
+        <span class="brand-title">MONDAY <em>BEER &amp; BASKETBALL</em></span>
+        <span class="brand-sub">戰術板 · TACTICS BOARD</span>
+      </span>
+    </div>
+
+    <div class="topbar-right">
+      <div class="mode-switch" role="group" aria-label="身分切換">
+        <button type="button" class="mode-btn is-active" data-mode="player" aria-pressed="true">球員模式</button>
+        <button type="button" class="mode-btn" data-mode="coach" aria-pressed="false">教練模式</button>
+      </div>
+      <span class="store-pill" id="storePill" title="目前儲存來源">本機儲存</span>
+      <button type="button" class="home-btn" id="btnHome" title="切換身分 / 返回首頁" aria-label="切換身分，返回首頁">
+        <span class="hb-ico" aria-hidden="true">⎋</span><span class="hb-txt">切換身分</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══════════ 步驟控制器 ══════════ -->
+  <div class="stepbar">
+    <div class="steps" id="stepList" role="tablist" aria-label="戰術步驟"></div>
+
+    <div class="step-actions coach-only">
+      <button type="button" class="icon-btn" id="btnAddStep" title="新增步驟" aria-label="新增步驟">＋</button>
+      <button type="button" class="icon-btn" id="btnDupStep" title="複製此步驟" aria-label="複製此步驟">⧉</button>
+      <button type="button" class="icon-btn" id="btnDelStep" title="刪除此步驟" aria-label="刪除此步驟">✕</button>
+    </div>
+
+    <div class="v-divider"></div>
+
+    <div class="playback">
+      <button type="button" class="icon-btn" id="btnPrev" title="上一步" aria-label="上一步">◀</button>
+      <button type="button" class="btn btn-primary" id="btnPlay"><span class="ico">▶</span>播放動畫</button>
+      <button type="button" class="icon-btn" id="btnNext" title="下一步" aria-label="下一步">▶</button>
+      <button type="button" class="icon-btn" id="btnLoop" title="循環播放 (L)" aria-label="循環播放" aria-pressed="false">∞</button>
+    </div>
+
+    <span class="frame-counter" id="frameCounter">1 / 1</span>
+    <button type="button" class="icon-btn pb-toggle" id="pbToggle"
+            title="戰術手冊" aria-label="開關戰術手冊" aria-expanded="false" aria-controls="playbook">☰</button>
+    <button type="button" class="icon-btn side-toggle coach-only" id="sideToggle"
+            title="教練工具" aria-label="開關教練工具列" aria-expanded="false" aria-controls="sidebar">🛠</button>
+    <div class="spacer"></div>
+
+    <button type="button" class="btn btn-gold" id="btnGif">⬇ 導出 GIF</button>
+    <button type="button" class="btn btn-ghost coach-only" id="btnSaveTactic">💾 儲存戰術</button>
+  </div>
+
+  <!-- ══════════ 主舞台 ══════════ -->
+  <main class="stage">
+
+    <!-- 戰術手冊側欄 -->
+    <aside class="playbook" id="playbook" aria-label="隊伍戰術手冊">
+      <div class="pb-head">
+        <h2>戰術手冊</h2>
+        <div class="pb-head-actions">
+          <button type="button" class="pb-refresh" id="pbRefresh" title="重新整理" aria-label="重新整理戰術清單">↻</button>
+          <button type="button" class="pb-close" id="pbClose" title="收起手冊" aria-label="收起戰術手冊">✕</button>
+        </div>
+      </div>
+
+      <!-- 教練專用：新增戰術（球員模式由 .coach-only 自動隱藏） -->
+      <div class="pb-new-row coach-only">
+        <button type="button" class="btn btn-primary btn-block pb-new" id="pbNewTactic"
+                title="清空畫布並建立新戰術">
+          <span aria-hidden="true">➕</span><span>新增戰術</span><em class="pb-new-en">NEW TACTIC</em>
+        </button>
+        <div class="pb-name-field">
+          <label class="pb-name-label" for="pbNameInput">戰術名稱</label>
+          <input type="text" id="pbNameInput" class="pb-name-input" maxlength="60"
+                 placeholder="請輸入戰術名稱" autocomplete="off" enterkeyhint="done">
+          <p class="pb-name-hint">輸入名稱 → 收起手冊 → 畫線／＋新增步驟 → 按「💾 儲存戰術」</p>
+        </div>
+      </div>
+
+      <div class="pb-scroll" id="pbScroll">
+        <p class="pb-group-title">經典戰術 <span id="pbLibCount">7 套</span></p>
+
+        <details class="pb-cat" open>
+          <summary>
+            <span class="pb-cat-label">破 2-1-2 聯防</span>
+            <span class="pb-cat-en">BEAT 2-1-2</span>
+            <span class="pb-cat-count" data-cat="beat212">2</span>
+          </summary>
+          <div class="pb-cat-list" data-cat="beat212"></div>
+        </details>
+
+        <details class="pb-cat" open>
+          <summary>
+            <span class="pb-cat-label">破 3-2 聯防</span>
+            <span class="pb-cat-en">BEAT 3-2</span>
+            <span class="pb-cat-count" data-cat="beat32">2</span>
+          </summary>
+          <div class="pb-cat-list" data-cat="beat32"></div>
+        </details>
+
+        <details class="pb-cat" open>
+          <summary>
+            <span class="pb-cat-label">底線開球</span>
+            <span class="pb-cat-en">BLOB</span>
+            <span class="pb-cat-count" data-cat="blob">3</span>
+          </summary>
+          <div class="pb-cat-list" data-cat="blob"></div>
+        </details>
+
+        <p class="pb-group-title">我的戰術 <span id="pbMineCount">0</span></p>
+        <div class="pb-list" id="pbList" role="list"></div>
+      </div>
+
+      <p class="pb-foot" id="pbFoot">點一下即可載入播放</p>
+    </aside>
+    <!-- 球場畫布 -->
+    <section class="board-panel" aria-label="戰術畫布">
+      <div class="board-restrict">
+        <div class="board-wrap">
+          <div class="board-holder" id="boardHolder">
+            <canvas id="board" width="1000" height="940" aria-label="籃球半場戰術畫布"></canvas>
+          </div>
+          <div class="board-overlay">
+            <span class="badge badge-lock" id="lockBadge">🔒 已鎖定 · 僅供閱覽</span>
+            <span class="badge badge-tool" id="toolBadge" hidden>繪製中：<b id="toolBadgeName">切入</b> · Esc 結束</span>
+          </div>
+          <span class="cue-tag" id="cueTag" aria-live="polite" hidden></span>
+        </div>
+      </div>
+      <p class="board-hint" id="boardHint">拖曳球員調整站位 · 選擇線條工具後在球場上拖曳繪製</p>
+
+      <!-- 手機 / 平板：步驟縮圖 + 解說卡 -->
+      <div class="mobile-dock" id="mobileDock">
+        <div class="def-quick coach-only" id="defQuick" aria-label="防守陣型快速套用"></div>
+        <div class="dock-thumbs" id="stepThumbs" role="tablist" aria-label="步驟縮圖"></div>
+        <div class="dock-cards" id="stepCards" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- 教練工具列 -->
+    <aside class="sidebar" id="sidebar" aria-label="教練工具列">
+
+      <header class="sidebar-head">
+        <b>教練工具</b><span>TOOLS</span>
+        <button type="button" class="side-collapse" id="sideCollapse"
+                title="收起工具列" aria-label="收起教練工具列" aria-expanded="true" aria-controls="sidebar">›</button>
+      </header>
+
+      <section class="panel">
+        <header class="panel-head"><h2>球員名單</h2><span>ROSTER 18</span></header>
+        <div class="pos-chips" id="posChips" role="group" aria-label="依位置篩選名單">
+          <button type="button" class="pos-chip is-on" data-pos="all" aria-pressed="true">全部<em>ALL</em></button>
+          <button type="button" class="pos-chip" data-pos="PG/SG" aria-pressed="false">PG/SG<em>後衛</em></button>
+          <button type="button" class="pos-chip" data-pos="SF/PF" aria-pressed="false">SF/PF<em>前鋒</em></button>
+          <button type="button" class="pos-chip" data-pos="PF/C" aria-pressed="false">PF/C<em>中前鋒</em></button>
+        </div>
+        <div class="roster-grid" id="rosterGrid" aria-label="球隊名單，點擊派上場"></div>
+        <p class="panel-note">點擊背號即可派上場</p>
+      </section>
+
+      <section class="panel">
+        <header class="panel-head"><h2>防守陣型</h2><span>DEFENSE</span></header>
+        <div class="def-grid" id="defGrid" aria-label="防守陣型預設，點擊套用">
+          <button type="button" class="def-btn is-default" data-preset="212" aria-label="套用 2-1-2 聯防（首選陣型）">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="6" cy="14" r="2.2" fill="#B4462F"/><circle cx="18" cy="14" r="2.2" fill="#B4462F"/>
+              <circle cx="12" cy="8.5" r="2.2" fill="#B4462F"/>
+              <circle cx="8" cy="3.6" r="2.2" fill="#2F6FA8"/><circle cx="16" cy="3.6" r="2.2" fill="#2F6FA8"/>
+            </svg><span>2-1-2 聯防</span><em class="def-badge">首選</em>
+          </button>
+          <button type="button" class="def-btn" data-preset="23" aria-label="套用 2-3 聯防">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="6" cy="12" r="2.2" fill="#B4462F"/><circle cx="18" cy="12" r="2.2" fill="#B4462F"/>
+              <circle cx="5" cy="4" r="2.2" fill="#2F6FA8"/><circle cx="12" cy="3" r="2.2" fill="#2F6FA8"/>
+              <circle cx="19" cy="4" r="2.2" fill="#2F6FA8"/>
+            </svg><span>2-3 聯防</span>
+          </button>
+          <button type="button" class="def-btn" data-preset="32" aria-label="套用 3-2 聯防">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="5" cy="11" r="2.2" fill="#B4462F"/><circle cx="12" cy="9.5" r="2.2" fill="#B4462F"/>
+              <circle cx="19" cy="11" r="2.2" fill="#B4462F"/>
+              <circle cx="8" cy="3.6" r="2.2" fill="#2F6FA8"/><circle cx="16" cy="3.6" r="2.2" fill="#2F6FA8"/>
+            </svg><span>3-2 聯防</span>
+          </button>
+          <button type="button" class="def-btn" data-preset="man" aria-label="套用人盯人防守">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="4" cy="15" r="2.2" fill="#2F6FA8"/><circle cx="9" cy="11" r="2.2" fill="#2F6FA8"/>
+              <circle cx="13" cy="14" r="2.2" fill="#2F6FA8"/><circle cx="17" cy="8" r="2.2" fill="#2F6FA8"/>
+              <circle cx="20" cy="13" r="2.2" fill="#2F6FA8"/>
+            </svg><span>人盯人</span>
+          </button>
+          <button type="button" class="def-btn def-btn-wide" id="btnCustomDef" data-preset="custom" aria-label="自訂防守：自由拖曳五位防守球員">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6.5 12.5V6.2a1.3 1.3 0 0 1 2.6 0v5.1M9.1 11.3V5.4a1.3 1.3 0 0 1 2.6 0v5.9M11.7 11.3V6.4a1.3 1.3 0 0 1 2.6 0v5.6"
+                    fill="none" stroke="#2F6FA8" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M14.3 12.2V9.1a1.3 1.3 0 0 1 2.6 0v5.2c0 3.3-2.2 5.7-5.4 5.7-2.4 0-3.6-.9-4.8-2.4l-2.6-3.4a1.35 1.35 0 0 1 2-1.8l2 1.9"
+                    fill="none" stroke="#2F6FA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="5.6" cy="4.2" r="1.7" fill="#B4462F"/><circle cx="18.4" cy="4.2" r="1.7" fill="#B4462F"/>
+            </svg><span>自訂防守</span>
+          </button>
+        </div>
+        <p class="panel-note">點擊即把 PG/SG/SF/PF/C 排成標準防區 · 自訂防守可自由拖曳</p>
+      </section>
+
+      <section class="panel">
+        <header class="panel-head"><h2>戰術線條</h2><span>ROUTES</span></header>
+        <div class="tool-grid">
+          <button type="button" class="tool" data-tool="cut" aria-label="直線切入箭頭">
+            <svg viewBox="0 0 32 16" aria-hidden="true">
+              <path d="M2 8h20" stroke="#B4462F" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M21 3l9 5-9 5z" fill="#B4462F"/>
+            </svg><span>切入</span>
+          </button>
+          <button type="button" class="tool" data-tool="pass" aria-label="虛線傳球箭頭">
+            <svg viewBox="0 0 32 16" aria-hidden="true">
+              <path d="M2 8h18" stroke="#2F6FA8" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="4 3"/>
+              <path d="M21 3l9 5-9 5z" fill="none" stroke="#2F6FA8" stroke-width="2"/>
+            </svg><span>傳球</span>
+          </button>
+          <button type="button" class="tool" data-tool="dribble" aria-label="波浪運球線">
+            <svg viewBox="0 0 32 16" aria-hidden="true">
+              <path d="M2 8q4-7 8 0t8 0t8 0" stroke="#C2622A" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+            </svg><span>運球</span>
+          </button>
+          <button type="button" class="tool" data-tool="screen" aria-label="T 型擋拆線">
+            <svg viewBox="0 0 32 16" aria-hidden="true">
+              <path d="M14 15V8" stroke="#A8791A" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M6 8h16" stroke="#A8791A" stroke-width="3.4" stroke-linecap="round"/>
+            </svg><span>擋拆</span>
+          </button>
+          <button type="button" class="tool" data-tool="select" aria-label="選取工具">
+            <svg viewBox="0 0 32 16" aria-hidden="true">
+              <path d="M6 2l10 12 2-5 5-1z" fill="#7B8C9E"/>
+            </svg><span>選取</span>
+          </button>
+          <button type="button" class="tool" data-tool="eraser" aria-label="橡皮擦">
+            <svg viewBox="0 0 32 16" aria-hidden="true">
+              <rect x="6" y="4" width="14" height="9" rx="2" fill="none" stroke="#7B8C9E" stroke-width="2"/>
+              <path d="M12 13h12" stroke="#7B8C9E" stroke-width="2" stroke-linecap="round"/>
+            </svg><span>橡皮</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header class="panel-head"><h2>動作</h2><span>ACTIONS</span></header>
+        <div class="action-col">
+          <button type="button" class="btn btn-primary btn-block" id="btnSaveStep">💾 儲存此步驟</button>
+          <button type="button" class="btn btn-block" id="btnClear">🧽 清除繪圖</button>
+          <button type="button" class="btn btn-block" id="btnPng">🖼 匯出 PNG</button>
+          <button type="button" class="btn btn-block" id="btnUndo">↶ 復原 (Ctrl+Z)</button>
+          <button type="button" class="btn btn-danger btn-block" id="btnReset">⟲ 重設球場</button>
+        </div>
+      </section>
+
+      <details class="panel panel-collapse" id="defBallPanel">
+        <summary>
+          <span class="panel-title">防守與球</span>
+          <span class="panel-sub">DEFENSE &amp; BALL</span>
+        </summary>
+        <div class="node-grid">
+          <button type="button" class="node node-def" data-tool="def1" aria-label="加入防守 PG">PG</button>
+          <button type="button" class="node node-def" data-tool="def2" aria-label="加入防守 SG">SG</button>
+          <button type="button" class="node node-def" data-tool="def3" aria-label="加入防守 SF">SF</button>
+          <button type="button" class="node node-def" data-tool="def4" aria-label="加入防守 PF">PF</button>
+          <button type="button" class="node node-def" data-tool="def5" aria-label="加入防守 C">C</button>
+          <button type="button" class="node node-ball" data-tool="ball" aria-label="加入籃球">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <circle cx="16" cy="16" r="13" fill="#F37021" stroke="#1F2A37" stroke-width="2"/>
+              <path d="M3 16h26M16 3v26M6 7c6 6 6 12 0 18M26 7c-6 6-6 12 0 18"
+                    stroke="#1F2A37" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <p class="panel-note">進攻球員請由上方名單派上場</p>
+      </details>
+
+    </aside>
+  </main>
+
+  <div class="pb-scrim" id="pbScrim" hidden></div>
+
+</div>
+<button type="button" class="fab" id="fab" aria-label="開啟教練工具列">🛠</button>
+<button type="button" class="side-expand coach-only" id="sideExpand"
+        title="展開教練工具列" aria-label="展開教練工具列" aria-expanded="false" aria-controls="sidebar">‹</button>
+
+<!-- ══════════ 教練密碼 ══════════ -->
+<div class="modal" id="pwModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="pwTitle">
+    <h2 id="pwTitle">教練模式解鎖</h2>
+    <p class="modal-desc">輸入教練密碼以開啟戰術編輯工具。<span class="hint-code">預設密碼：coach888</span></p>
+    <form id="pwForm" novalidate>
+      <label class="field-label" for="pwInput">教練密碼</label>
+      <input type="password" id="pwInput" class="input" autocomplete="current-password" placeholder="請輸入密碼">
+      <p class="form-error" id="pwError" role="alert"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close="pwModal">取消</button>
+        <button type="submit" class="btn btn-primary">解鎖</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════ 命名 / 重新命名（通用文字輸入） ══════════ -->
+<div class="modal" id="textModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="textTitle">
+    <h2 id="textTitle">儲存戰術</h2>
+    <p class="modal-desc" id="textDesc">輸入名稱後儲存到左側戰術手冊。</p>
+    <form id="textForm" novalidate>
+      <label class="field-label" for="textInput" id="textLabel">戰術名稱</label>
+      <input type="text" id="textInput" class="input" maxlength="60" placeholder="例：Horns 45 擋拆">
+      <p class="form-error" id="textError" role="alert"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close="textModal">取消</button>
+        <button type="submit" class="btn btn-primary" id="textOk">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════ 通用確認 ══════════ -->
+<div class="modal" id="confirmModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <h2 id="confirmTitle">確認</h2>
+    <p class="modal-desc" id="confirmDesc">確定要執行此動作嗎？</p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="confirmCancel">取消</button>
+      <button type="button" class="btn btn-danger" id="confirmOk">確定</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
+
+<div class="loader" id="loader" hidden>
+  <div class="loader-card" role="status" aria-live="polite">
+    <div class="spinner"></div>
+    <p class="loader-label" id="loaderLabel">生成 GIF 中…</p>
+    <div class="progress"><span id="loaderBar"></span></div>
+    <p class="loader-pct" id="loaderPct">0%</p>
+  </div>
+</div>
+
+<!-- ══════════ 第三方函式庫（CDN，全部 defer） ══════════ -->
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/gifshot@0.4.5/dist/gifshot.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+<script>
+/* ============================================================
+   §1 設定與狀態
+   ============================================================ */
+'use strict';
+
+/* ── Supabase 設定（填入這兩個值即自動切換為雲端儲存） ──────────
+   1. 到 https://supabase.com 建立專案
+   2. 在 SQL Editor 執行：
+      create table if not exists tactics (
+        id uuid primary key default gen_random_uuid(),
+        name text not null,
+        frames jsonb not null default '[]'::jsonb,
+        meta jsonb not null default '{}'::jsonb,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now()
+      );
+      alter table tactics enable row level security;
+      create policy "public read"   on tactics for select using (true);
+      create policy "public write"  on tactics for insert with check (true);
+      create policy "public update" on tactics for update using (true);
+      create policy "public delete" on tactics for delete using (true);
+   3. Project Settings → API，複製 Project URL 與 anon public key 貼到下方
+   ──────────────────────────────────────────────────────────── */
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_TABLE = 'tactics';
+
+/* ── 教練密碼（前端遮蔽用，非資安等級驗證） ── */
+const COACH_PASSWORD = 'coach888';
+
+/* ── 畫布邏輯解析度（CSS 縮放不影響座標） ── */
+const BASE_W = 1000;
+const BASE_H = 940;
+
+/* ── 球場比例：BASE_W = 15m（FIBA 標準球場寬度）→ 1px = 1.5cm ──
+   BASE_H = 940px ≒ 14.1m，等於半場長度，因此整張畫布就是一個標準半場。 */
+const PX_PER_M = BASE_W / 15;
+const COURT = {
+  rim: { x: BASE_W / 2, y: 1.575 * PX_PER_M },   // 籃框中心 (500, 105)
+  boardY: 1.2 * PX_PER_M,                        // 籃板 80
+  boardW: 1.8 * PX_PER_M,                        // 籃板寬 120
+  paintHalfW: 2.45 * PX_PER_M,                   // 禁區半寬 163.3
+  paintDepth: 5.8 * PX_PER_M,                    // 禁區深 386.7（罰球線）
+  ftR: 1.8 * PX_PER_M,                           // 罰球圈 120
+  threeR: 6.75 * PX_PER_M,                       // 三分弧 450
+  cornerX: 0.9 * PX_PER_M,                       // 底角距邊線 60
+  restrictR: 1.25 * PX_PER_M,                    // 衝撞區 83.3
+  centerR: 1.8 * PX_PER_M                        // 中圈 120
+};
+/* 三分線「底角直線」與弧線交會處：rimY + √(threeR² − (半場寬 − 底角距)²) */
+const COURT_THREE_JOIN_Y = COURT.rim.y +
+  Math.sqrt(Math.pow(COURT.threeR, 2) - Math.pow(BASE_W / 2 - COURT.cornerX, 2));
+
+/* ── 動畫 / GIF 參數 ── */
+const PLAYBACK_DURATION = 900;   // 單次步驟過場毫秒
+const PLAYBACK_HOLD = 260;       // 每步停留毫秒
+const LOOP_GAP = 620;            // 循環播放的重播間隔毫秒
+const GIF_SAMPLES = 9;           // 每段過場插入的補間影格數
+const GIF_SCALE = 0.64;          // 匯出縮放（1000 × 0.64 = 640px 寬）
+const UNDO_LIMIT = 40;
+
+/* ── 主題色（Canvas 用）── 淺色白板風：紙白底、磚紅進攻、防守藍 ── */
+const THEME = {
+  navy: '#EBF1F6',        // 畫布底色（紙白）
+  navyDeep: '#FFFFFF',    // 防守員白底
+  paper: '#F7FAFC',
+  paperDeep: '#E7EEF5',
+  brick: '#B4462F',       // 進攻／籃框（磚紅）
+  brickDeep: '#933722',
+  brickLight: '#C9533A',
+  blue: '#2F6FA8',        // 防守（藍）
+  blueDeep: '#265A88',
+  orange: '#F37021',      // 持球光暈／強調
+  orangeSoft: '#C2622A',
+  gold: '#A8791A',
+  goldSoft: '#E8A400',
+  cream: '#1F2A37',       // 深墨（線／文字）
+  ink: '#1F2A37',
+  inkSoft: '#4A5A6A',
+  muted: '#7B8C9E',
+  line: 'rgba(31,42,55,.62)',        // 白板灰線
+  lineGold: 'rgba(31,42,55,.62)',    // 三分線同用灰線
+  accentLine: 'rgba(180,70,47,.85)', // 衝撞區磚紅
+  glow: '#F37021'
+};
+
+/* ── 線條顏色 / 名稱 ── */
+const LINE_COLORS = {
+  cut: THEME.brick, pass: THEME.blue, dribble: THEME.orangeSoft, screen: THEME.gold,
+  def: THEME.blue          // 防守移動線：只由「拖曳防守員」自動產生，不放手動工具列
+};
+const LINE_LABELS = { cut: '切入', pass: '傳球', dribble: '運球', screen: '擋拆', def: '防守移動' };
+const LINE_TOOLS = ['cut', 'pass', 'dribble', 'screen'];
+
+/* ── 預設站位（進攻往上方籃框：籃框 y=105、禁區 337–663 × 0–387） ── */
+const OFF_SPOTS = {
+  off1: { x: 500, y: 660 }, off2: { x: 215, y: 470 }, off3: { x: 785, y: 470 },
+  off4: { x: 355, y: 255 }, off5: { x: 645, y: 255 }
+};
+/* 防守預設站位 = 首選陣型 2-1-2（PG 上提、SG/SF 兩翼、PF/C 護框） */
+const DEF_SPOTS = {
+  def1: { x: 500, y: 340 },
+  def2: { x: 300, y: 505 }, def3: { x: 700, y: 505 },
+  def4: { x: 390, y: 165 }, def5: { x: 610, y: 165 }
+};
+const BALL_SPOT = { x: 560, y: 690 };
+/* ── 防守陣型預設（邏輯像素座標，1px = 1.5cm；籃框 y=105、禁區 337–663 × 0–387） ── */
+const DEFENSE_PRESETS = {
+  '212': {
+    label: '2-1-2 聯防',
+    default: true,
+    spots: {
+      def2: { x: 300, y: 505 }, def3: { x: 700, y: 505 },
+      def1: { x: 500, y: 340 },
+      def4: { x: 390, y: 165 }, def5: { x: 610, y: 165 }
+    }
+  },
+  '23': {
+    label: '2-3 聯防',
+    spots: {
+      def2: { x: 330, y: 490 }, def3: { x: 670, y: 490 },
+      def4: { x: 300, y: 170 }, def1: { x: 500, y: 150 }, def5: { x: 700, y: 170 }
+    }
+  },
+  '32': {
+    label: '3-2 聯防',
+    spots: {
+      def2: { x: 290, y: 500 }, def1: { x: 500, y: 465 }, def3: { x: 710, y: 500 },
+      def4: { x: 390, y: 175 }, def5: { x: 610, y: 175 }
+    }
+  },
+  man: { label: '人盯人', spots: null },
+  custom: { label: '自訂防守', spots: null, custom: true }
+};
+const NODE_LABELS = {
+  off1: '1', off2: '2', off3: '3', off4: '4', off5: '5',
+  def1: 'PG', def2: 'SG', def3: 'SF', def4: 'PF', def5: 'C'
+};
+/* 防守員位置縮寫（提示文案用） */
+const DEF_LABELS_TEXT = 'PG/SG/SF/PF/C';
+
+/* ── 球隊名單（背號 / 姓名 / 位置）── 位置：PG·SG 後衛、SF·PF 前鋒、PF·C 中前鋒 ── */
+const ROSTER = [
+  { no: 0, name: '陳生', pos: 'PG' },
+  { no: 1, name: 'Yuka', pos: 'PG/SG' },
+  { no: 5, name: 'Jona', pos: 'SG' },
+  { no: 6, name: '老楊', pos: 'SG/SF' },
+  { no: 7, name: '柱', pos: 'SF' },
+  { no: 8, name: '朗', pos: 'PG/SG' },
+  { no: 9, name: 'Ming', pos: 'SG' },
+  { no: 10, name: 'Jacky', pos: 'SF/PF' },
+  { no: 11, name: 'Derek', pos: 'SF' },
+  { no: 12, name: '熙', pos: 'SG/SF' },
+  { no: 14, name: 'Tim', pos: 'SF/PF' },
+  { no: 21, name: '聰', pos: 'PF' },
+  { no: 31, name: 'Sai', pos: 'PF/C' },
+  { no: 34, name: 'Kenny', pos: 'C' },
+  { no: 35, name: '龍', pos: 'PF/C' },
+  { no: 50, name: '雷神', pos: 'C' },
+  { no: 87, name: 'YoYo', pos: 'PF' },
+  { no: 99, name: '雞', pos: 'C' }
+];
+/* 預設 5 對 5：off1~off5 依序對應的名單背號 */
+const OFF_ROSTER = [1, 5, 34, 0, 31];
+/* 名單球員上場落點（6 欄網格，避開兩側戰術區塊） */
+const ROSTER_SPAWN = { x0: 150, y0: 866, dx: 140, dy: 74, cols: 6 };
+
+function rosterByNo(no) {
+  const target = Number(no);
+  for (let i = 0; i < ROSTER.length; i++) {
+    if (ROSTER[i].no === target) return ROSTER[i];
+  }
+  return null;
+}
+
+/* ── 全域狀態 ── */
+let canvas = null;
+let courtGroup = null;
+
+const state = {
+  mode: 'player',
+  tool: 'select',
+  frames: [],
+  currentFrame: 0,
+  playing: false,
+  exporting: false,
+  loop: true,
+  stopRequested: false,
+  playbackEnd: null,
+  draw: null,
+  undo: [],
+  tacticId: null,
+  tacticName: '',
+  playbookItems: [],
+  tweening: false,
+  customDefense: false,
+  rosterFilter: 'all',
+  nodeDrag: null,
+  memoryStore: {}
+};
+/* ============================================================
+   §2 通用工具
+   ============================================================ */
+const $ = (sel, root) => (root || document).querySelector(sel);
+const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+const uid = () => 'f' + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
+const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function escapeHtml(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[ch]);
+}
+
+function toast(message, type) {
+  const stack = $('#toastStack');
+  if (!stack) return;
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' is-' + type : '');
+  el.textContent = message;
+  stack.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(8px)';
+    el.style.transition = 'opacity .2s ease, transform .2s ease';
+    setTimeout(() => el.remove(), 220);
+  }, 2800);
+}
+
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.hidden = false;
+}
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.hidden = true;
+}
+function closeAllModals() {
+  if (textResolver) settleText(null);
+  $$('.modal').forEach((el) => { el.hidden = true; });
+}
+
+let confirmResolver = null;
+function confirmDialog(title, desc, okText) {
+  $('#confirmTitle').textContent = title || '確認';
+  $('#confirmDesc').textContent = desc || '';
+  $('#confirmOk').textContent = okText || '確定';
+  openModal('confirmModal');
+  return new Promise((resolve) => {
+    confirmResolver = resolve;
+  });
+}
+function settleConfirm(result) {
+  closeModal('confirmModal');
+  const fn = confirmResolver;
+  confirmResolver = null;
+  if (fn) fn(result);
+}
+
+/* ── 通用單行文字輸入（儲存戰術 / 重新命名） ── */
+let textResolver = null;
+function promptText(options) {
+  const opt = options || {};
+  $('#textTitle').textContent = opt.title || '輸入名稱';
+  $('#textDesc').textContent = opt.desc || '';
+  $('#textLabel').textContent = opt.label || '名稱';
+  $('#textOk').textContent = opt.okText || '確定';
+  $('#textInput').value = opt.value || '';
+  $('#textInput').placeholder = opt.placeholder || '';
+  $('#textError').textContent = '';
+  $('#textInput').classList.remove('is-invalid');
+  openModal('textModal');
+  setTimeout(function () {
+    const input = $('#textInput');
+    input.focus();
+    input.select();
+  }, 40);
+  return new Promise(function (resolve) { textResolver = resolve; });
+}
+function settleText(value) {
+  closeModal('textModal');
+  const fn = textResolver;
+  textResolver = null;
+  if (fn) fn(value);
+}
+
+function showLoader(label, pct) {
+  $('#loaderLabel').textContent = label || '處理中…';
+  $('#loader').hidden = false;
+  setLoaderProgress(pct || 0);
+}
+function setLoaderProgress(pct) {
+  const value = clamp(Math.round(pct), 0, 100);
+  $('#loaderBar').style.width = value + '%';
+  $('#loaderPct').textContent = value + '%';
+}
+function setLoaderLabel(label) {
+  $('#loaderLabel').textContent = label;
+}
+function hideLoader() {
+  $('#loader').hidden = true;
+  setLoaderProgress(0);
+}
+
+function downloadDataUrl(dataUrl, filename) {
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function timestampName(prefix) {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return prefix + '_' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) +
+    '-' + pad(d.getHours()) + pad(d.getMinutes());
+}
+
+/* ── 匯出檔名：直接用戰術名稱 ──
+   「直線排開 · 底線發球」→ 直線排開_底線發球.gif
+   「破 2-1-2 聯防：雙肘區策應」→ 破2-1-2聯防_雙肘區策應.gif
+   沒有名稱時退回 MondayBeer_Tactic.gif */
+function tacticFileName(ext) {
+  let base = String(state.tacticName || '').trim();
+  base = base
+    .replace(/[·・•：:／\/\\|｜?？*"<>《》〈〉,，、;；!！]/g, '_')
+    .replace(/\s+/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .replace(/[.。]+$/g, '');
+  if (base.length > 60) base = base.slice(0, 60);
+  if (!base) base = 'MondayBeer_Tactic';
+  return base + '.' + String(ext || 'gif').replace(/^\./, '');
+}
+/* ============================================================
+   §3 儲存層：Supabase 優先，localStorage 自動回退
+   ============================================================ */
+const LS_INDEX_KEY = 'mbab:tactics:index';
+const LS_TACTIC_PREFIX = 'mbab:tactic:';
+let supabaseClient = null;
+
+function isConfigured(value) {
+  return typeof value === 'string' && value.length > 12 && value.indexOf('YOUR_') === -1;
+}
+function supabaseReady() {
+  return !!(window.supabase && window.supabase.createClient &&
+    isConfigured(SUPABASE_URL) && isConfigured(SUPABASE_ANON_KEY));
+}
+function getSupabaseClient() {
+  if (!supabaseReady()) return null;
+  if (!supabaseClient) {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  return supabaseClient;
+}
+
+/* ── localStorage / 記憶體回退（file:// 或私密模式） ── */
+function lsGet(key) {
+  try {
+    const value = window.localStorage.getItem(key);
+    return value === null ? (state.memoryStore[key] || null) : value;
+  } catch (err) {
+    return state.memoryStore[key] || null;
+  }
+}
+function lsSet(key, value) {
+  state.memoryStore[key] = value;
+  try { window.localStorage.setItem(key, value); } catch (err) { /* 記憶體模式 */ }
+}
+
+function localIndex() {
+  try {
+    const parsed = JSON.parse(lsGet(LS_INDEX_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    return [];
+  }
+}
+function localSave(payload) {
+  const id = payload.id || ('loc-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+  const record = {
+    id: id,
+    name: payload.name || '未命名戰術',
+    frames: payload.frames || [],
+    meta: payload.meta || {},
+    updated_at: new Date().toISOString()
+  };
+  lsSet(LS_TACTIC_PREFIX + id, JSON.stringify(record));
+  const index = localIndex().filter((item) => item.id !== id);
+  index.unshift({ id: id, name: record.name, updated_at: record.updated_at });
+  lsSet(LS_INDEX_KEY, JSON.stringify(index.slice(0, 100)));
+  return record;
+}
+function localLoad(id) {
+  const raw = lsGet(LS_TACTIC_PREFIX + id);
+  if (!raw) throw new Error('找不到本機戰術');
+  return JSON.parse(raw);
+}
+function localRemove(id) {
+  lsSet(LS_TACTIC_PREFIX + id, '');
+  try { window.localStorage.removeItem(LS_TACTIC_PREFIX + id); } catch (err) { /* noop */ }
+  lsSet(LS_INDEX_KEY, JSON.stringify(localIndex().filter((item) => item.id !== id)));
+}
+/* 本機改名：同步更新單筆紀錄與索引 */
+function localRename(id, name) {
+  const clean = String(name || '').trim() || '未命名戰術';
+  const now = new Date().toISOString();
+  const raw = lsGet(LS_TACTIC_PREFIX + id);
+  if (raw) {
+    try {
+      const record = JSON.parse(raw);
+      record.name = clean;
+      record.updated_at = now;
+      lsSet(LS_TACTIC_PREFIX + id, JSON.stringify(record));
+    } catch (err) { /* 損壞的紀錄就只更新索引 */ }
+  }
+  const index = localIndex().map((item) => (item.id === id
+    ? { id: item.id, name: clean, updated_at: now }
+    : item));
+  lsSet(LS_INDEX_KEY, JSON.stringify(index.slice(0, 100)));
+  return { id: id, name: clean, updated_at: now };
+}
+
+/* ── Supabase CRUD ── */
+async function sbSave(payload) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase 未設定');
+  const row = {
+    name: payload.name || '未命名戰術',
+    frames: payload.frames || [],
+    meta: payload.meta || {},
+    updated_at: new Date().toISOString()
+  };
+  const query = payload.id
+    ? client.from(SUPABASE_TABLE).update(row).eq('id', payload.id)
+    : client.from(SUPABASE_TABLE).insert(row);
+  const res = await query.select().single();
+  if (res.error) throw res.error;
+  return res.data;
+}
+async function sbList() {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase 未設定');
+  const res = await client.from(SUPABASE_TABLE)
+    .select('id,name,updated_at').order('updated_at', { ascending: false }).limit(100);
+  if (res.error) throw res.error;
+  return res.data || [];
+}
+async function sbLoad(id) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase 未設定');
+  const res = await client.from(SUPABASE_TABLE).select('*').eq('id', id).single();
+  if (res.error) throw res.error;
+  return res.data;
+}
+async function sbRemove(id) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase 未設定');
+  const res = await client.from(SUPABASE_TABLE).delete().eq('id', id);
+  if (res.error) throw res.error;
+  return true;
+}
+async function sbRename(id, name) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase 未設定');
+  const res = await client.from(SUPABASE_TABLE)
+    .update({ name: String(name || '').trim() || '未命名戰術', updated_at: new Date().toISOString() })
+    .eq('id', id).select().single();
+  if (res.error) throw res.error;
+  return res.data;
+}
+
+/* ── 對外統一介面 ── */
+const store = {
+  mode() { return supabaseReady() ? 'supabase' : 'local'; },
+
+  async save(payload) {
+    if (supabaseReady()) {
+      try {
+        const data = await sbSave(payload);
+        return { record: data, source: 'supabase' };
+      } catch (err) {
+        console.warn('[supabase] save failed, fallback to local', err);
+        return { record: localSave(payload), source: 'local', fallback: true, error: err };
+      }
+    }
+    return { record: localSave(payload), source: 'local' };
+  },
+
+  async list() {
+    const items = [];
+    if (supabaseReady()) {
+      try {
+        const rows = await sbList();
+        rows.forEach((row) => items.push({
+          id: row.id, name: row.name, updated_at: row.updated_at, source: 'supabase'
+        }));
+      } catch (err) {
+        console.warn('[supabase] list failed', err);
+      }
+    }
+    localIndex().forEach((item) => items.push({
+      id: item.id, name: item.name, updated_at: item.updated_at, source: 'local'
+    }));
+    return items.sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
+  },
+
+  async load(id, source) {
+    if (source === 'local') return localLoad(id);
+    if (supabaseReady()) {
+      try { return await sbLoad(id); } catch (err) { console.warn('[supabase] load failed', err); }
+    }
+    return localLoad(id);
+  },
+
+  async remove(id, source) {
+    if (source === 'local') { localRemove(id); return true; }
+    if (supabaseReady()) { await sbRemove(id); return true; }
+    localRemove(id);
+    return true;
+  },
+
+  async rename(id, source, name) {
+    if (source === 'local') return localRename(id, name);
+    if (supabaseReady()) {
+      try {
+        const row = await sbRename(id, name);
+        return { id: row.id, name: row.name, updated_at: row.updated_at };
+      } catch (err) {
+        console.warn('[supabase] rename failed, fallback to local', err);
+      }
+    }
+    return localRename(id, name);
+  }
+};
+
+function updateStorePill() {
+  const pill = $('#storePill');
+  if (!pill) return;
+  if (supabaseReady()) {
+    pill.textContent = 'Supabase 雲端';
+    pill.classList.add('is-cloud');
+    pill.title = '已連線 Supabase，戰術會儲存到雲端資料表 ' + SUPABASE_TABLE;
+  } else {
+    pill.textContent = '本機儲存';
+    pill.classList.remove('is-cloud');
+    pill.title = '尚未設定 Supabase，戰術儲存在此瀏覽器的 localStorage';
+  }
+}
+/* ============================================================
+   §4 球場繪製（原生 Fabric 物件，一個 Group 包住）
+   ============================================================ */
+function buildCourt() {
+  const objects = [];
+  const L = THEME.line;
+  const GOLD = THEME.lineGold;
+  const rimX = COURT.rim.x;
+  const rimY = COURT.rim.y;
+  const paintL = rimX - COURT.paintHalfW;
+  const paintR = rimX + COURT.paintHalfW;
+  const paintB = COURT.paintDepth;
+  const joinY = COURT_THREE_JOIN_Y;
+  const n = function (v) { return Math.round(v * 100) / 100; };
+
+  /* 地板：紙白漸層（白板底） */
+  objects.push(new fabric.Rect({
+    left: 0, top: 0, width: BASE_W, height: BASE_H, strokeWidth: 0,
+    selectable: false, evented: false,
+    fill: new fabric.Gradient({
+      type: 'linear',
+      gradientUnits: 'pixels',
+      coords: { x1: 0, y1: 0, x2: BASE_W, y2: BASE_H },
+      colorStops: [
+        { offset: 0, color: '#F7FAFD' },
+        { offset: 0.5, color: '#EDF3F8' },
+        { offset: 1, color: '#EBF1F6' }
+      ]
+    })
+  }));
+
+  /* 木地板拼條：淡墨縫 + 白亮邊 */
+  let boards = '';
+  for (let x = 0; x <= BASE_W; x += 62) boards += 'M ' + x + ' 0 L ' + x + ' ' + BASE_H + ' ';
+  objects.push(new fabric.Path(boards, {
+    stroke: 'rgba(31,42,55,.055)', strokeWidth: 2, fill: '', selectable: false, evented: false
+  }));
+  objects.push(new fabric.Path(boards, {
+    stroke: 'rgba(255,255,255,.75)', strokeWidth: 1, fill: '', left: 2,
+    selectable: false, evented: false
+  }));
+
+  /* 木紋波浪（極低透明度，白板上只留隱約紋理） */
+  let grain = '';
+  for (let x = 0; x < BASE_W; x += 62) {
+    for (let g = 1; g <= 3; g++) {
+      const baseY = (x * 37 + g * 233) % BASE_H;
+      const amp = 4 + (g % 2) * 3;
+      let d = 'M ' + x + ' ' + n(baseY);
+      for (let t = 1; t <= 4; t++) {
+        const sx = x + 62 * t / 4;
+        d += ' Q ' + n(sx - 8) + ' ' + n(baseY + (t % 2 ? -amp : amp)) + ' ' + n(sx) + ' ' + n(baseY);
+      }
+      grain += d + ' ';
+    }
+  }
+  objects.push(new fabric.Path(grain, {
+    stroke: 'rgba(31,42,55,.03)', strokeWidth: 1.4, fill: '',
+    selectable: false, evented: false
+  }));
+
+  /* 三分弧內的極淡藍光 + 禁區底漆（磚紅淡化） */
+  objects.push(new fabric.Circle({
+    left: n(rimX - COURT.threeR), top: n(rimY - COURT.threeR), radius: n(COURT.threeR),
+    fill: 'rgba(47,111,168,.035)', strokeWidth: 0, selectable: false, evented: false
+  }));
+  objects.push(new fabric.Rect({
+    left: n(paintL), top: 0, width: n(paintR - paintL), height: n(paintB),
+    fill: 'rgba(180,70,47,.075)', strokeWidth: 0, selectable: false, evented: false
+  }));
+
+  /* 邊緣極淡收邊，讓紙面有厚薄感 */
+  objects.push(new fabric.Rect({
+    left: 0, top: 0, width: BASE_W, height: BASE_H, strokeWidth: 0,
+    selectable: false, evented: false,
+    fill: new fabric.Gradient({
+      type: 'radial', gradientUnits: 'pixels',
+      coords: { x1: BASE_W / 2, y1: BASE_H * 0.4, r1: 120, x2: BASE_W / 2, y2: BASE_H * 0.4, r2: BASE_W * 0.8 },
+      colorStops: [
+        { offset: 0, color: 'rgba(31,42,55,0)' },
+        { offset: 0.68, color: 'rgba(31,42,55,.03)' },
+        { offset: 1, color: 'rgba(31,42,55,.09)' }
+      ]
+    })
+  }));
+
+  /* 禁區框（三面） */
+  objects.push(new fabric.Path(
+    'M ' + n(paintL) + ' 0 L ' + n(paintL) + ' ' + n(paintB) +
+    ' L ' + n(paintR) + ' ' + n(paintB) + ' L ' + n(paintR) + ' 0',
+    { stroke: L, strokeWidth: 6, fill: '', strokeLineJoin: 'round' }
+  ));
+
+  /* 三分線：底角直線 + 6.75m 弧（金色） */
+  objects.push(new fabric.Path(
+    'M ' + n(COURT.cornerX) + ' 0 L ' + n(COURT.cornerX) + ' ' + n(joinY) +
+    ' A ' + n(COURT.threeR) + ' ' + n(COURT.threeR) + ' 0 0 0 ' +
+    n(BASE_W - COURT.cornerX) + ' ' + n(joinY) +
+    ' L ' + n(BASE_W - COURT.cornerX) + ' 0',
+    { stroke: GOLD, strokeWidth: 6, fill: '', strokeLineCap: 'round' }
+  ));
+
+  /* 罰球圈：禁區外半實線、禁區內半虛線 */
+  objects.push(new fabric.Path(
+    'M ' + n(rimX - COURT.ftR) + ' ' + n(paintB) +
+    ' A ' + n(COURT.ftR) + ' ' + n(COURT.ftR) + ' 0 0 0 ' + n(rimX + COURT.ftR) + ' ' + n(paintB),
+    { stroke: L, strokeWidth: 6, fill: '' }
+  ));
+  objects.push(new fabric.Path(
+    'M ' + n(rimX - COURT.ftR) + ' ' + n(paintB) +
+    ' A ' + n(COURT.ftR) + ' ' + n(COURT.ftR) + ' 0 0 1 ' + n(rimX + COURT.ftR) + ' ' + n(paintB),
+    { stroke: 'rgba(31,42,55,.42)', strokeWidth: 4, fill: '', strokeDashArray: [14, 11] }
+  ));
+
+  /* 衝撞區半圓（橙）：兩側 0.375m 直線 + 1.25m 弧 */
+  objects.push(new fabric.Path(
+    'M ' + n(rimX - COURT.restrictR) + ' ' + n(rimY - 0.375 * PX_PER_M) +
+    ' L ' + n(rimX - COURT.restrictR) + ' ' + n(rimY) +
+    ' A ' + n(COURT.restrictR) + ' ' + n(COURT.restrictR) + ' 0 0 0 ' +
+    n(rimX + COURT.restrictR) + ' ' + n(rimY) +
+    ' L ' + n(rimX + COURT.restrictR) + ' ' + n(rimY - 0.375 * PX_PER_M),
+    { stroke: THEME.accentLine, strokeWidth: 5, fill: '', strokeLineCap: 'round' }
+  ));
+
+  /* 中圈半弧（金色）+ 中線 */
+  objects.push(new fabric.Path(
+    'M ' + n(rimX - COURT.centerR) + ' ' + BASE_H +
+    ' A ' + n(COURT.centerR) + ' ' + n(COURT.centerR) + ' 0 0 1 ' + n(rimX + COURT.centerR) + ' ' + BASE_H,
+    { stroke: GOLD, strokeWidth: 6, fill: '' }
+  ));
+  objects.push(new fabric.Line([0, BASE_H - 3, BASE_W, BASE_H - 3], {
+    stroke: L, strokeWidth: 6
+  }));
+
+  /* 禁區兩側刻線（距底線 2.10 / 2.95 / 3.80 / 4.65m） */
+  let laneMarks = '';
+  [2.10, 2.95, 3.80, 4.65].forEach(function (m) {
+    const y = n(m * PX_PER_M);
+    laneMarks += 'M ' + n(paintL - 26) + ' ' + y + ' L ' + n(paintL) + ' ' + y + ' ';
+    laneMarks += 'M ' + n(paintR) + ' ' + y + ' L ' + n(paintR + 26) + ' ' + y + ' ';
+  });
+  objects.push(new fabric.Path(laneMarks, { stroke: L, strokeWidth: 6, fill: '' }));
+
+  /* 籃板 + 籃框內框（籃板距底線 1.2m、寬 1.8m；籃框 1.575m） */
+  objects.push(new fabric.Line(
+    [n(rimX - COURT.boardW / 2), n(COURT.boardY), n(rimX + COURT.boardW / 2), n(COURT.boardY)],
+    { stroke: THEME.cream, strokeWidth: 8, strokeLineCap: 'round' }
+  ));
+  objects.push(new fabric.Path(
+    'M ' + n(rimX - 0.295 * PX_PER_M) + ' ' + n(COURT.boardY) +
+    ' L ' + n(rimX - 0.295 * PX_PER_M) + ' ' + n(COURT.boardY + 0.45 * PX_PER_M) +
+    ' L ' + n(rimX + 0.295 * PX_PER_M) + ' ' + n(COURT.boardY + 0.45 * PX_PER_M) +
+    ' L ' + n(rimX + 0.295 * PX_PER_M) + ' ' + n(COURT.boardY),
+    { stroke: THEME.cream, strokeWidth: 3, fill: '' }
+  ));
+  objects.push(new fabric.Circle({
+    left: n(rimX - 12), top: n(rimY - 12), radius: 12,
+    fill: 'rgba(180,70,47,.18)', stroke: THEME.brick, strokeWidth: 5
+  }));
+
+  /* 球場外框 */
+  objects.push(new fabric.Rect({
+    left: 0, top: 0, width: BASE_W, height: BASE_H,
+    fill: '', stroke: 'rgba(31,42,55,.38)', strokeWidth: 5
+  }));
+
+  const group = new fabric.Group(objects, {
+    selectable: false, evented: false, hoverCursor: 'default',
+    objectCaching: false, subTargetCheck: false
+  });
+  group.isCourt = true;
+  group.lockMovementX = true;
+  group.lockMovementY = true;
+  return group;
+}
+
+function ensureCourt() {
+  if (!canvas) return null;
+  canvas.backgroundColor = THEME.navy;
+  if (courtGroup && canvas.getObjects().indexOf(courtGroup) !== -1) {
+    canvas.moveTo(courtGroup, 0);
+    return courtGroup;
+  }
+  courtGroup = buildCourt();
+  canvas.add(courtGroup);
+  canvas.moveTo(courtGroup, 0);
+  return courtGroup;
+}
+/* ============================================================
+   §5 節點與線條工廠
+   ============================================================ */
+function placeCenter(obj, cx, cy) {
+  obj.set({ originX: 'center', originY: 'center', left: cx, top: cy });
+  return obj;
+}
+
+function nodeStyle(extra) {
+  const base = {
+    cornerColor: THEME.brick, borderColor: THEME.brick,
+    cornerStyle: 'circle', cornerSize: 10,
+    transparentCorners: false, hasControls: false, hasBorders: true,
+    lockScalingX: true, lockScalingY: true, lockRotation: true,
+    padding: 4, hoverCursor: 'move'
+  };
+  return Object.assign(base, extra || {});
+}
+
+function createPlayer(nodeId, isDefense, player) {
+  const entry = player || null;
+  const hasName = !!(entry && entry.name);
+  const radius = hasName ? 25 : 24;
+  const size = radius * 2;
+  const jersey = entry ? String(entry.no) : (NODE_LABELS[nodeId] || '');
+
+  const disc = new fabric.Circle({
+    radius: radius, left: 0, top: 0,
+    fill: isDefense ? '#FFFFFF' : new fabric.Gradient({
+      type: 'linear',
+      gradientUnits: 'pixels',
+      coords: { x1: 0, y1: 0, x2: 0, y2: size },
+      colorStops: [{ offset: 0, color: THEME.brickLight }, { offset: 1, color: THEME.brick }]
+    }),
+    stroke: isDefense ? THEME.blue : '#FFFFFF',
+    strokeWidth: 3.5,
+    shadow: isDefense
+      ? new fabric.Shadow({ color: 'rgba(47,111,168,.30)', blur: 10, offsetX: 0, offsetY: 3 })
+      : new fabric.Shadow({ color: 'rgba(180,70,47,.32)', blur: 10, offsetX: 0, offsetY: 3 })
+  });
+
+  const numberText = new fabric.Text(jersey, {
+    left: 0, top: 0,
+    fontFamily: '"Barlow Condensed","Arial Black",Impact,sans-serif',
+    fontSize: jersey.length > 2 ? 17 : (jersey.length > 1 ? 20 : 24),
+    fontWeight: '800',
+    fill: isDefense ? THEME.blue : '#FFFFFF'
+  });
+  numberText.set({
+    left: (size - numberText.width) / 2,
+    top: hasName
+      ? (size / 2 - numberText.height / 2) - 8
+      : (size - numberText.height) / 2 + 1
+  });
+
+  const parts = [disc];
+  /* 防守員：白底藍框 + 深藍位置縮寫 PG/SG/SF/PF/C（不再疊「✕」記號，避免與文字重疊） */
+  parts.push(numberText);
+
+  if (hasName) {
+    const nameText = new fabric.Text(entry.name, {
+      left: 0, top: 0,
+      fontFamily: '"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif',
+      fontSize: 12.5,
+      fontWeight: '800',
+      fill: isDefense ? THEME.blue : '#FFFFFF',
+      shadow: new fabric.Shadow({ color: 'rgba(0,0,0,.35)', blur: 3, offsetX: 0, offsetY: 1 })
+    });
+    const maxNameW = size - 10;
+    if (nameText.width > maxNameW) nameText.scaleToWidth(maxNameW);
+    nameText.set({
+      left: (size - nameText.getScaledWidth()) / 2,
+      top: size - nameText.getScaledHeight() - 5
+    });
+    parts.push(nameText);
+  }
+
+  const group = new fabric.Group(parts, nodeStyle({}));
+  group.nodeId = nodeId;
+  group.kind = isDefense ? 'defense' : 'offense';
+  group.team = isDefense ? 'def' : 'off';
+  if (entry) {
+    group.rosterNo = entry.no;
+    group.playerName = entry.name;
+  }
+  return group;
+}
+
+function createBall() {
+  const r = 13;
+  const d = r * 2;
+  const disc = new fabric.Circle({
+    radius: r, left: 0, top: 0,
+    fill: THEME.orange, stroke: '#1F2A37', strokeWidth: 2,
+    shadow: new fabric.Shadow({ color: 'rgba(31,42,55,.30)', blur: 8, offsetX: 0, offsetY: 3 })
+  });
+  const seams = new fabric.Path(
+    'M 0 ' + r + ' L ' + d + ' ' + r +
+    ' M ' + r + ' 0 L ' + r + ' ' + d +
+    ' M ' + (r - r * 0.84) + ' ' + (r - r * 0.52) + ' Q ' + r + ' ' + r + ' ' + (r - r * 0.84) + ' ' + (r + r * 0.52) +
+    ' M ' + (r + r * 0.84) + ' ' + (r - r * 0.52) + ' Q ' + r + ' ' + r + ' ' + (r + r * 0.84) + ' ' + (r + r * 0.52),
+    { stroke: '#1F2A37', strokeWidth: 2, fill: '', strokeLineCap: 'round' }
+  );
+  /* 透明放大的感應區：手機上用手指抓球更容易（外觀完全不變） */
+  const hit = new fabric.Circle({
+    radius: r + 13, left: -13, top: -13,
+    fill: 'rgba(0,0,0,0)', stroke: null, objectCaching: false
+  });
+  const group = new fabric.Group([hit, disc, seams], nodeStyle({}));
+  group.nodeId = 'ball';
+  group.kind = 'ball';
+  return group;
+}
+
+/* 波浪線（運球）路徑 */
+function waveD(p1, p2, amp, waves) {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  const px = -uy;
+  const py = ux;
+  const steps = Math.max(12, waves * 10);
+  let d = 'M ' + p1.x + ' ' + p1.y;
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const taper = Math.sin(Math.min(1, t) * Math.PI * 0.85 + 0.15);
+    const off = Math.sin(t * Math.PI * 2 * waves) * amp * taper;
+    d += ' L ' + (p1.x + ux * len * t + px * off).toFixed(2) + ' ' + (p1.y + uy * len * t + py * off).toFixed(2);
+  }
+  return d;
+}
+
+function buildLineObj(type, p1, p2) {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  const color = LINE_COLORS[type] || THEME.orange;
+  const headLen = 20;
+  const parts = [];
+
+  /* 線身終點：擋拆線畫到終點，其餘讓出箭頭空間 */
+  const shaftEnd = (type === 'screen')
+    ? { x: p2.x, y: p2.y }
+    : { x: p2.x - ux * headLen * 0.72, y: p2.y - uy * headLen * 0.72 };
+
+  if (type === 'dribble') {
+    parts.push(new fabric.Path(waveD(p1, shaftEnd, 7.5, Math.max(2, Math.round(len / 42))), {
+      stroke: color, strokeWidth: 4, fill: '', strokeLineCap: 'round'
+    }));
+  } else {
+    parts.push(new fabric.Line([p1.x, p1.y, shaftEnd.x, shaftEnd.y], {
+      stroke: color,
+      strokeWidth: 4,
+      strokeLineCap: 'round',
+      strokeDashArray: type === 'pass' ? [12, 9] : null
+    }));
+  }
+
+  if (type === 'screen') {
+    /* T 型擋拆：終點加一條垂直短棒 */
+    const bar = 32;
+    const px = -uy;
+    const py = ux;
+    parts.push(new fabric.Line([
+      p2.x - px * bar / 2, p2.y - py * bar / 2,
+      p2.x + px * bar / 2, p2.y + py * bar / 2
+    ], { stroke: color, strokeWidth: 6, strokeLineCap: 'round' }));
+  } else {
+    /* 箭頭用絕對座標 Path 畫出，避免巢狀 origin 偏移 */
+    const px = -uy;
+    const py = ux;
+    const half = 9;
+    const baseX = p2.x - ux * headLen;
+    const baseY = p2.y - uy * headLen;
+    const arrowD =
+      'M ' + p2.x.toFixed(2) + ' ' + p2.y.toFixed(2) +
+      ' L ' + (baseX + px * half).toFixed(2) + ' ' + (baseY + py * half).toFixed(2) +
+      ' L ' + (baseX - px * half).toFixed(2) + ' ' + (baseY - py * half).toFixed(2) + ' Z';
+    parts.push(new fabric.Path(arrowD, {
+      fill: type === 'pass' ? '#FFFFFF' : color,
+      stroke: type === 'pass' ? color : null,
+      strokeWidth: type === 'pass' ? 3 : 0,
+      strokeLineJoin: 'round'
+    }));
+  }
+
+  const group = new fabric.Group(parts, nodeStyle({}));
+  group.kind = 'line';
+  group.lineType = type;
+  group.nodeId = 'line-' + uid();
+  return group;
+}
+/* ============================================================
+   §5.5 經典戰術庫（13 套 · 四大分類）
+   ── 以座標資料描述，載入時用 §5 的工廠即時生成，
+      輸出物件格式與「儲存戰術」完全相同，可直接播放／匯出 GIF。
+   ============================================================ */
+/* 常用落點（邏輯像素：籃框 y=105、罰球線 y=387、弧頂 y=555） */
+const LIB_SPOT = {
+  rim: [500, 140], top: [500, 660], top3: [500, 555],
+  wingL: [200, 400], wingR: [800, 400],
+  corL: [95, 120], corR: [905, 120],
+  elbowL: [350, 387], elbowR: [650, 387],
+  postL: [420, 250], postR: [580, 250],
+  blkL: [420, 320], blkR: [580, 320],
+  shortCorL: [130, 150], shortCorR: [870, 150],
+  ftC: [500, 387], arcL: [250, 520], arcR: [750, 520], base: [500, 30]
+};
+
+/* 防守佈陣基準（1–5 對應 PG/SG/SF/PF/C；只當「錨點」，實際站位由 deriveDefense 依球的位置推導） */
+const LIB_DEF = {
+  man: { 1: [500, 545], 2: [235, 405], 3: [765, 405], 4: [335, 190], 5: [665, 190] },
+  zone23: { 1: [330, 390], 2: [670, 390], 3: [380, 230], 4: [620, 230], 5: [500, 140] },
+  zone131: { 1: [500, 430], 2: [300, 320], 3: [700, 320], 4: [500, 290], 5: [500, 130] },
+  zone212: { 1: [500, 360], 2: [290, 500], 3: [710, 500], 4: [385, 180], 5: [615, 180] },
+  zone32: { 1: [500, 470], 2: [290, 505], 3: [710, 505], 4: [385, 185], 5: [615, 185] },
+  press: { 1: [500, 880], 2: [300, 760], 3: [700, 760], 4: [380, 600], 5: [620, 600] },
+  blob: { 1: [430, 330], 2: [570, 330], 3: [430, 200], 4: [570, 200], 5: [500, 140] }
+};
+
+/* ── 防守自動輪轉（撲防 / 橫移 / 補位） ──
+   以陣型基準為錨點，依「球的位置」推導每一個步驟的防守站位：
+   · 人盯人：每位防守員站在自己守的人與籃框之間（貼防 52–120px）
+   · 區域 / 發球 / 全場壓迫：整條防線往球側滑動（上限 92px），並收縮護框
+   · 最靠近持球者的防守員「撲防」上提到持球者與籃框之間（56px）
+   因為每個步驟的座標都不同，播放時 §10 的補間會自動產生防守移動動畫。 */
+const DEF_SAFE = { x0: 44, x1: BASE_W - 44, y0: 44, y1: BASE_H - 44 };
+
+function nearestOffIndex(off, ball) {
+  let best = 1;
+  let bestD = Infinity;
+  for (let i = 1; i <= 5; i++) {
+    const pt = off[i];
+    if (!pt) continue;
+    const d = Math.hypot(pt[0] - ball[0], pt[1] - ball[1]);
+    if (d < bestD) { bestD = d; best = i; }
+  }
+  return best;
+}
+
+function deriveDefense(defKey, off, ball) {
+  const base = LIB_DEF[defKey] || LIB_DEF.man;
+  const out = {};
+  const handler = nearestOffIndex(off, ball);
+  const handlerPt = off[handler] || [ball[0], ball[1]];
+  const isMan = defKey === 'man';
+
+  /* 找出離持球者最近的防守員 → 由他負責撲防 */
+  let presser = 1;
+  let presserD = Infinity;
+  for (let i = 1; i <= 5; i++) {
+    const d = Math.hypot(base[i][0] - handlerPt[0], base[i][1] - handlerPt[1]);
+    if (d < presserD) { presserD = d; presser = i; }
+  }
+
+  for (let i = 1; i <= 5; i++) {
+    const anchor = base[i];
+    let x;
+    let y;
+
+    if (isMan) {
+      const man = off[i] || anchor;
+      const spot = manToManSpot({ x: man[0], y: man[1] });
+      x = spot.x;
+      y = spot.y;
+    } else {
+      /* 往球側滑動：越靠近籃框的防守員垂直位移越小（護框優先） */
+      const shiftX = clamp((ball[0] - anchor[0]) * 0.22, -92, 92);
+      const depthK = anchor[1] < 260 ? 0.4 : 1;
+      const shiftY = clamp((ball[1] - anchor[1]) * 0.16, -70, 70) * depthK;
+      x = anchor[0] + shiftX;
+      y = anchor[1] + shiftY;
+    }
+
+    if (i === presser) {
+      /* 撲防：持球者與籃框之間，貼防 56px */
+      const dx = COURT.rim.x - handlerPt[0];
+      const dy = COURT.rim.y - handlerPt[1];
+      const dist = Math.hypot(dx, dy) || 1;
+      x = handlerPt[0] + (dx / dist) * 56;
+      y = handlerPt[1] + (dy / dist) * 56;
+    }
+
+    out[i] = [
+      Math.round(clamp(x, DEF_SAFE.x0, DEF_SAFE.x1)),
+      Math.round(clamp(y, DEF_SAFE.y0, DEF_SAFE.y1))
+    ];
+  }
+  return out;
+}
+
+const LIB_CATEGORIES = [
+  { key: 'beat212', label: '破 2-1-2 聯防', en: 'BEAT 2-1-2' },
+  { key: 'beat32', label: '破 3-2 聯防', en: 'BEAT 3-2' },
+  { key: 'blob', label: '底線開球', en: 'BLOB' }
+];
+
+/* 步驟工廠：name / cue（機會標籤）/ desc（解說）/ 進攻 / 防守 / 球 / 線條 */
+function mkStep(name, cue, desc, off, def, ball, lines) {
+  return {
+    n: name, cue: cue, d: desc,
+    off: off || null, def: def || null, ball: ball || null,
+    lines: lines || []
+  };
+}
+
+const TACTIC_LIBRARY = [
+
+  /* ── 一、破 2-1-2 聯防（2 套） ────────────────── */
+  {
+    key: 'beat212-elbow', cat: 'beat212', name: '破 2-1-2：雙肘區策應', en: 'BEAT 2-1-2 · ELBOWS',
+    tag: '破 2-1-2', desc: '2-1-2 的縫隙在兩個肘區與底角：雙肘接球逼中央上提，再分底角或內傳內。',
+    def: 'zone212',
+    base: { 1: LIB_SPOT.top3, 2: LIB_SPOT.corL, 3: LIB_SPOT.corR, 4: LIB_SPOT.elbowL, 5: LIB_SPOT.elbowR },
+    ball: [500, 555],
+    steps: [
+      mkStep('雙肘落位', '肘區空檔', '2-1-2 的縫隙在兩個肘區：4、5 號分站左右肘，2、3 號沉底角拉開寬度。',
+        null, null, [500, 555], []),
+      mkStep('球進左肘', '罰球線策應', '1 號把球送進左肘的 4 號，2-1-2 的中央防守被迫上提。',
+        { 4: [350, 330] }, null, [350, 340], [['pass', 1, 4]]),
+      mkStep('底角分球', '底角 3 分', '中央防守上提後底角門戶大開，4 號甩給沉底角的 2 號。',
+        null, null, [95, 150], [['pass', 4, 2]]),
+      mkStep('內傳內放籃', '籃下真空', '底線防守撲出、籃下真空，5 號滑到籃下接回傳放進。',
+        { 5: [470, 190] }, null, [470, 200], [['pass', 2, 5], ['cut', 5, LIB_SPOT.rim]])
+    ]
+  },
+  {
+    key: 'beat212-highlow', cat: 'beat212', name: '破 2-1-2：高低位內傳內', en: 'BEAT 2-1-2 · HIGH-LOW',
+    tag: '破 2-1-2', desc: '2-1-2 的中央只有一人：用高位策應把人拉高，再由高位直接高吊低位完成內傳內。',
+    def: 'zone212',
+    base: { 1: LIB_SPOT.top3, 2: LIB_SPOT.corL, 3: LIB_SPOT.corR, 4: LIB_SPOT.elbowL, 5: LIB_SPOT.blkR },
+    ball: [500, 555],
+    steps: [
+      mkStep('高低位落位', '高位策應', '4 號站左肘高位、5 號卡右側低位（block），2-1-2 的中央防守被拉成上下兩段。',
+        null, null, [500, 555], []),
+      mkStep('球進高位', '罰球線接球', '1 號把球送進高位的 4 號，5 號同時把防守員頂在身後要位。',
+        { 4: [350, 330] }, null, [350, 340], [['pass', 1, 4]]),
+      mkStep('低位更往下卡', '低位要球', '5 號更往籃框卡一步，把低位防守完全壓在背後。',
+        { 5: [520, 210] }, null, [350, 340], [['cut', 5, [520, 210]]]),
+      mkStep('高吊內傳內', '籃下放籃', '4 號越過 2-1-2 中央防守高吊，5 號一步放進。',
+        { 5: [505, 175] }, null, [510, 185], [['pass', 4, 5], ['cut', 5, LIB_SPOT.rim]])
+    ]
+  },
+  /* ── 二、破 3-2 聯防（2 套） ──────────────────── */
+  {
+    key: 'beat32-skip', cat: 'beat32', name: '破 3-2：底角 Skip Pass', en: 'BEAT 3-2 · SKIP PASS',
+    tag: '破 3-2', desc: '3-2 的底層只有兩人：先把球塞進底角把人吸過去，再大對角橫傳另一邊底角。',
+    def: 'zone32',
+    base: { 1: LIB_SPOT.top3, 2: [95, 150], 3: [905, 150], 4: [300, 170], 5: [700, 170] },
+    ball: [500, 555],
+    steps: [
+      mkStep('3-2 落位', '底角拉寬', '面對 3-2：2、3 號沉到底角把寬度撐滿，4、5 號藏在短角區。',
+        null, null, [500, 555], []),
+      mkStep('球送左底角', '底層被吸過去', '1 號傳給左底角的 2 號，3-2 的底層防守必須橫移撲出。',
+        null, null, [95, 190], [['pass', 1, 2]]),
+      mkStep('大對角 Skip', 'Skip Pass', '左側三人被吸住後，2 號用 Skip Pass 大對角橫傳右底角的 3 號。',
+        null, null, [905, 190], [['pass', 2, 3]]),
+      mkStep('底角 3 分', '空檔出手', '3 號接球已有乾淨視野，5 號上提做最後一道掩護讓他從容出手。',
+        { 5: [700, 200] }, null, [905, 185], [['screen', 5, 3]])
+    ]
+  },
+  {
+    key: 'beat32-shortcorner', cat: 'beat32', name: '破 3-2：短角區突擊', en: 'BEAT 3-2 · SHORT CORNER',
+    tag: '破 3-2', desc: '3-2 上層三人、底層只有兩人：把 4 號藏進短角區接球，一步切入直接攻擊護框長人。',
+    def: 'zone32',
+    base: { 1: LIB_SPOT.top3, 2: [95, 150], 3: [905, 150], 4: LIB_SPOT.shortCorL, 5: LIB_SPOT.ftC },
+    ball: [500, 555],
+    steps: [
+      mkStep('短角埋伏', '藏在底線', '4 號躲進左短角區（3-2 底層兩人之間的空隙），5 號上到罰球線把中央拉空。',
+        null, null, [500, 555], []),
+      mkStep('球送短角', '防線被切開', '1 號把球塞進短角區的 4 號，底層防守被迫從底角趕來補位。',
+        { 4: [150, 175] }, null, [150, 185], [['pass', 1, 4]]),
+      mkStep('底線突擊', '一步切入', '4 號沿底線跨步直殺籃下，正好踩在 3-2 兩位底層防守的中縫。',
+        { 4: [340, 180] }, null, [340, 190], [['cut', 4, [340, 180]]]),
+      mkStep('擦板或分小球', '籃下終結', '護框長人補防時擦板，或分小球給跟進的 5 號完成終結。',
+        { 4: [440, 170] }, null, [450, 180], [['cut', 4, LIB_SPOT.rim], ['pass', 4, 5]])
+    ]
+  },
+  /* ── 三、底線開球 BLOB（3 套） ────────────────── */
+  {
+    key: 'blob-stack', cat: 'blob', name: '直線排開 Stack', en: 'BLOB · STACK',
+    tag: '底線開球', desc: '四人沿禁區一列排開（Stack），第一人借背擋繞出 45 度，列尾順下滑向籃框。',
+    def: 'blob',
+    base: { 1: LIB_SPOT.base, 2: [590, 300], 3: [590, 380], 4: [590, 460], 5: [590, 540] },
+    ball: [500, 45],
+    steps: [
+      mkStep('一字排開', '直線 Stack', '2、3、4、5 號在禁區一側排成一列，把防守全部壓在籃下。',
+        null, null, [500, 45], []),
+      mkStep('第一人繞出', '借背擋繞出', '2 號借 4 號的背擋繞到左翼 45 度，一整列人把追防擋住。',
+        { 2: [260, 430] }, null, [500, 45], [['screen', 4, 2]]),
+      mkStep('發球進場', '45 度接球', '1 號把球發給繞出的 2 號，第一波進攻成形。',
+        { 4: [520, 400] }, null, [260, 440], [['pass', 1, 2]]),
+      mkStep('列尾順下', '籃下高吊', '5 號從列尾順下滑向籃框，2 號高吊籃下輕鬆放進。',
+        { 5: [500, 190], 3: [870, 150] }, null, [500, 200], [['pass', 2, 5], ['cut', 5, LIB_SPOT.rim]])
+    ]
+  },
+  {
+    key: 'blob-box', cat: 'blob', name: '盒子站位 Box', en: 'BLOB · BOX',
+    tag: '底線開球', desc: 'Box 方陣發球，雙下掩護讓兩翼繞出，長人再轉身卡位接高吊。',
+    def: 'blob',
+    base: { 1: LIB_SPOT.base, 2: [390, 300], 3: [610, 300], 4: [390, 430], 5: [610, 430] },
+    ball: [500, 45],
+    steps: [
+      mkStep('盒子落位', 'Box 方陣', '2、3 號站肘區、4、5 號站低位，形成標準 Box 方陣。',
+        null, null, [500, 45], []),
+      mkStep('雙下掩護', '兩翼繞出', '4、5 號同時上擋，2、3 號分別往兩側 45 度繞出。',
+        { 2: [200, 380], 3: [800, 380], 4: [440, 320], 5: [560, 320] }, null, [500, 45],
+        [['screen', 4, 2], ['screen', 5, 3]]),
+      mkStep('45 度接球', '第一時間出手', '1 號把球發給左側 45 度的 2 號，直接形成空檔。',
+        null, null, [200, 370], [['pass', 1, 2]]),
+      mkStep('長人卡位', '籃下高吊', '4 號轉身卡住防守要球，2 號高吊籃下完成終結。',
+        { 4: [470, 200] }, null, [470, 210], [['pass', 2, 4], ['cut', 4, LIB_SPOT.rim]])
+    ]
+  },
+  {
+    key: 'blob-elevator', cat: 'blob', name: '電梯門 Elevator', en: 'BLOB · ELEVATOR',
+    tag: '底線開球', desc: '射手穿過雙塔之間的電梯門，關門擋住追防後在弧頂接球出手。',
+    def: 'blob',
+    base: { 1: LIB_SPOT.base, 2: [300, 130], 3: [800, 300], 4: [450, 330], 5: [550, 330] },
+    ball: [500, 45],
+    steps: [
+      mkStep('雙塔就位', '電梯門', '4、5 號在罰球線上方並排留出通道，2 號藏在底角。',
+        null, null, [500, 45], []),
+      mkStep('穿越通道', '2 號穿門', '2 號從底線加速穿過 4、5 號之間的通道。',
+        { 2: [500, 250] }, null, [500, 45], [['cut', 2, [500, 250]]]),
+      mkStep('關門夾擊', '門關上', '4、5 號同時合攏關門，把追防的防守員擋在身後。',
+        { 4: [478, 320], 5: [522, 320] }, null, [500, 45], [['screen', 4, 2], ['screen', 5, 2]]),
+      mkStep('弧頂出手', '弧頂 3 分', '2 號跑回弧頂接 1 號發球，完全空檔三分。',
+        { 2: [500, 560] }, null, [500, 570], [['pass', 1, 2]])
+    ]
+  }
+];
+
+
+/* ── 戰術庫 → 影格：借用 §5 工廠即時生成，輸出格式與「儲存戰術」一致 ── */
+const LIB_CACHE = {};
+const LIB_SER_PROPS = ['kind', 'nodeId', 'lineType', 'team', 'rosterNo', 'playerName'];
+
+function libAnchor(ref, off, def, ball) {
+  if (Array.isArray(ref)) return { x: ref[0], y: ref[1] };
+  if (typeof ref === 'number') {
+    const pt = off[ref];
+    if (pt) return { x: pt[0], y: pt[1] };
+  }
+  const key = String(ref);
+  if (key === 'ball') return { x: ball[0], y: ball[1] };
+  if (key.charAt(0) === 'd' && def[key.slice(1)]) {
+    const pt = def[key.slice(1)];
+    return { x: pt[0], y: pt[1] };
+  }
+  return { x: LIB_SPOT.top[0], y: LIB_SPOT.top[1] };
+}
+
+/* 球停在持球者身上時，往右下偏一點，避免蓋住背號（仍在 GLOW_REACH 70px 內，持球判定不受影響） */
+function ballDisplayPoint(ball, off) {
+  for (let i = 1; i <= 5; i++) {
+    const pt = off[i];
+    if (pt && Math.hypot(pt[0] - ball[0], pt[1] - ball[1]) < 12) {
+      return [ball[0] + 22, ball[1] + 18];
+    }
+  }
+  return ball;
+}
+
+function materialiseTactic(tactic) {
+  if (LIB_CACHE[tactic.key]) return LIB_CACHE[tactic.key];
+  const off = {};
+  const def = {};
+  const defBase = LIB_DEF[tactic.def] || LIB_DEF.man;
+  Object.keys(tactic.base || {}).forEach(function (k) { off[k] = tactic.base[k].slice(); });
+  Object.keys(defBase).forEach(function (k) { def[k] = defBase[k].slice(); });
+  let ball = (tactic.ball || [560, 690]).slice();
+  const frames = [];
+
+  (tactic.steps || []).forEach(function (step, index) {
+    if (step.off) Object.keys(step.off).forEach(function (k) { off[k] = step.off[k].slice(); });
+    if (step.ball) ball = step.ball.slice();
+
+    /* 防守站位：步驟有指定就用指定值，否則依球的位置自動推導（產生輪轉動畫） */
+    if (step.def) {
+      Object.keys(step.def).forEach(function (k) { def[k] = step.def[k].slice(); });
+    } else {
+      const derived = deriveDefense(tactic.def, off, ball);
+      Object.keys(derived).forEach(function (k) { def[k] = derived[k]; });
+    }
+
+    const objs = [];
+    /* 防守先畫 → 進攻球員壓在防守之上，被貼防時背號仍看得清楚 */
+    for (let i = 1; i <= 5; i++) {
+      const p = createPlayer('def' + i, true, null);
+      const pt = def[i] || LIB_DEF.man[i];
+      placeCenter(p, pt[0], pt[1]);
+      objs.push(p);
+    }
+    for (let i = 1; i <= 5; i++) {
+      const p = createPlayer('off' + i, false, rosterByNo(OFF_ROSTER[i - 1]));
+      const pt = off[i] || LIB_SPOT.top;
+      placeCenter(p, pt[0], pt[1]);
+      objs.push(p);
+    }
+    const b = createBall();
+    const bpt = ballDisplayPoint(ball, off);
+    placeCenter(b, bpt[0], bpt[1]);
+    objs.push(b);
+
+    (step.lines || []).forEach(function (spec) {
+      const a = libAnchor(spec[1], off, def, ball);
+      const z = libAnchor(spec[2], off, def, ball);
+      if (Math.hypot(z.x - a.x, z.y - a.y) < 8) return;
+      objs.push(buildLineObj(spec[0], a, z));
+    });
+
+    frames.push({
+      id: 'lib-' + tactic.key + '-' + (index + 1),
+      name: step.n || ('步驟 ' + (index + 1)),
+      cue: step.cue || '',
+      desc: step.d || '',
+      objects: objs.map(function (obj) { return obj.toObject(LIB_SER_PROPS); })
+    });
+  });
+
+  LIB_CACHE[tactic.key] = frames;
+  return frames;
+}
+
+/* ============================================================
+   §6 畫布生命週期與序列化
+   ============================================================ */
+function initCanvas() {
+  canvas = new fabric.Canvas('board', {
+    width: BASE_W,
+    height: BASE_H,
+    backgroundColor: THEME.navy,
+    selection: false,
+    preserveObjectStacking: true,
+    stopContextMenu: true,
+    fireRightClick: false,
+    allowTouchScrolling: false
+  });
+  bindCanvasEvents();
+}
+
+/* 只序列化戰術物件（球場、預覽線、殘影/光暈特效永不入庫） */
+function serializeCanvas() {
+  return canvas.getObjects()
+    .filter((obj) => !obj.isCourt && !obj.isPreview && !obj.isTrail && !obj.isGlow)
+    .map(function (obj) {
+      const plain = obj.toObject(['kind', 'nodeId', 'lineType', 'team', 'rosterNo', 'playerName', 'autoLine']);
+      if (glowShadow && obj.shadow === glowShadow) delete plain.shadow;
+      return plain;
+    });
+}
+
+function clearBoardObjects() {
+  if (!canvas) return;
+  canvas.discardActiveObject();
+  canvas.getObjects()
+    .filter((obj) => !obj.isCourt)
+    .forEach((obj) => canvas.remove(obj));
+}
+
+function loadObjects(objects, done) {
+  canvas.discardActiveObject();
+  glowTarget = null;
+  state.nodeDrag = null;
+  clearPassHighlight();
+  canvas.loadFromJSON({ objects: objects || [] }, function () {
+    ensureCourt();
+    applyMode();
+    canvas.requestRenderAll();
+    if (typeof done === 'function') done();
+  });
+}
+
+function saveCurrentFrame() {
+  const frame = state.frames[state.currentFrame];
+  if (!frame) return;
+  frame.objects = serializeCanvas();
+}
+
+function renderFrame(index, options) {
+  const opts = options || {};
+  return new Promise((resolve) => {
+    if (!state.frames.length) { resolve(); return; }
+    state.currentFrame = clamp(index, 0, state.frames.length - 1);
+    const frame = state.frames[state.currentFrame];
+    loadObjects(frame.objects, function () {
+      if (opts.fadeLines) fadeInLines();
+      renderStepUI();
+      resolve();
+    });
+  });
+}
+
+function fadeInLines() {
+  const lines = canvas.getObjects().filter(function (obj) { return obj.kind === 'line'; });
+  if (!lines.length) return;
+  lines.forEach(function (obj) { obj.set('opacity', 0); });
+  animateValue(320, function (eased) {
+    lines.forEach(function (obj) { obj.set('opacity', eased); });
+    canvas.requestRenderAll();
+  });
+}
+
+function findNode(nodeId) {
+  return canvas.getObjects().find((obj) => obj.nodeId === nodeId && obj.kind !== 'line') || null;
+}
+
+function findByKind(kind) {
+  return canvas.getObjects().filter((obj) => obj.kind === kind);
+}
+
+/* ── 復原 ── */
+function pushUndo(snapshot) {
+  if (!canvas) return;
+  state.undo.push(snapshot || JSON.stringify(serializeCanvas()));
+  if (state.undo.length > UNDO_LIMIT) state.undo.shift();
+}
+
+function undo() {
+  if (!state.undo.length) { toast('沒有可復原的動作', 'warn'); return; }
+  const snapshot = state.undo.pop();
+  let parsed = [];
+  try { parsed = JSON.parse(snapshot); } catch (err) { parsed = []; }
+  loadObjects(parsed, function () { toast('已復原', 'success'); });
+}
+/* ============================================================
+   §7 權限、工具狀態與互動鎖定
+   ============================================================ */
+function isCoach() { return state.mode === 'coach'; }
+function isLineTool(tool) { return LINE_TOOLS.indexOf(tool) !== -1; }
+
+function applyMode() {
+  if (!canvas) return;
+  document.body.dataset.mode = state.mode;
+
+  /* 清掉中斷的繪線預覽（例如在畫布外放開滑鼠） */
+  if (state.draw) {
+    canvas.getObjects().filter(function (obj) { return obj.isPreview; })
+      .forEach(function (obj) { canvas.remove(obj); });
+    state.draw = null;
+  }
+
+  if (!isCoach() && state.tool !== 'select') state.tool = 'select';
+  const drawMode = isCoach() && isLineTool(state.tool);
+  const removeMode = isCoach() && state.tool === 'eraser';
+  const selectMode = isCoach() && state.tool === 'select';
+
+  canvas.selection = selectMode;
+  canvas.skipTargetFind = !(selectMode || removeMode);
+  canvas.defaultCursor = drawMode ? 'crosshair' : 'default';
+  canvas.hoverCursor = selectMode ? 'move' : (removeMode ? 'pointer' : 'default');
+
+  canvas.getObjects().forEach(function (obj) {
+    if (obj.isCourt || obj.isTrail || obj.isGlow) return;
+    obj.selectable = selectMode;
+    obj.evented = selectMode || removeMode;
+    obj.lockMovementX = !selectMode;
+    obj.lockMovementY = !selectMode;
+    obj.hoverCursor = selectMode ? 'move' : (removeMode ? 'pointer' : 'default');
+  });
+
+  if (!selectMode) canvas.discardActiveObject();
+  canvas.requestRenderAll();
+
+  $$('.mode-btn').forEach(function (btn) {
+    const active = btn.dataset.mode === state.mode;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+
+  const lockBadge = $('#lockBadge');
+  if (lockBadge) lockBadge.hidden = isCoach();
+
+  $$('.tool[data-tool]').forEach(function (btn) {
+    btn.classList.toggle('is-active', btn.dataset.tool === state.tool);
+  });
+
+  const toolBadge = $('#toolBadge');
+  if (toolBadge) {
+    const show = drawMode;
+    toolBadge.hidden = !show;
+    if (show) $('#toolBadgeName').textContent = LINE_LABELS[state.tool] || '';
+  }
+
+  updateHint();
+  updateRosterPanelState();
+  updatePlaybookFoot();
+  syncTacticNameField();
+}
+
+function setHint(text, isError) {
+  const el = $('#boardHint');
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle('is-error', !!isError);
+}
+
+function updateHint() {
+  if (state.playing) {
+    setHint('播放中：按「■ 停止播放」即可停止' + (isCoach() ? '並回到編輯。' : '。'));
+    return;
+  }
+  if (!isCoach()) {
+    setHint('目前為球員模式：點左側戰術即自動循環播放；切換到教練模式即可編輯。');
+    return;
+  }
+  if (isLineTool(state.tool)) {
+    setHint('繪製「' + LINE_LABELS[state.tool] + '」：在球場上按住拖曳，放開完成 · Esc 結束繪製。');
+    return;
+  }
+  if (state.tool === 'eraser') { setHint('橡皮模式：點擊球員或線條即可刪除。'); return; }
+  setHint('教練模式：拖曳球員＝自動記錄移動（持球者會帶球運球）· 拖曳籃球到隊友身上＝傳球 · 點擊線條後按 Del 刪除。');
+}
+
+function setTool(tool) {
+  if (!isCoach()) return;
+  if (state.playing || state.exporting) return;
+  state.tool = tool || 'select';
+  applyMode();
+}
+
+function setPlaying(playing) {
+  state.playing = playing;
+  if (!playing) state.stopRequested = false;
+  const disable = playing || state.exporting;
+  ['#btnGif', '#btnAddStep', '#btnDupStep', '#btnDelStep',
+    '#btnPrev', '#btnNext', '#btnSaveTactic', '#btnUndo'].forEach(function (sel) {
+    const el = $(sel);
+    if (el) el.disabled = disable;
+  });
+  const playBtn = $('#btnPlay');
+  if (playBtn) {
+    playBtn.disabled = state.exporting;
+    playBtn.innerHTML = playing
+      ? '<span class="ico">■</span>停止播放'
+      : '<span class="ico">▶</span>播放動畫';
+  }
+  if (!playing) renderStepUI();
+  updateHint();
+}
+
+function setExporting(exporting) {
+  state.exporting = exporting;
+  const disable = exporting || state.playing;
+  ['#btnPlay', '#btnGif', '#btnAddStep', '#btnDupStep', '#btnDelStep',
+    '#btnPrev', '#btnNext', '#btnSaveTactic', '#btnUndo'].forEach(function (sel) {
+    const el = $(sel);
+    if (el) el.disabled = disable;
+  });
+}
+/* ============================================================
+   §8 畫布互動：繪線 / 橡皮 / 新增節點
+   ============================================================ */
+function clampPoint(p) {
+  return { x: clamp(p.x, 6, BASE_W - 6), y: clamp(p.y, 6, BASE_H - 6) };
+}
+
+function bindCanvasEvents() {
+  canvas.on('mouse:down', onCanvasDown);
+  canvas.on('mouse:move', onCanvasMove);
+  canvas.on('mouse:up', onCanvasUp);
+  canvas.on('object:moving', onNodeMoving);
+  canvas.on('object:modified', onNodeModified);
+}
+
+/* 教練拖曳球員後立即寫回目前步驟（自訂防守、自由擺位都靠這裡記錄）
+   §8.4：收尾時同時補上自動軌跡線／傳球判定，所以拖曳本身就是記錄動作 */
+function onNodeModified(opt) {
+  if (!canvas || !isCoach() || state.playing || state.exporting || state.tweening) return;
+  const target = opt && opt.target;
+  if (!target || !target.nodeId || target.kind === 'line' || target.kind === 'ghost') return;
+  finalizeNodeDrag(target);
+}
+
+function onCanvasDown(opt) {
+  if (!canvas || !isCoach() || state.playing || state.exporting) return;
+  const pointer = canvas.getPointer(opt.e);
+  beginNodeDrag(state.tool === 'select' ? opt.target : null, opt.e);
+
+  if (state.tool === 'eraser') {
+    const target = opt.target;
+    if (target && !target.isCourt) {
+      pushUndo();
+      canvas.remove(target);
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
+      toast('已刪除物件', 'success');
+    }
+    return;
+  }
+
+  if (!isLineTool(state.tool)) return;
+
+  pushUndo();
+  const preview = new fabric.Line([pointer.x, pointer.y, pointer.x, pointer.y], {
+    stroke: LINE_COLORS[state.tool],
+    strokeWidth: 4,
+    strokeLineCap: 'round',
+    strokeDashArray: state.tool === 'pass' ? [12, 9] : null,
+    selectable: false,
+    evented: false,
+    opacity: 0.8
+  });
+  state.draw = { type: state.tool, start: { x: pointer.x, y: pointer.y }, preview: preview };
+  preview.isPreview = true;
+  canvas.add(preview);
+  canvas.requestRenderAll();
+}
+
+function onCanvasMove(opt) {
+  if (!state.draw || !state.draw.preview) return;
+  const pointer = clampPoint(canvas.getPointer(opt.e));
+  state.draw.preview.set({ x2: pointer.x, y2: pointer.y });
+  canvas.requestRenderAll();
+}
+
+function onCanvasUp(opt) {
+  clearPassHighlight();
+  if (!state.draw) return;
+  const pointer = clampPoint(canvas.getPointer(opt.e));
+  const start = state.draw.start;
+  const type = state.draw.type;
+  const preview = state.draw.preview;
+  state.draw = null;
+
+  if (preview) canvas.remove(preview);
+
+  const distance = Math.hypot(pointer.x - start.x, pointer.y - start.y);
+  if (distance < 26) {
+    canvas.requestRenderAll();
+    toast('線條太短，請拖長一點', 'warn');
+    return;
+  }
+  canvas.add(buildLineObj(type, start, pointer));
+  canvas.requestRenderAll();
+}
+
+/* ============================================================
+   §8.4 直覺拖曳記錄（Drag & Drop Step Recorder）
+   · 拖曳球員 → 自動長出位移軌跡；拖曳持球者時球會跟手（＝運球）
+   · 拖曳籃球到隊友身上 → 自動傳球（虛線箭頭 + 換人持球 + 下一步同步）
+   · 收尾一律寫回目前步驟；播放時由 §10 既有補間平滑移動，不需另寫播放邏輯
+   ============================================================ */
+const DRAG_EPS = 6;          // 位移小於此值視為「沒動」（滑鼠；純點擊不污染 undo）
+const DRAG_EPS_TOUCH = 10;   // 觸控防手震：手指抖動較大，門檻放寬，避免點一下就被當成拖曳
+const DRAG_LINE_MIN = 34;    // 位移短於此值不畫軌跡線（避免微調就冒出一條線）
+const PASS_SNAP = 54;        // 球放開時離隊友多近判定為傳球
+const BALL_IN_HAND = { dx: 22, dy: 18 };   // 球黏在持球者身上的偏移
+const LINE_TRIM = 28;        // 自動軌跡線兩端各縮，避免壓在球員圓圈上
+let passGhost = null;        // 傳球候選圈（特效，不入庫）
+
+/* 依輸入裝置取防手震門檻（觸控 > 滑鼠） */
+function dragEpsOf(drag) {
+  return (drag && drag.touch) ? DRAG_EPS_TOUCH : DRAG_EPS;
+}
+
+function nodeLabelOf(obj) {
+  if (!obj) return '';
+  if (obj.kind === 'ball') return '籃球';
+  if (obj.rosterNo != null && obj.playerName) return obj.rosterNo + ' ' + obj.playerName;
+  return NODE_LABELS[obj.nodeId] || obj.nodeId || '';
+}
+
+/* mouse:down 時記下起點；沒有 nodeDrag 也能靠步驟快照補救（見 finalizeNodeDrag） */
+function beginNodeDrag(target, evt) {
+  state.nodeDrag = null;
+  if (!canvas || !isCoach() || state.playing || state.exporting) return;
+  if (!target || !target.nodeId || target.kind === 'line' || target.kind === 'ghost') return;
+  const ball = findNode('ball');
+  const isBall = target.kind === 'ball';
+  const hasBall = !!ball && !isBall && typeof ball.left === 'number' &&
+    Math.hypot(ball.left - target.left, ball.top - target.top) < GLOW_REACH;
+  const evtType = (evt && evt.type) || '';
+  state.nodeDrag = {
+    nodeId: target.nodeId,
+    kind: target.kind,
+    touch: /^touch/.test(evtType),          // 觸控 → 用較寬的防手震門檻
+    startLeft: target.left,
+    startTop: target.top,
+    ballDx: (ball && typeof ball.left === 'number') ? ball.left - target.left : BALL_IN_HAND.dx,
+    ballDy: (ball && typeof ball.top === 'number') ? ball.top - target.top : BALL_IN_HAND.dy,
+    held: hasBall,
+    handlerBefore: isBall ? ((getBallHandler() || {}).nodeId || null) : null,
+    /* 在「還沒移動」的這一刻先留快照，第一次真的移動才推入復原堆疊 */
+    snapshot: JSON.stringify(serializeCanvas()),
+    pushed: false,
+    moved: false
+  };
+}
+
+/* 拖曳中：持球者帶著球跑、拖球時亮起可傳球對象 */
+function onNodeMoving(opt) {
+  if (!canvas || !isCoach() || state.playing || state.exporting || state.tweening) return;
+  const drag = state.nodeDrag;
+  const target = opt && opt.target;
+  if (!drag || !target || drag.nodeId !== target.nodeId) return;
+  if (!drag.moved) {
+    if (Math.hypot(target.left - drag.startLeft, target.top - drag.startTop) < dragEpsOf(drag)) return;
+    drag.moved = true;
+    if (!drag.pushed) { pushUndo(drag.snapshot); drag.pushed = true; }
+  }
+  if (drag.kind === 'ball') {
+    highlightPassTarget(nearestOffense({ x: target.left, y: target.top }, PASS_SNAP));
+    return;
+  }
+  if (!drag.held) return;
+  const ball = findNode('ball');
+  if (!ball) return;
+  /* 保留原本「球相對於人」的偏移，拖曳起手時球不會突然跳位 */
+  ball.set({ left: target.left + drag.ballDx, top: target.top + drag.ballDy });
+  ball.setCoords();
+  canvas.requestRenderAll();
+}
+
+/* 傳球對象：① 球心落在球員圓圈內（真 hit-test）優先 ② 否則退回 radius 距離後備 */
+function nearestOffense(pt, radius) {
+  if (!canvas) return null;
+  const point = (typeof fabric !== 'undefined') ? new fabric.Point(pt.x, pt.y) : null;
+  let best = null;
+  let bestD = radius;
+  let hitBy = null;
+  let hitD = Infinity;
+  canvas.getObjects().forEach(function (obj) {
+    if (obj.kind !== 'offense' || typeof obj.left !== 'number') return;
+    const d = Math.hypot(obj.left - pt.x, obj.top - pt.y);
+    if (point && typeof obj.containsPoint === 'function' && obj.containsPoint(point)) {
+      if (d < hitD) { hitD = d; hitBy = obj; }
+      return;
+    }
+    if (d < bestD) { bestD = d; best = obj; }
+  });
+  return hitBy || best;
+}
+
+/* 傳球候選圈：跟手不會擋到拖曳（evented:false + isPreview 不入庫） */
+function clearPassHighlight() {
+  if (canvas && passGhost && canvas.getObjects().indexOf(passGhost) !== -1) canvas.remove(passGhost);
+  passGhost = null;
+  if (canvas) canvas.requestRenderAll();
+}
+
+function highlightPassTarget(player) {
+  if (!canvas) return;
+  if (!player) { clearPassHighlight(); return; }
+  const r = 34;
+  if (!passGhost) {
+    passGhost = new fabric.Circle({
+      radius: r, left: player.left - r, top: player.top - r,
+      fill: 'rgba(243,112,33,.10)', stroke: THEME.orange, strokeWidth: 3,
+      strokeDashArray: [7, 6],
+      selectable: false, evented: false, objectCaching: false
+    });
+    passGhost.kind = 'ghost';
+    passGhost.isPreview = true;
+    canvas.add(passGhost);
+  } else {
+    passGhost.set({ radius: r, width: r * 2, height: r * 2, left: player.left - r, top: player.top - r });
+  }
+  canvas.bringToFront(passGhost);
+  canvas.requestRenderAll();
+}
+
+function placeBallInHand(ball, player) {
+  if (!ball || !player) return ball;
+  ball.set({ left: player.left + BALL_IN_HAND.dx, top: player.top + BALL_IN_HAND.dy });
+  ball.setCoords();
+  return ball;
+}
+
+/* 自動軌跡線：放在球場之上、球員之下（moveTo 1），所以不會擋住手指抓人 */
+function makeAutoLine(type, from, to) {
+  if (!canvas || !from || !to) return null;
+  if (![from.x, from.y, to.x, to.y].every(function (v) { return typeof v === 'number' && isFinite(v); })) return null;
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.hypot(dx, dy);
+  if (len < DRAG_LINE_MIN) return null;
+  const ux = dx / len;
+  const uy = dy / len;
+  /* 兩端各縮一點，避免線壓在球員圓圈上；短距離時自動縮小留白 */
+  const trim = Math.min(LINE_TRIM, len * 0.2);
+  const a = { x: from.x + ux * trim, y: from.y + uy * trim };
+  const b = { x: to.x - ux * trim, y: to.y - uy * trim };
+  const line = buildLineObj(type, a, b);
+  line.autoLine = true;
+  canvas.add(line);
+  canvas.moveTo(line, 1);
+  canvas.requestRenderAll();
+  return line;
+}
+
+/* 目前步驟已存的節點座標（沒有 nodeDrag 時的起點後備） */
+function frameNodePos(nodeId) {
+  const frame = state.frames[state.currentFrame];
+  if (!frame || !Array.isArray(frame.objects)) return null;
+  const found = frame.objects.filter(function (o) { return o && o.nodeId === nodeId; })[0];
+  if (!found || typeof found.left !== 'number') return null;
+  return { x: found.left, y: found.top };
+}
+
+/* 傳球收尾：球吸附到隊友手上、畫虛線、並把「下一步」的球一起搬到新持球者手上 */
+function finishBallDrop(ball, from, drag) {
+  ball.set({
+    left: clamp(ball.left, 18, BASE_W - 18),
+    top: clamp(ball.top, 18, BASE_H - 18)
+  });
+  ball.setCoords();
+  const target = nearestOffense({ x: ball.left, y: ball.top }, PASS_SNAP);
+  const handlerBefore = (drag && drag.handlerBefore) || null;
+
+  if (!target) {
+    toast('球已放置 · 目前無人持球（拖到隊友身上即完成傳球）', 'warn');
+    return;
+  }
+
+  placeBallInHand(ball, target);
+  if (handlerBefore === target.nodeId) return;   // 放回自己手上：只吸附，不記錄移動
+
+  const passerPos = (handlerBefore && frameNodePos(handlerBefore)) || from;
+  makeAutoLine('pass', passerPos, { x: target.left, y: target.top });
+  const synced = syncBallToNextFrame(target.nodeId, handlerBefore);
+  toast('傳給 ' + nodeLabelOf(target) + (synced ? '（下一步已同步持球）' : ''), 'success');
+}
+
+/* 下一步的球若還「黏」在舊持球者手上，就自動跟著換人（教練已移走則不動） */
+function syncBallToNextFrame(nextHandlerId, prevHandlerId) {
+  const next = state.frames[state.currentFrame + 1];
+  if (!next || !Array.isArray(next.objects)) return false;
+  const nextBall = next.objects.filter(function (o) { return o.kind === 'ball'; })[0];
+  const nextHandler = next.objects.filter(function (o) { return o.nodeId === nextHandlerId; })[0];
+  if (!nextBall || !nextHandler || typeof nextBall.left !== 'number') return false;
+  if (prevHandlerId) {
+    const prevInNext = next.objects.filter(function (o) { return o.nodeId === prevHandlerId; })[0];
+    if (prevInNext && typeof prevInNext.left === 'number' &&
+      Math.hypot(nextBall.left - prevInNext.left, nextBall.top - prevInNext.top) > GLOW_REACH) {
+      return false;   // 下一步球已離開原持球者 → 尊重教練原本的安排
+    }
+  }
+  nextBall.left = nextHandler.left + BALL_IN_HAND.dx;
+  nextBall.top = nextHandler.top + BALL_IN_HAND.dy;
+  return true;
+}
+
+/* 拖曳收尾：一次決定「軌跡線 + 傳球 + 寫回步驟」 */
+function finalizeNodeDrag(target) {
+  const drag = state.nodeDrag;
+  state.nodeDrag = null;
+  clearPassHighlight();
+  if (!target || !target.nodeId || target.kind === 'line' || target.kind === 'ghost') return;
+
+  /* 起點優先用 mouse:down 記下的位置；沒有就退回步驟快照（例如鍵盤微調、外部呼叫） */
+  const from = (drag && drag.nodeId === target.nodeId)
+    ? { x: drag.startLeft, y: drag.startTop }
+    : frameNodePos(target.nodeId);
+  if (!from) { saveCurrentFrame(); return; }
+
+  if (Math.hypot(target.left - from.x, target.top - from.y) < dragEpsOf(drag)) {
+    saveCurrentFrame();
+    return;
+  }
+
+  if (target.kind === 'ball') {
+    finishBallDrop(target, from, drag);
+    saveCurrentFrame();
+    return;
+  }
+
+  const endPt = { x: target.left, y: target.top };
+  if (drag && drag.held) {
+    const ball = findNode('ball');
+    if (ball) {
+      ball.set({ left: target.left + drag.ballDx, top: target.top + drag.ballDy });
+      ball.setCoords();
+    }
+    makeAutoLine('dribble', from, endPt);        // 持球者移動＝運球
+  } else {
+    makeAutoLine(target.kind === 'defense' ? 'def' : 'cut', from, endPt);
+  }
+  canvas.requestRenderAll();
+  saveCurrentFrame();
+}
+
+/* ── 新增 / 移除節點 ── */
+function addNode(toolId) {
+  if (!isCoach() || state.playing || state.exporting) return;
+  const existing = findNode(toolId);
+  if (existing) {
+    toast('此球員已在場上，已為你選取', 'warn');
+    canvas.setActiveObject(existing);
+    canvas.requestRenderAll();
+    return;
+  }
+  pushUndo();
+  let obj;
+  if (toolId === 'ball') {
+    obj = placeCenter(createBall(), BALL_SPOT.x, BALL_SPOT.y);
+  } else {
+    const isDef = toolId.indexOf('def') === 0;
+    const spot = (isDef ? DEF_SPOTS : OFF_SPOTS)[toolId] || { x: BASE_W / 2, y: BASE_H / 2 };
+    const entry = isDef ? null : rosterByNo(OFF_ROSTER[Number(toolId.replace('off', '')) - 1]);
+    obj = placeCenter(createPlayer(toolId, isDef, entry), spot.x, spot.y);
+  }
+  canvas.add(obj);
+  if (state.tool === 'select') canvas.setActiveObject(obj);
+  canvas.requestRenderAll();
+  updateRosterPanelState();
+  const label = toolId === 'ball'
+    ? '籃球'
+    : (obj.playerName ? (obj.rosterNo + ' ' + obj.playerName) : (NODE_LABELS[toolId] || toolId));
+  toast('已加入 ' + label, 'success');
+}
+
+/* ── 名單球員：派上場 / 面板狀態 ── */
+function findRosterNode(no) {
+  const target = Number(no);
+  return canvas.getObjects().find(function (obj) {
+    return obj.kind !== 'line' && obj.kind !== 'ball' && Number(obj.rosterNo) === target;
+  }) || null;
+}
+
+function rosterSpawnSpot() {
+  const used = canvas.getObjects().filter(function (obj) {
+    return obj.kind === 'offense';
+  }).length;
+  return {
+    x: ROSTER_SPAWN.x0 + (used % ROSTER_SPAWN.cols) * ROSTER_SPAWN.dx,
+    y: ROSTER_SPAWN.y0 - Math.floor(used / ROSTER_SPAWN.cols) * ROSTER_SPAWN.dy
+  };
+}
+
+function addRosterPlayer(no) {
+  if (!isCoach()) { requestCoachMode(); return; }
+  if (state.playing || state.exporting) return;
+  const entry = rosterByNo(no);
+  if (!entry) return;
+
+  const existing = findRosterNode(entry.no);
+  if (existing) {
+    toast(entry.no + ' ' + entry.name + ' 已在場上，已為你選取', 'warn');
+    if (state.tool === 'select') canvas.setActiveObject(existing);
+    canvas.requestRenderAll();
+    return;
+  }
+
+  pushUndo();
+  const spot = rosterSpawnSpot();
+  const obj = placeCenter(createPlayer('p' + entry.no, false, entry), spot.x, spot.y);
+  canvas.add(obj);
+  if (state.tool === 'select') canvas.setActiveObject(obj);
+  canvas.requestRenderAll();
+  updateRosterPanelState();
+  toast('已派上場：' + entry.no + ' ' + entry.name, 'success');
+}
+
+/* ── 名單位置篩選：ALL / PG·SG 後衛 / SF·PF 前鋒 / PF·C 中前鋒 ── */
+const ROSTER_FILTERS = {
+  all: ['PG', 'SG', 'SF', 'PF', 'C'],
+  'PG/SG': ['PG', 'SG'],
+  'SF/PF': ['SF', 'PF'],
+  'PF/C': ['PF', 'C']
+};
+
+function rosterMatchesFilter(entry, filter) {
+  const allowed = ROSTER_FILTERS[filter] || ROSTER_FILTERS.all;
+  return String(entry.pos || '')
+    .split('/')
+    .some(function (p) { return allowed.indexOf(p.trim()) !== -1; });
+}
+
+function syncPosChips() {
+  const active = state.rosterFilter || 'all';
+  $$('.pos-chip').forEach(function (chip) {
+    const on = (chip.dataset.pos || 'all') === active;
+    chip.classList.toggle('is-on', on);
+    chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+function buildRosterPanel() {
+  const grid = $('#rosterGrid');
+  if (!grid) return;
+  const filter = state.rosterFilter || 'all';
+  grid.innerHTML = '';
+  /* 背號升冪，再依位置篩選 */
+  ROSTER.slice()
+    .sort(function (a, b) { return a.no - b.no; })
+    .filter(function (entry) { return rosterMatchesFilter(entry, filter); })
+    .forEach(function (entry) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'roster-btn';
+      btn.dataset.no = String(entry.no);
+      btn.title = entry.no + ' ' + entry.name + (entry.pos ? ' · ' + entry.pos : '') + ' · 點擊派上場';
+      btn.setAttribute('aria-label', '派上場 ' + entry.no + ' 號 ' + entry.name + (entry.pos ? '（' + entry.pos + '）' : ''));
+
+      const noEl = document.createElement('b');
+      noEl.textContent = String(entry.no);
+      const nameEl = document.createElement('span');
+      nameEl.textContent = entry.name;
+      btn.appendChild(noEl);
+      btn.appendChild(nameEl);
+      if (entry.pos) {
+        const posEl = document.createElement('em');
+        posEl.textContent = entry.pos;
+        btn.appendChild(posEl);
+      }
+      btn.addEventListener('click', function () { addRosterPlayer(entry.no); });
+      grid.appendChild(btn);
+    });
+  if (!grid.children.length) {
+    const empty = document.createElement('p');
+    empty.className = 'roster-empty';
+    empty.textContent = '此位置暫無球員';
+    grid.appendChild(empty);
+  }
+  updateRosterPanelState();
+  syncPosChips();
+}
+
+function updateRosterPanelState() {
+  const grid = $('#rosterGrid');
+  if (!grid || !canvas) return;
+  Array.prototype.forEach.call(grid.children, function (btn) {
+    const on = !!findRosterNode(Number(btn.dataset.no));
+    btn.classList.toggle('is-on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+function addFormation() {
+  Object.keys(OFF_SPOTS).forEach(function (id, index) {
+    const entry = rosterByNo(OFF_ROSTER[index]);
+    canvas.add(placeCenter(createPlayer(id, false, entry), OFF_SPOTS[id].x, OFF_SPOTS[id].y));
+  });
+  Object.keys(DEF_SPOTS).forEach(function (id) {
+    canvas.add(placeCenter(createPlayer(id, true, null), DEF_SPOTS[id].x, DEF_SPOTS[id].y));
+  });
+  canvas.add(placeCenter(createBall(), BALL_SPOT.x, BALL_SPOT.y));
+  /* 出場即為首選陣型 2-1-2 */
+  state.customDefense = false;
+  markDefensePreset('212');
+}
+
+/* ── 防守陣型：預設排位 + 補間動畫 ── */
+const DEF_IDS = ['def1', 'def2', 'def3', 'def4', 'def5'];
+
+function markDefensePreset(key) {
+  $$('#defGrid .def-btn').forEach(function (btn) {
+    btn.classList.toggle('is-on', btn.dataset.preset === key);
+  });
+}
+
+/* 人盯人：站在自己的人與籃框之間（最多前移 120px，至少留 52px 貼防距離） */
+function manToManSpot(base) {
+  const dx = COURT.rim.x - base.x;
+  const dy = COURT.rim.y - base.y;
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+  const shift = Math.max(52, Math.min(dist * 0.34, 120));
+  return {
+    x: Math.round(base.x + (dx / dist) * shift),
+    y: Math.round(base.y + (dy / dist) * shift)
+  };
+}
+
+function defensePresetSpots(key) {
+  const preset = DEFENSE_PRESETS[key];
+  if (!preset) return null;
+  if (preset.spots) return preset.spots;
+  const spots = {};
+  DEF_IDS.forEach(function (id) {
+    const man = findNode('off' + id.slice(3));
+    const base = man ? { x: man.left, y: man.top } : OFF_SPOTS['off' + id.slice(3)];
+    spots[id] = manToManSpot(base);
+  });
+  return spots;
+}
+
+async function applyDefensePreset(key) {
+  if (!isCoach() || state.playing || state.exporting || state.tweening) return;
+  const preset = DEFENSE_PRESETS[key];
+  if (!preset) return;
+  /* 自訂防守：不套座標，改成自由拖曳（缺的防守員自動補上） */
+  if (preset.custom) { enableCustomDefense(); return; }
+
+  const nodes = {};
+  const missing = [];
+  DEF_IDS.forEach(function (id) {
+    const node = findNode(id);
+    if (node) nodes[id] = node;
+    else missing.push(NODE_LABELS[id] || id);
+  });
+  if (missing.length) {
+    toast('缺少 ' + missing.join('、') + '，請先用「球員節點」加入防守球員', 'warn');
+    return;
+  }
+
+  const spots = defensePresetSpots(key);
+  const from = {};
+  DEF_IDS.forEach(function (id) {
+    from[id] = { left: nodes[id].left, top: nodes[id].top };
+  });
+
+  pushUndo();
+  state.customDefense = false;
+  state.tweening = true;
+  markDefensePreset(key);
+  canvas.discardActiveObject();
+  try {
+    await animateValue(340, function (eased) {
+      DEF_IDS.forEach(function (id) {
+        const target = spots[id];
+        const start = from[id];
+        nodes[id].set({
+          left: start.left + (target.x - start.left) * eased,
+          top: start.top + (target.y - start.top) * eased
+        });
+      });
+      canvas.requestRenderAll();
+    });
+  } finally {
+    state.tweening = false;
+  }
+
+  DEF_IDS.forEach(function (id) {
+    nodes[id].set({ left: spots[id].x, top: spots[id].y });
+  });
+  canvas.requestRenderAll();
+  saveCurrentFrame();
+  toast('已套用「' + preset.label + '」', 'success');
+}
+
+/* ── 自訂防守：五位防守員自由擺位，放開滑鼠即存入目前步驟 ── */
+function enableCustomDefense() {
+  if (!isCoach() || state.playing || state.exporting || state.tweening) return;
+  pushUndo();
+
+  const added = [];
+  DEF_IDS.forEach(function (id) {
+    if (findNode(id)) return;
+    const spot = DEF_SPOTS[id] || DEF_SPOTS.def1;
+    canvas.add(placeCenter(createPlayer(id, true, null), spot.x, spot.y));
+    added.push(NODE_LABELS[id] || id);
+  });
+
+  state.customDefense = true;
+  state.tool = 'select';
+  applyMode();
+  markDefensePreset('custom');
+  canvas.discardActiveObject();
+  canvas.requestRenderAll();
+  saveCurrentFrame();
+  setHint('自訂防守：直接拖曳 ' + DEF_LABELS_TEXT + ' 到任意位置，放開即記錄在目前步驟 · 再點其他陣型可切換回標準防區。');
+  toast(added.length
+    ? '已補上 ' + added.join('、') + '，拖曳擺位即可'
+    : '自訂防守：拖曳 ' + DEF_LABELS_TEXT + ' 擺位', 'success');
+}
+
+/* ── 清除 / 重設 ── */
+function clearDrawings() {
+  if (!isCoach()) return;
+  const lines = findByKind('line');
+  if (!lines.length) { toast('目前沒有線條可清除', 'warn'); return; }
+  pushUndo();
+  lines.forEach(function (obj) { canvas.remove(obj); });
+  canvas.discardActiveObject();
+  canvas.requestRenderAll();
+  toast('已清除 ' + lines.length + ' 條線條', 'success');
+}
+
+async function resetBoard() {
+  if (!isCoach()) return;
+  const ok = await confirmDialog('重設球場', '所有步驟與線條都會被清除，回到預設 5 對 5 陣型。此動作無法復原。', '重設');
+  if (!ok) return;
+  state.undo = [];
+  clearBoardObjects();
+  addFormation();
+  state.frames = [{ id: uid(), name: '步驟 1', objects: serializeCanvas() }];
+  state.currentFrame = 0;
+  state.tacticId = null;
+  state.tacticName = '';
+  state.tool = 'select';
+  applyMode();
+  renderStepUI();
+  canvas.requestRenderAll();
+  toast('球場已重設', 'success');
+}
+
+/* ── 新增戰術：清空畫布 → 回預設 2-1-2（含預設進攻球員）→ 步驟 1 → 名稱輸入框 ── */
+async function newTactic() {
+  if (!isCoach()) { requestCoachMode(); return; }
+  if (state.playing || state.exporting) {
+    toast('播放／匯出中，請先停止再新增戰術', 'warn');
+    return;
+  }
+  const lines = findByKind('line').length;
+  /* 有未存檔的自訂內容時先確認，避免誤觸把正在畫的戰術清掉 */
+  if (state.frames.length > 1 || lines) {
+    const ok = await confirmDialog('新增戰術',
+      '目前畫布上的 ' + state.frames.length + ' 個步驟與 ' + lines +
+      ' 條線條都會被清空，回到預設 2-1-2 陣型。此動作無法復原。',
+      '清空並新增');
+    if (!ok) return;
+  }
+  state.undo = [];
+  state.draw = null;
+  clearBoardObjects();
+  addFormation();
+  state.frames = [{ id: uid(), name: '步驟 1', objects: serializeCanvas() }];
+  state.currentFrame = 0;
+  state.tacticId = null;
+  state.tacticName = '';
+  state.tacticSource = null;
+  state.tool = 'select';
+  applyMode();
+  renderLibrary();
+  $$('#pbList .pb-item').forEach(function (row) { row.classList.remove('is-active'); });
+  renderStepUI();
+  syncTacticNameField(true);
+  canvas.requestRenderAll();
+  focusTacticNameField();
+  toast('已建立新戰術 · 請輸入名稱後開始畫線', 'success');
+}
+
+/* ============================================================
+   §9 步驟（Frame）管理
+   ============================================================ */
+function renderStepUI() {
+  const list = $('#stepList');
+  if (!list) return;
+  list.innerHTML = '';
+  state.frames.forEach(function (frame, index) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'step-chip' + (index === state.currentFrame ? ' is-active' : '');
+    chip.setAttribute('role', 'tab');
+    chip.setAttribute('aria-selected', index === state.currentFrame ? 'true' : 'false');
+    chip.title = isCoach() ? '點擊切換 · 雙擊重新命名' : '點擊查看此步驟';
+    chip.innerHTML = '<span class="step-idx">' + (index + 1) + '</span>' +
+      '<span class="step-name">' + escapeHtml(frame.name || ('步驟 ' + (index + 1))) + '</span>';
+    chip.addEventListener('click', function () {
+      if (state.playing || state.exporting) return;
+      if (index === state.currentFrame) return;
+      goToFrame(index);
+    });
+    chip.addEventListener('dblclick', function (event) {
+      event.preventDefault();
+      renameStep(index);
+    });
+    list.appendChild(chip);
+  });
+
+  const counter = $('#frameCounter');
+  if (counter) counter.textContent = (state.currentFrame + 1) + ' / ' + state.frames.length;
+
+  const prev = $('#btnPrev');
+  const next = $('#btnNext');
+  if (prev) prev.disabled = state.playing || state.exporting || state.currentFrame <= 0;
+  if (next) next.disabled = state.playing || state.exporting || state.currentFrame >= state.frames.length - 1;
+
+  renderCueTag();
+  renderStepDock();
+}
+
+/* ── 機會標籤：把目前步驟的 cue 大字顯示在球場右上 ── */
+function renderCueTag() {
+  const el = $('#cueTag');
+  if (!el) return;
+  const frame = state.frames[state.currentFrame];
+  const cue = frame && frame.cue ? String(frame.cue) : '';
+  if (!cue) {
+    el.hidden = true;
+    el.textContent = '';
+    el.classList.remove('is-pop');
+    return;
+  }
+  el.hidden = false;
+  if (el.textContent !== cue) {
+    el.textContent = cue;
+    el.classList.remove('is-pop');
+    void el.offsetWidth;         // 重新觸發 pop-in
+    el.classList.add('is-pop');
+  }
+}
+
+/* ── 迷你半球場縮圖（只用座標畫點，不重建 fabric 物件） ── */
+function thumbSvg(objects) {
+  const parts = [];
+  parts.push('<rect x="0" y="0" width="1000" height="940" fill="#FDFEFF"/>');
+  parts.push('<rect x="336.7" y="0" width="326.6" height="386.7" fill="rgba(180,70,47,.09)"/>');
+  parts.push('<path d="M336.7 0 V386.7 H663.3 V0" fill="none" stroke="rgba(31,42,55,.45)" stroke-width="12"/>');
+  parts.push('<path d="M60 0 V300 A450 450 0 0 0 940 300 V0" fill="none" stroke="rgba(31,42,55,.32)" stroke-width="12"/>');
+  parts.push('<circle cx="500" cy="105" r="14" fill="none" stroke="#B4462F" stroke-width="12"/>');
+  (objects || []).forEach(function (obj) {
+    if (!obj || typeof obj.left !== 'number' || typeof obj.top !== 'number') return;
+    if (obj.kind === 'defense') {
+      parts.push('<circle cx="' + obj.left + '" cy="' + obj.top + '" r="32" fill="#FFFFFF" stroke="#2F6FA8" stroke-width="16"/>');
+    } else if (obj.kind === 'offense') {
+      parts.push('<circle cx="' + obj.left + '" cy="' + obj.top + '" r="32" fill="#B4462F"/>');
+    } else if (obj.kind === 'line') {
+      parts.push('<circle cx="' + obj.left + '" cy="' + obj.top + '" r="16" fill="rgba(47,111,168,.5)"/>');
+    } else if (obj.kind === 'ball') {
+      parts.push('<circle cx="' + obj.left + '" cy="' + obj.top + '" r="20" fill="#F37021"/>');
+    }
+  });
+  return '<svg viewBox="0 0 1000 700" preserveAspectRatio="xMidYMin meet" aria-hidden="true">' +
+    parts.join('') + '</svg>';
+}
+
+/* ── 手機 dock：步驟縮圖條 + 解說卡（與 renderStepUI 同步） ── */
+function renderStepDock() {
+  const thumbs = $('#stepThumbs');
+  const cards = $('#stepCards');
+  if (!thumbs || !cards) return;
+  thumbs.innerHTML = '';
+  cards.innerHTML = '';
+
+  if (!state.frames.length) {
+    cards.innerHTML = '<p class="dock-empty">尚未有步驟</p>';
+    return;
+  }
+
+  state.frames.forEach(function (frame, index) {
+    const label = frame.name || ('步驟 ' + (index + 1));
+    const thumb = document.createElement('button');
+    thumb.type = 'button';
+    thumb.className = 'dock-thumb' + (index === state.currentFrame ? ' is-active' : '');
+    thumb.setAttribute('role', 'tab');
+    thumb.setAttribute('aria-selected', index === state.currentFrame ? 'true' : 'false');
+    thumb.title = label;
+    thumb.innerHTML = thumbSvg(frame.objects) + '<span>' + escapeHtml(label) + '</span>';
+    thumb.addEventListener('click', function () {
+      if (state.playing || state.exporting || index === state.currentFrame) return;
+      goToFrame(index);
+    });
+    thumbs.appendChild(thumb);
+
+    const card = document.createElement('article');
+    card.className = 'dock-card';
+    card.innerHTML =
+      '<div class="dock-card-head"><span class="dock-card-idx">' + (index + 1) + '</span>' +
+      '<span class="dock-card-name">' + escapeHtml(label) + '</span>' +
+      (frame.cue ? '<span class="dock-card-cue">' + escapeHtml(frame.cue) + '</span>' : '') +
+      '</div>' +
+      '<p class="dock-card-desc">' + escapeHtml(frame.desc || '—') + '</p>';
+    cards.appendChild(card);
+  });
+
+  const active = cards.children[state.currentFrame];
+  if (active && active.scrollIntoView && !state.playing) {
+    active.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }
+}
+
+function goToFrame(index) {
+  if (!state.frames.length) return;
+  saveCurrentFrame();
+  renderFrame(index);
+}
+
+function cloneObjects(objects) {
+  return JSON.parse(JSON.stringify(objects || []));
+}
+
+function addStep() {
+  if (!isCoach() || state.playing || state.exporting) return;
+  saveCurrentFrame();
+  /* 拖曳自動長出的軌跡線＝「上一動怎麼走到這裡」，新步驟重新記錄；
+     教練手畫的線（切入/傳球/擋拆）則保留，方便連續動作沿用 */
+  const objects = cloneObjects(serializeCanvas()).filter(function (obj) { return !obj.autoLine; });
+  const frame = {
+    id: uid(),
+    name: '步驟 ' + (state.frames.length + 1),
+    objects: objects
+  };
+  state.frames.splice(state.currentFrame + 1, 0, frame);
+  state.frames.forEach(function (item, index) {
+    if (!item.name || /^步驟 \d+$/.test(item.name)) item.name = '步驟 ' + (index + 1);
+  });
+  renderFrame(state.currentFrame + 1);
+  toast('已新增步驟 ' + (state.currentFrame + 1), 'success');
+}
+
+function duplicateStep() {
+  if (!isCoach() || state.playing || state.exporting) return;
+  saveCurrentFrame();
+  const source = state.frames[state.currentFrame];
+  if (!source) return;
+  const copy = {
+    id: uid(),
+    name: (source.name || '步驟') + ' 副本',
+    objects: cloneObjects(source.objects)
+  };
+  state.frames.splice(state.currentFrame + 1, 0, copy);
+  renderFrame(state.currentFrame + 1);
+  toast('已複製步驟', 'success');
+}
+
+function deleteStep() {
+  if (!isCoach() || state.playing || state.exporting) return;
+  if (state.frames.length <= 1) { toast('至少要保留一個步驟', 'warn'); return; }
+  const removed = state.frames.splice(state.currentFrame, 1);
+  renderFrame(Math.min(state.currentFrame, state.frames.length - 1));
+  toast('已刪除「' + ((removed[0] && removed[0].name) || '步驟') + '」', 'success');
+}
+
+function renameStep(index) {
+  if (!isCoach()) return;
+  const frame = state.frames[index];
+  if (!frame) return;
+  const next = window.prompt('步驟名稱', frame.name || ('步驟 ' + (index + 1)));
+  if (next == null) return;
+  const trimmed = String(next).trim();
+  if (!trimmed) return;
+  frame.name = trimmed.slice(0, 24);
+  renderStepUI();
+  toast('已重新命名', 'success');
+}
+
+function prevStep() {
+  if (state.playing || state.exporting) return;
+  if (state.currentFrame <= 0) return;
+  goToFrame(state.currentFrame - 1);
+}
+
+function nextStep() {
+  if (state.playing || state.exporting) return;
+  if (state.currentFrame >= state.frames.length - 1) return;
+  goToFrame(state.currentFrame + 1);
+}
+/* ============================================================
+   §10.5 Fancy 特效：持球光暈 · 殘影軌跡
+   ============================================================ */
+const GLOW_TICK = 80;        // 光暈呼吸更新間隔（毫秒）
+const GLOW_BLUR_MIN = 9;
+const GLOW_BLUR_MAX = 15;
+const GLOW_REACH = 70;       // 判定「持球」的距離（邏輯像素）
+const TRAIL_MIN_LEN = 32;    // 短於此距離不畫殘影
+let glowShadow = null;       // 共用陰影物件（延遲建立，fabric 由 CDN defer 載入）
+let glowTarget = null;
+let glowTimer = null;
+let glowPhase = 0;
+
+function prefersReducedMotion() {
+  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+function glowShadowRef() {
+  if (!glowShadow) {
+    glowShadow = new fabric.Shadow({
+      color: 'rgba(243,112,33,.65)', blur: GLOW_BLUR_MIN, offsetX: 0, offsetY: 0
+    });
+  }
+  return glowShadow;
+}
+
+/* 球 70px 範圍內最近的進攻球員＝持球者 */
+function getBallHandler() {
+  if (!canvas) return null;
+  const ball = canvas.getObjects().find(function (obj) { return obj.kind === 'ball'; });
+  if (!ball || typeof ball.left !== 'number') return null;
+  let best = null;
+  let bestD = GLOW_REACH;
+  canvas.getObjects().forEach(function (obj) {
+    if (obj.kind !== 'offense' || typeof obj.left !== 'number') return;
+    const d = Math.hypot(obj.left - ball.left, obj.top - ball.top);
+    if (d < bestD) { bestD = d; best = obj; }
+  });
+  return best;
+}
+
+function updateGlow() {
+  if (!canvas || state.exporting) return;
+  const shadow = glowShadowRef();
+  const handler = getBallHandler();
+  if (glowTarget && glowTarget !== handler && glowTarget.shadow === shadow) {
+    glowTarget.shadow = null;
+  }
+  glowTarget = handler;
+  if (!handler) return;
+  if (prefersReducedMotion()) {
+    shadow.blur = GLOW_BLUR_MAX;
+    shadow.color = 'rgba(243,112,33,.6)';
+  } else {
+    glowPhase = (glowPhase + 1) % 48;
+    const wave = (Math.sin((glowPhase / 48) * Math.PI * 2) + 1) / 2;
+    shadow.blur = GLOW_BLUR_MIN + wave * (GLOW_BLUR_MAX - GLOW_BLUR_MIN);
+    shadow.color = 'rgba(243,112,33,' + (0.5 + wave * 0.32).toFixed(2) + ')';
+  }
+  handler.shadow = shadow;
+  canvas.requestRenderAll();
+}
+
+function startGlow() {
+  if (glowTimer || prefersReducedMotion()) { updateGlow(); return; }
+  glowTimer = window.setInterval(updateGlow, GLOW_TICK);
+}
+
+/* ============================================================
+   §10 動畫播放（節點補間）
+   ============================================================ */
+function nodeMapFromCanvas() {
+  const map = {};
+  canvas.getObjects().forEach(function (obj) {
+    if (obj.nodeId && obj.kind && obj.kind !== 'line') {
+      map[obj.nodeId] = { left: obj.left, top: obj.top };
+    }
+  });
+  return map;
+}
+
+function nodeMapFromFrame(frame) {
+  const map = {};
+  if (!frame || !Array.isArray(frame.objects)) return map;
+  frame.objects.forEach(function (obj) {
+    if (obj && obj.nodeId && obj.kind && obj.kind !== 'line' &&
+      typeof obj.left === 'number' && typeof obj.top === 'number') {
+      map[obj.nodeId] = { left: obj.left, top: obj.top, angle: obj.angle || 0 };
+    }
+  });
+  return map;
+}
+
+function applyLerp(fromMap, toMap, t) {
+  const objects = canvas.getObjects();
+  Object.keys(toMap).forEach(function (key) {
+    const target = toMap[key];
+    const origin = fromMap[key];
+    const obj = objects.find(function (item) { return item.nodeId === key && item.kind !== 'line'; });
+    if (!obj || !origin) return;
+    obj.set({
+      left: origin.left + (target.left - origin.left) * t,
+      top: origin.top + (target.top - origin.top) * t
+    });
+    if (obj.kind === 'ball') {
+      obj.set({ angle: (origin.angle || 0) + ((target.angle || 0) - (origin.angle || 0)) * t });
+    }
+  });
+  canvas.requestRenderAll();
+}
+
+/* 以 timer 驅動的補間，避免背景分頁 / 無 rAF 環境下動畫卡住 */
+function animateValue(duration, onStep) {
+  return new Promise(function (resolve) {
+    const now = function () {
+      return (window.performance && window.performance.now) ? window.performance.now() : Date.now();
+    };
+    const start = now();
+    const step = function () {
+      const t = duration <= 0 ? 1 : Math.min(1, (now() - start) / duration);
+      const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      onStep(eased, t);
+      if (t < 1) setTimeout(step, 16);
+      else resolve();
+    };
+    step();
+  });
+}
+
+/* ── 殘影軌跡：每次補間畫出「起點→終點」雙層虛線，結束 260ms 淡出 ── */
+function makeTrailSegment(from, to, width, color, dash) {
+  const seg = new fabric.Line([from.left, from.top, to.left, to.top], {
+    stroke: color,
+    strokeWidth: width,
+    strokeDashArray: dash,
+    strokeLineCap: 'round',
+    selectable: false,
+    evented: false,
+    hoverCursor: 'default',
+    objectCaching: false,
+    opacity: 0
+  });
+  seg.isTrail = true;
+  seg.lockMovementX = true;
+  seg.lockMovementY = true;
+  return seg;
+}
+
+function startTrails(fromMap, toMap) {
+  if (!canvas || prefersReducedMotion()) return [];
+  const trails = [];
+  Object.keys(toMap).forEach(function (key) {
+    const a = fromMap[key];
+    const b = toMap[key];
+    if (!a || !b) return;
+    if (Math.hypot(b.left - a.left, b.top - a.top) < TRAIL_MIN_LEN) return;
+    const isBall = key === 'ball';
+    const isDef = key.indexOf('def') === 0;
+    const core = isBall ? 'rgba(243,112,33,.95)'
+      : (isDef ? 'rgba(47,111,168,.8)' : 'rgba(180,70,47,.8)');
+    const halo = isBall ? 'rgba(243,112,33,.16)'
+      : (isDef ? 'rgba(47,111,168,.14)' : 'rgba(180,70,47,.14)');
+    const pair = [
+      makeTrailSegment(a, b, isBall ? 9 : 13, halo, [2, 14]),
+      makeTrailSegment(a, b, isBall ? 3 : 5, core, [10, 12])
+    ];
+    pair.forEach(function (seg, index) {
+      seg.trailBase = index === 0 ? 0.9 : 1;
+      seg.set('opacity', 0);
+      trails.push(seg);
+      canvas.add(seg);
+      canvas.moveTo(seg, 1);   // 疊在球場之上、球員之下
+    });
+  });
+  if (trails.length) canvas.requestRenderAll();
+  return trails;
+}
+
+function fadeOutTrails(trails) {
+  if (!trails || !trails.length || !canvas) return;
+  animateValue(260, function (eased) {
+    trails.forEach(function (seg) { seg.set('opacity', (seg.trailBase || 1) * (1 - eased)); });
+    canvas.requestRenderAll();
+  }).then(function () {
+    trails.forEach(function (seg) { canvas.remove(seg); });
+    canvas.requestRenderAll();
+  });
+}
+
+function tweenToFrame(fromIndex, toIndex) {
+  const fromMap = nodeMapFromCanvas();
+  const toMap = nodeMapFromFrame(state.frames[toIndex]);
+  const lines = canvas.getObjects().filter(function (obj) { return obj.kind === 'line'; });
+  const baseOpacity = lines.map(function (obj) {
+    return typeof obj.opacity === 'number' ? obj.opacity : 1;
+  });
+  const trails = startTrails(fromMap, toMap);
+
+  const anim = animateValue(PLAYBACK_DURATION, function (eased) {
+    applyLerp(fromMap, toMap, eased);
+    const fade = Math.min(1, eased * 1.8);
+    lines.forEach(function (obj, index) {
+      obj.set('opacity', baseOpacity[index] * (1 - fade));
+    });
+    if (trails.length) {
+      const trailFade = Math.min(1, eased * 2.4);
+      trails.forEach(function (seg) {
+        seg.set('opacity', (seg.trailBase || 1) * trailFade);
+      });
+    }
+    canvas.requestRenderAll();
+  });
+
+  anim.then(function () { fadeOutTrails(trails); });
+  return anim;
+}
+
+function updateLoopBtn() {
+  const btn = $('#btnLoop');
+  if (!btn) return;
+  btn.classList.toggle('is-active', !!state.loop);
+  btn.setAttribute('aria-pressed', state.loop ? 'true' : 'false');
+  btn.title = state.loop ? '循環播放：開 (L)' : '循環播放：關 (L)';
+}
+
+function toggleLoop() {
+  state.loop = !state.loop;
+  updateLoopBtn();
+  toast(state.loop ? '循環播放：開' : '循環播放：關');
+}
+
+/* 停止播放並等到「真的停下」（載入新戰術前先收掉舊動畫） */
+function stopPlayback() {
+  if (!state.playing) return Promise.resolve();
+  return new Promise(function (resolve) {
+    state.playbackEnd = resolve;
+    state.stopRequested = true;
+  });
+}
+
+/* 載入戰術後自動播放（預設循環）；尊重系統「減少動態」偏好 */
+function autoPlayLoaded(label) {
+  if (!state.frames.length) return;
+  if (state.frames.length < 2) {
+    toast('已載入「' + label + '」· 只有一個步驟，' +
+      (isCoach() ? '按「＋」可新增下一步' : '請切換教練模式補上後續步驟'), 'warn');
+    return;
+  }
+  if (prefersReducedMotion()) {
+    toast('已載入「' + label + '」（系統偏好減少動態，未自動播放）');
+    return;
+  }
+  state.loop = true;
+  updateLoopBtn();
+  renderStepUI();
+  toast(isCoach()
+    ? '自動播放中（∞ 循環）· 按「■ 停止播放」可停'
+    : '球員模式 · 即點即播（∞）· 點左側任一戰術即可重播');
+  playAnimation();
+}
+
+async function playAnimation() {
+  if (state.exporting) return;
+  if (state.playing) { state.stopRequested = true; return; }
+  saveCurrentFrame();
+  if (state.frames.length < 2) {
+    toast('只有一個步驟，請先按「＋」新增下一步', 'warn');
+    return;
+  }
+  setPlaying(true);
+  state.stopRequested = false;
+  const restoreIndex = state.currentFrame;
+  try {
+    do {
+      await renderFrame(0, { fadeLines: true });
+      await sleep(PLAYBACK_HOLD);
+      for (let i = 0; i < state.frames.length - 1 && !state.stopRequested; i++) {
+        await tweenToFrame(i, i + 1);
+        await renderFrame(i + 1, { fadeLines: true });
+        if (i < state.frames.length - 2) await sleep(PLAYBACK_HOLD);
+      }
+      if (state.loop && !state.stopRequested) await sleep(LOOP_GAP);
+    } while (state.loop && !state.stopRequested);
+
+    if (state.stopRequested) {
+      toast('已停止播放', 'warn');
+    } else {
+      toast('播放完成 · 共 ' + state.frames.length + ' 個步驟', 'success');
+    }
+  } catch (err) {
+    console.error('[playback]', err);
+    toast('播放時發生錯誤', 'error');
+  } finally {
+    setPlaying(false);
+    await renderFrame(restoreIndex);
+    const onEnd = state.playbackEnd;
+    state.playbackEnd = null;
+    if (typeof onEnd === 'function') onEnd();
+  }
+}
+/* ============================================================
+   §11 GIF 匯出（gifshot）
+   ============================================================ */
+async function exportGif() {
+  if (state.playing || state.exporting) return;
+  if (typeof gifshot === 'undefined') {
+    toast('gifshot 套件未載入，請檢查網路後重新整理', 'error');
+    setHint('GIF 匯出需要 gifshot CDN（jsDelivr）。目前無法載入，請確認網路後重新整理。', true);
+    return;
+  }
+  saveCurrentFrame();
+  const frames = state.frames;
+  if (!frames.length) { toast('目前沒有可匯出的步驟', 'warn'); return; }
+
+  const restoreIndex = state.currentFrame;
+  const outW = Math.round(BASE_W * GIF_SCALE);
+  const outH = Math.round(BASE_H * GIF_SCALE);
+  const interval = 0.1;
+
+  setExporting(true);
+  showLoader('擷取影格…', 4);
+
+  try {
+    const capture = function () {
+      return canvas.toDataURL({ format: 'png', multiplier: GIF_SCALE });
+    };
+    const images = [];
+
+    for (let i = 0; i < frames.length; i++) {
+      await renderFrame(i);
+      const still = capture();
+      images.push(still, still);          // 每步停留兩個影格
+      if (i < frames.length - 1) {
+        const fromMap = nodeMapFromFrame(frames[i]);
+        const toMap = nodeMapFromFrame(frames[i + 1]);
+        for (let s = 1; s <= GIF_SAMPLES; s++) {
+          applyLerp(fromMap, toMap, s / (GIF_SAMPLES + 1));
+          images.push(capture());
+        }
+      }
+      setLoaderProgress(4 + Math.round(((i + 1) / frames.length) * 36));
+      await sleep(0);
+    }
+
+    setLoaderLabel('編碼 GIF…');
+    setLoaderProgress(42);
+
+    const result = await new Promise(function (resolve, reject) {
+      gifshot.createGIF({
+        images: images,
+        gifWidth: outW,
+        gifHeight: outH,
+        interval: interval,
+        numWorkers: 2,
+        progressCallback: function (value) {
+          setLoaderProgress(42 + Number(value || 0) * 58);
+        }
+      }, function (output) {
+        if (!output || output.error) {
+          reject(new Error((output && output.errorMsg) || 'GIF 編碼失敗'));
+        } else {
+          resolve(output);
+        }
+      });
+    });
+
+    downloadDataUrl(result.image, tacticFileName('gif'));
+    toast('GIF 已生成（' + tacticFileName('gif') + '）· ' + images.length + ' 影格', 'success');
+  } catch (err) {
+    console.error('[gif]', err);
+    toast('GIF 匯出失敗：' + (err && err.message ? err.message : '未知錯誤'), 'error');
+  } finally {
+    hideLoader();
+    setExporting(false);
+    await renderFrame(restoreIndex);
+  }
+}
+
+/* 匯出當前步驟 PNG（加分功能，供教練截圖用） */
+function exportPng() {
+  if (state.exporting) return;
+  const target = canvas.getActiveObject();
+  if (target) canvas.discardActiveObject();
+  canvas.renderAll();
+  try {
+    const url = canvas.toDataURL({ format: 'png', multiplier: 2 });
+    downloadDataUrl(url, timestampName('MONDAY_step') + '.png');
+    toast('PNG 已生成', 'success');
+  } catch (err) {
+    console.error('[png]', err);
+    toast('PNG 匯出失敗', 'error');
+  }
+}
+/* ============================================================
+   §12 戰術存檔 / 讀取 / 雲端列表
+   ============================================================ */
+function formatTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso);
+  const pad = function (n) { return String(n).padStart(2, '0'); };
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+    ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+/* 下一個預設名稱：新戰術 1、新戰術 2 …（避免撞名） */
+function nextTacticName() {
+  const items = Array.isArray(state.playbookItems) ? state.playbookItems : [];
+  let max = 0;
+  items.forEach(function (item) {
+    const hit = /^新戰術\s*(\d+)$/.exec(String(item.name || '').trim());
+    if (hit) max = Math.max(max, Number(hit[1]));
+  });
+  return '新戰術 ' + (max + 1);
+}
+
+async function openSaveDialog() {
+  if (!isCoach() || state.exporting) return;
+  saveCurrentFrame();
+  /* 手冊頂部已輸入名稱 → 直接存；空白才跳命名框 */
+  const field = $('#pbNameInput');
+  const typed = String((field && field.value) || state.tacticName || '').trim();
+  if (typed) { await saveTacticNamed(typed); return; }
+  const target = supabaseReady() ? 'Supabase 雲端' : '本機儲存';
+  const name = await promptText({
+    title: '儲存戰術',
+    desc: '將目前 ' + state.frames.length + ' 個步驟存到' + target + '，儲存後會出現在左側戰術手冊。',
+    label: '戰術名稱',
+    okText: '儲存',
+    value: state.tacticName || nextTacticName(),
+    placeholder: '例：Horns 45 擋拆'
+  });
+  if (name === null) return;
+  await saveTacticNamed(name);
+}
+
+async function saveTacticNamed(name) {
+  const clean = String(name || '').trim();
+  if (!clean) {
+    toast('請輸入戰術名稱', 'warn');
+    return;
+  }
+  saveCurrentFrame();
+
+  const targetIsCloud = supabaseReady();
+  const reuseId = targetIsCloud
+    ? (state.tacticSource === 'supabase' ? state.tacticId : null)
+    : (state.tacticSource === 'local' ? state.tacticId : null);
+
+  const payload = {
+    id: reuseId,
+    name: clean,
+    frames: state.frames.map(function (frame) {
+      return { name: frame.name, cue: frame.cue || '', desc: frame.desc || '', objects: frame.objects };
+    }),
+    meta: {
+      app: 'MONDAY BEER & BASKETBALL 戰術板',
+      steps: state.frames.length,
+      savedAt: new Date().toISOString()
+    }
+  };
+
+  showLoader('儲存中…', 35);
+  try {
+    const result = await store.save(payload);
+    state.tacticId = result.record.id;
+    state.tacticName = result.record.name;
+    state.tacticSource = result.source;
+    syncTacticNameField(true);
+    if (result.fallback) {
+      toast('雲端儲存失敗，已改存本機', 'warn');
+    } else {
+      toast('已儲存到' + (result.source === 'supabase' ? ' Supabase 雲端' : '本機儲存'), 'success');
+    }
+    updateStorePill();
+    await renderPlaybook();
+  } catch (err) {
+    console.error('[save]', err);
+    toast('儲存失敗：' + (err && err.message ? err.message : '未知錯誤'), 'error');
+  } finally {
+    hideLoader();
+  }
+}
+
+/* ── 經典戰術庫：一鍵載入（沿用 §12 的影格流程） ── */
+function libraryTacticByKey(key) {
+  for (let i = 0; i < TACTIC_LIBRARY.length; i++) {
+    if (TACTIC_LIBRARY[i].key === key) return TACTIC_LIBRARY[i];
+  }
+  return null;
+}
+
+async function loadLibraryTactic(key) {
+  if (state.exporting) return;
+  const tactic = libraryTacticByKey(key);
+  if (!tactic) return;
+  await stopPlayback();
+  showLoader('載入戰術…', 35);
+  let loaded = false;
+  try {
+    const built = materialiseTactic(tactic);
+    state.frames = built.map(function (frame) {
+      return {
+        id: uid(),
+        name: frame.name,
+        cue: frame.cue || '',
+        desc: frame.desc || '',
+        objects: cloneObjects(frame.objects)
+      };
+    });
+    state.currentFrame = 0;
+    state.tacticId = 'lib:' + tactic.key;
+    state.tacticName = tactic.name;
+    state.tacticSource = 'library';
+    state.undo = [];
+    state.tool = 'select';
+    applyMode();
+    await renderFrame(0);
+    renderLibrary();
+    renderPlaybook();
+    if (typeof closePlaybookDrawer === 'function') closePlaybookDrawer();
+    toast('已載入「' + tactic.name + '」· ' + state.frames.length + ' 步', 'success');
+    loaded = true;
+  } catch (err) {
+    console.error('[library]', err);
+    toast('載入戰術失敗：' + (err && err.message ? err.message : '未知錯誤'), 'error');
+  } finally {
+    hideLoader();
+  }
+  if (loaded) autoPlayLoaded(tactic.name);
+}
+
+/* 依分類把經典戰術灌進手冊（一次渲染，之後只切 is-active） */
+function renderLibrary() {
+  const totalEl = $('#pbLibCount');
+  if (totalEl) totalEl.textContent = TACTIC_LIBRARY.length + ' 套';
+  LIB_CATEGORIES.forEach(function (cat) {
+    const host = document.querySelector('.pb-cat-list[data-cat="' + cat.key + '"]');
+    if (!host) return;
+    const items = TACTIC_LIBRARY.filter(function (item) { return item.cat === cat.key; });
+    const count = document.querySelector('.pb-cat-count[data-cat="' + cat.key + '"]');
+    if (count) count.textContent = items.length;
+    if (host.dataset.rendered === '1') {
+      $$('.pb-lib', host).forEach(function (btn) {
+        btn.classList.toggle('is-active', state.tacticId === 'lib:' + btn.dataset.key);
+      });
+      return;
+    }
+    host.innerHTML = '';
+    items.forEach(function (item) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pb-lib' + (state.tacticId === 'lib:' + item.key ? ' is-active' : '');
+      btn.dataset.key = item.key;
+      btn.title = item.name + ' — ' + item.desc;
+      btn.innerHTML = '<span class="pb-lib-name">' + escapeHtml(item.name) + '</span>' +
+        '<span class="pb-lib-meta"><b>' + escapeHtml(item.tag) + '</b>' + item.steps.length + ' 步</span>';
+      btn.addEventListener('click', function () { loadLibraryTactic(item.key); });
+      host.appendChild(btn);
+    });
+    host.dataset.rendered = '1';
+  });
+}
+
+/* ── 手冊頂部「戰術名稱」小輸入框：與 state.tacticName 雙向同步 ── */
+function syncTacticNameField(force) {
+  const input = $('#pbNameInput');
+  if (!input) return;
+  if (!force && document.activeElement === input) return;
+  input.value = state.tacticName || '';
+}
+
+/* 新增戰術後把焦點帶到名稱輸入框（手機先確保手冊抽屜是開的） */
+function focusTacticNameField() {
+  const input = $('#pbNameInput');
+  if (!input) return;
+  if (window.innerWidth <= 1100 && typeof openPlaybookDrawer === 'function') openPlaybookDrawer(true);
+  setTimeout(function () {
+    input.focus();
+    input.select();
+    if (input.scrollIntoView) input.scrollIntoView({ block: 'nearest' });
+  }, 60);
+}
+
+/* ── 左側戰術手冊：點名稱載入、✎ 改名、🗑 刪除 ── */
+function updatePlaybookFoot() {
+  const foot = $('#pbFoot');
+  if (!foot) return;
+  foot.textContent = isCoach()
+    ? '點名稱載入 · ✎ 改名 · 垃圾桶刪除'
+    : '點一下即可載入播放';
+}
+
+async function renderPlaybook() {
+  const list = $('#pbList');
+  if (!list) return;
+
+  let items = [];
+  try {
+    items = await store.list();
+  } catch (err) {
+    console.warn('[playbook]', err);
+  }
+  state.playbookItems = items;
+  const mineCount = $('#pbMineCount');
+  if (mineCount) mineCount.textContent = items.length;
+  updatePlaybookFoot();
+  syncTacticNameField();
+
+  list.innerHTML = '';
+  if (!items.length) {
+    const empty = document.createElement('div');
+    empty.className = 'pb-empty';
+    empty.textContent = isCoach()
+      ? '尚無儲存的戰術，按上方「➕ 新增戰術」建立第一套。'
+      : '教練尚未發布戰術。';
+    list.appendChild(empty);
+    return;
+  }
+
+  items.forEach(function (item) {
+    const label = item.name || '未命名戰術';
+    const row = document.createElement('div');
+    row.className = 'pb-item' + (state.tacticId && item.id === state.tacticId ? ' is-active' : '');
+    row.dataset.id = item.id;
+    row.dataset.source = item.source;
+    row.dataset.name = label;
+    row.title = label;
+    row.addEventListener('click', function () { loadTactic(item); });
+
+    const main = document.createElement('button');
+    main.type = 'button';
+    main.className = 'pb-main';
+    main.title = label + ' · 點擊載入';
+    main.addEventListener('click', function (event) {
+      event.stopPropagation();
+      loadTactic(item);
+    });
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'pb-name';
+    nameEl.textContent = label;
+
+    const metaEl = document.createElement('span');
+    metaEl.className = 'pb-meta';
+    const tag = document.createElement('span');
+    tag.className = 'tag' + (item.source === 'supabase' ? ' is-cloud' : '');
+    tag.textContent = item.source === 'supabase' ? 'CLOUD' : 'LOCAL';
+    const timeEl = document.createElement('span');
+    timeEl.textContent = formatTime(item.updated_at) || '—';
+    metaEl.appendChild(tag);
+    metaEl.appendChild(timeEl);
+
+    main.appendChild(nameEl);
+    main.appendChild(metaEl);
+
+    const actions = document.createElement('span');
+    actions.className = 'pb-actions';
+
+    const renameBtn = document.createElement('button');
+    renameBtn.type = 'button';
+    renameBtn.className = 'pb-act';
+    renameBtn.dataset.act = 'rename';
+    renameBtn.title = '重新命名';
+    renameBtn.setAttribute('aria-label', '重新命名「' + label + '」');
+    renameBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M4 20h4L19 9l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linejoin="round"/></svg>';
+    renameBtn.addEventListener('click', function (event) {
+      event.stopPropagation();
+      renameTactic(item);
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'pb-act';
+    delBtn.dataset.act = 'delete';
+    delBtn.title = '刪除';
+    delBtn.setAttribute('aria-label', '刪除「' + label + '」');
+    delBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M5 7h14M10 7V5h4v2M8 7l1 12h6l1-12" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    delBtn.addEventListener('click', function (event) {
+      event.stopPropagation();
+      removeTactic(item);
+    });
+
+    actions.appendChild(renameBtn);
+    actions.appendChild(delBtn);
+    row.appendChild(main);
+    row.appendChild(actions);
+    list.appendChild(row);
+  });
+}
+
+/* 就地改名：走同一套 promptText，存回 store 後只重繪手冊 */
+async function renameTactic(item) {
+  if (!isCoach()) return;
+  const oldName = item.name || '未命名戰術';
+  const name = await promptText({
+    title: '重新命名戰術',
+    desc: '修改「' + oldName + '」的名稱，步驟內容不會改變。',
+    label: '新的名稱',
+    okText: '儲存',
+    value: oldName,
+    placeholder: '例：Horns 45 擋拆'
+  });
+  if (name === null) return;
+  const clean = String(name).trim();
+  if (!clean) { toast('名稱不能空白', 'warn'); return; }
+  if (clean === oldName) return;
+  try {
+    await store.rename(item.id, item.source, clean);
+    if (state.tacticId === item.id) state.tacticName = clean;
+    await renderPlaybook();
+    toast('已更名為「' + clean + '」', 'success');
+  } catch (err) {
+    console.error('[rename]', err);
+    toast('改名失敗：' + (err && err.message ? err.message : '未知錯誤'), 'error');
+  }
+}
+
+async function loadTactic(item) {
+  if (state.exporting) return;
+  await stopPlayback();
+  showLoader('載入戰術…', 40);
+  let loadedName = '';
+  try {
+    const record = await store.load(item.id, item.source);
+    const frames = (record.frames || []).map(function (frame, index) {
+      return {
+        id: uid(),
+        name: frame.name || ('步驟 ' + (index + 1)),
+        cue: frame.cue || '',
+        desc: frame.desc || '',
+        objects: frame.objects || []
+      };
+    });
+    if (!frames.length) throw new Error('此戰術沒有步驟資料');
+
+    state.frames = frames;
+    state.currentFrame = 0;
+    state.tacticId = record.id;
+    state.tacticName = record.name || '';
+    state.tacticSource = item.source;
+    state.undo = [];
+    await renderFrame(0);
+    loadedName = record.name || '未命名戰術';
+    toast('已載入「' + loadedName + '」', 'success');
+    renderPlaybook();
+    if (typeof closePlaybookDrawer === 'function') closePlaybookDrawer();
+  } catch (err) {
+    console.error('[load]', err);
+    toast('載入失敗：' + (err && err.message ? err.message : '未知錯誤'), 'error');
+  } finally {
+    hideLoader();
+  }
+  if (loadedName) autoPlayLoaded(loadedName);
+}
+
+async function removeTactic(item) {
+  const ok = await confirmDialog('刪除戰術', '確定要刪除「' + (item.name || '未命名戰術') + '」嗎？此動作無法復原。', '刪除');
+  if (!ok) return;
+  try {
+    await store.remove(item.id, item.source);
+    if (state.tacticId === item.id) {
+      state.tacticId = null;
+      state.tacticName = '';
+      state.tacticSource = null;
+    }
+    toast('已刪除', 'success');
+    await renderPlaybook();
+  } catch (err) {
+    console.error('[remove]', err);
+    toast('刪除失敗：' + (err && err.message ? err.message : '未知錯誤'), 'error');
+  }
+}
+/* ============================================================
+   §13 身分切換與鍵盤快捷鍵
+   ============================================================ */
+const SESSION_KEY = 'mbab:coach';
+
+/* ── 手機抽屜：戰術手冊（左側） ── */
+function openPlaybookDrawer(open) {
+  const pb = $('#playbook');
+  if (!pb) return;
+  pb.classList.toggle('is-open', !!open);
+  const scrim = $('#pbScrim');
+  if (scrim) scrim.hidden = !open;
+  const toggle = $('#pbToggle');
+  if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (open) openSidebar(false);
+}
+
+function closePlaybookDrawer() {
+  const pb = $('#playbook');
+  if (!pb) return;
+  if (pb.classList.contains('is-open')) openPlaybookDrawer(false);
+}
+
+/* 手機快速防守佈陣（呼叫同一支 applyDefensePreset） */
+function buildDefQuick() {
+  const host = $('#defQuick');
+  if (!host) return;
+  host.innerHTML = '';
+  Object.keys(DEFENSE_PRESETS).forEach(function (key) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.dataset.preset = key;
+    btn.textContent = DEFENSE_PRESETS[key].label;
+    btn.addEventListener('click', function () { applyDefensePreset(key); });
+    host.appendChild(btn);
+  });
+}
+
+function openSidebar(open) {
+  const sidebar = $('#sidebar');
+  if (!sidebar) return;
+  sidebar.classList.toggle('is-open', !!open);
+  const toggle = $('#sideToggle');
+  if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (open) closePlaybookDrawer();
+}
+
+/* ── 桌面側欄：收起 / 展開（記住上次狀態） ── */
+const SIDE_KEY = 'mbab:sideCollapsed';
+
+function readSideCollapsed() {
+  try { return window.localStorage.getItem(SIDE_KEY) === '1'; } catch (err) { return false; }
+}
+
+function setSideCollapsed(collapsed, silent, persist) {
+  const next = !!collapsed;
+  /* 手機（≤1100px）用抽屜 + 🛠，不需要收合狀態 */
+  if (next && window.innerWidth <= 1100) return;
+  document.body.classList.toggle('side-collapsed', next);
+  const collapseBtn = $('#sideCollapse');
+  if (collapseBtn) collapseBtn.setAttribute('aria-expanded', next ? 'false' : 'true');
+  const expandBtn = $('#sideExpand');
+  if (expandBtn) expandBtn.setAttribute('aria-expanded', next ? 'true' : 'false');
+  if (persist !== false) {
+    try { window.localStorage.setItem(SIDE_KEY, next ? '1' : '0'); } catch (err) { /* noop */ }
+  }
+  if (!silent) toast(next ? '工具列已收起 · 點右側 ‹ 展開' : '工具列已展開');
+}
+
+function enterCoachMode(silent) {
+  state.mode = 'coach';
+  try { window.sessionStorage.setItem(SESSION_KEY, '1'); } catch (err) { /* noop */ }
+  applyMode();
+  renderStepUI();
+  renderPlaybook();
+  setSideCollapsed(readSideCollapsed(), true);
+  openSidebar(true);
+  hideSplash();
+  if (!silent) toast('教練模式已解鎖', 'success');
+}
+
+function exitCoachMode() {
+  if (state.playing || state.exporting) return;
+  saveCurrentFrame();
+  state.mode = 'player';
+  state.tool = 'select';
+  try { window.sessionStorage.removeItem(SESSION_KEY); } catch (err) { /* noop */ }
+  applyMode();
+  renderStepUI();
+  renderPlaybook();
+  setSideCollapsed(false, true, false);
+  openSidebar(false);
+  toast('已切換為球員模式（僅供閱覽／播放）');
+}
+
+/* ══════════ 開場歡迎畫面：球員 / 教練身分選擇 ══════════ */
+function isSplashOpen() {
+  const el = $('#splash');
+  return !!el && !el.hidden;
+}
+
+function showSplash() {
+  const el = $('#splash');
+  if (!el) return;
+  el.hidden = false;
+  document.body.classList.add('splash-open');
+  const first = $('#enterPlayer');
+  if (first) setTimeout(function () { first.focus(); }, 60);
+}
+
+function hideSplash() {
+  const el = $('#splash');
+  if (!el) return;
+  el.hidden = true;
+  document.body.classList.remove('splash-open');
+}
+
+/* 球員：唯讀瀏覽、即點即播 */
+function enterPlayerMode() {
+  const wasCoach = isCoach();
+  hideSplash();
+  if (wasCoach) {
+    exitCoachMode();
+  } else {
+    applyMode();
+    renderStepUI();
+    toast('球員模式 · 點左側任一戰術即可播放', 'success');
+  }
+}
+
+/* 教練：先過密碼（enterCoachMode 內會關掉首頁） */
+function enterCoachFromSplash() {
+  requestCoachMode();
+}
+
+/* 回到首頁重新選身分 */
+function backToSplash() {
+  if (state.playing || state.exporting) {
+    toast('播放／匯出中，請先停止再切換身分', 'warn');
+    return;
+  }
+  if (isCoach()) {
+    exitCoachMode();
+  } else {
+    saveCurrentFrame();
+    applyMode();
+    renderStepUI();
+  }
+  showSplash();
+}
+
+function requestCoachMode() {
+  if (isCoach()) return;
+  let unlocked = false;
+  try { unlocked = window.sessionStorage.getItem(SESSION_KEY) === '1'; } catch (err) { unlocked = false; }
+  if (unlocked) { enterCoachMode(true); return; }
+
+  $('#pwInput').value = '';
+  $('#pwError').textContent = '';
+  $('#pwInput').classList.remove('is-invalid');
+  openModal('pwModal');
+  setTimeout(function () { $('#pwInput').focus(); }, 40);
+}
+
+function submitPassword(event) {
+  if (event) event.preventDefault();
+  const value = ($('#pwInput').value || '').trim();
+  if (value === COACH_PASSWORD) {
+    closeModal('pwModal');
+    enterCoachMode(false);
+    return;
+  }
+  $('#pwError').textContent = '密碼不正確，請再試一次。';
+  $('#pwInput').classList.add('is-invalid');
+  $('#pwInput').select();
+}
+
+function deleteSelection() {
+  if (!isCoach()) return;
+  const active = canvas.getActiveObjects();
+  if (!active.length) { toast('請先選取要刪除的物件', 'warn'); return; }
+  pushUndo();
+  active.forEach(function (obj) { canvas.remove(obj); });
+  canvas.discardActiveObject();
+  canvas.requestRenderAll();
+  toast('已刪除選取物件', 'success');
+}
+
+function handleKeydown(event) {
+  /* 首頁（身分選擇）開啟時不讓球場快捷鍵穿透，但仍允許 Esc 關閉密碼框 */
+  if (isSplashOpen() && event.key !== 'Escape') return;
+  const tag = ((event.target && event.target.tagName) || '').toLowerCase();
+  const inField = tag === 'input' || tag === 'textarea' || tag === 'select';
+
+  if (event.key === 'Escape') {
+    const confirmEl = $('#confirmModal');
+    if (confirmEl && !confirmEl.hidden) { settleConfirm(false); return; }
+    const textEl = $('#textModal');
+    if (textEl && !textEl.hidden) { settleText(null); return; }
+    if (inField) { event.target.blur(); return; }
+    closeAllModals();
+    if (isCoach()) setTool('select');
+    openSidebar(false);
+    closePlaybookDrawer();
+    return;
+  }
+  if (inField) return;
+  if (event.key === ' ' || event.code === 'Space') {
+    event.preventDefault();
+    playAnimation();
+    return;
+  }
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+    event.preventDefault();
+    if (isCoach()) undo();
+    return;
+  }
+  if (event.key.toLowerCase() === 'l') { toggleLoop(); return; }
+  if (!isCoach()) return;
+
+  if (event.key === 'Delete' || event.key === 'Backspace') {
+    event.preventDefault();
+    deleteSelection();
+    return;
+  }
+  if (/^[1-5]$/.test(event.key)) {
+    addNode((event.shiftKey ? 'def' : 'off') + event.key);
+    return;
+  }
+  switch (event.key.toLowerCase()) {
+    case 'v': setTool('select'); break;
+    case 'c': setTool('cut'); break;
+    case 'p': setTool('pass'); break;
+    case 'd': setTool('dribble'); break;
+    case 's': setTool('screen'); break;
+    case 'e': setTool('eraser'); break;
+    case 'b': addNode('ball'); break;
+    default: break;
+  }
+}
+/* ============================================================
+   §14 事件綁定、示範資料與啟動
+   ============================================================ */
+function bindUI() {
+  /* 開場歡迎畫面：身分選擇 + 返回首頁 */
+  const enterPlayerBtn = $('#enterPlayer');
+  if (enterPlayerBtn) enterPlayerBtn.addEventListener('click', enterPlayerMode);
+  const enterCoachBtn = $('#enterCoach');
+  if (enterCoachBtn) enterCoachBtn.addEventListener('click', enterCoachFromSplash);
+  const homeBtn = $('#btnHome');
+  if (homeBtn) homeBtn.addEventListener('click', backToSplash);
+
+  /* 名單位置篩選 */
+  $$('.pos-chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      state.rosterFilter = chip.dataset.pos || 'all';
+      buildRosterPanel();
+    });
+  });
+
+  /* 身分切換 */
+  $$('.mode-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.dataset.mode === 'coach') requestCoachMode();
+      else exitCoachMode();
+    });
+  });
+
+  /* 節點按鈕 */
+  $$('.node[data-tool]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (!isCoach()) { requestCoachMode(); return; }
+      addNode(btn.dataset.tool);
+    });
+  });
+
+  /* 線條工具 */
+  $$('.tool[data-tool]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (!isCoach()) { requestCoachMode(); return; }
+      setTool(btn.dataset.tool);
+    });
+  });
+
+  /* 步驟控制 */
+  const bind = function (selector, handler) {
+    const el = $(selector);
+    if (el) el.addEventListener('click', handler);
+  };
+  bind('#btnAddStep', addStep);
+  bind('#btnDupStep', duplicateStep);
+  bind('#btnDelStep', deleteStep);
+  bind('#btnPrev', prevStep);
+  bind('#btnNext', nextStep);
+  bind('#btnPlay', playAnimation);
+  bind('#btnGif', exportGif);
+  bind('#btnSaveTactic', openSaveDialog);
+  bind('#btnLoop', toggleLoop);
+  $$('#defGrid .def-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { applyDefensePreset(btn.dataset.preset); });
+  });
+  bind('#pbRefresh', function () { renderPlaybook(); });
+  bind('#pbToggle', function () {
+    const pb = $('#playbook');
+    openPlaybookDrawer(!(pb && pb.classList.contains('is-open')));
+  });
+  bind('#pbClose', function () { openPlaybookDrawer(false); });
+  bind('#pbScrim', function () { openPlaybookDrawer(false); });
+  bind('#pbNewTactic', newTactic);
+  const nameField = $('#pbNameInput');
+  if (nameField) {
+    nameField.addEventListener('input', function () { state.tacticName = nameField.value; });
+    nameField.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') { event.preventDefault(); nameField.blur(); }
+    });
+  }
+  bind('#btnSaveStep', function () {
+    if (!isCoach()) { requestCoachMode(); return; }
+    saveCurrentFrame();
+    toast('已將目前畫面存為「' + (state.frames[state.currentFrame] || {}).name + '」的內容', 'success');
+  });
+  bind('#btnClear', clearDrawings);
+  bind('#btnPng', exportPng);
+  bind('#btnUndo', undo);
+  bind('#btnReset', resetBoard);
+  bind('#fab', function () {
+    const sidebar = $('#sidebar');
+    openSidebar(!sidebar.classList.contains('is-open'));
+  });
+  bind('#sideToggle', function () {
+    const sidebar = $('#sidebar');
+    openSidebar(!(sidebar && sidebar.classList.contains('is-open')));
+  });
+  bind('#sideCollapse', function () { setSideCollapsed(true); });
+  bind('#sideExpand', function () { setSideCollapsed(false); });
+
+  /* 表單 */
+  const pwForm = $('#pwForm');
+  if (pwForm) pwForm.addEventListener('submit', submitPassword);
+  const textForm = $('#textForm');
+  if (textForm) {
+    textForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      const value = String($('#textInput').value || '').trim();
+      if (!value) {
+        $('#textError').textContent = '請輸入名稱。';
+        $('#textInput').classList.add('is-invalid');
+        $('#textInput').focus();
+        return;
+      }
+      settleText(value);
+    });
+  }
+
+  /* 對話框關閉 / 確認 */
+  $$('[data-close]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.dataset.close === 'textModal') { settleText(null); return; }
+      closeModal(btn.dataset.close);
+    });
+  });
+  $$('.modal').forEach(function (modal) {
+    modal.addEventListener('mousedown', function (event) {
+      if (event.target === modal) {
+        if (modal.id === 'confirmModal') settleConfirm(false);
+        else if (modal.id === 'textModal') settleText(null);
+        else modal.hidden = true;
+      }
+    });
+  });
+  const okBtn = $('#confirmOk');
+  if (okBtn) okBtn.addEventListener('click', function () { settleConfirm(true); });
+  const cancelBtn = $('#confirmCancel');
+  if (cancelBtn) cancelBtn.addEventListener('click', function () { settleConfirm(false); });
+
+  buildRosterPanel();
+  updateLoopBtn();
+  window.addEventListener('keydown', handleKeydown);
+}
+
+function seedDemo() {
+  clearBoardObjects();
+  addFormation();
+  const step1 = serializeCanvas();
+
+  const off1 = findNode('off1');
+  const off4 = findNode('off4');
+  const ballNode = findNode('ball');
+  if (off1) off1.set({ left: 610, top: 600 });
+  if (off4) off4.set({ left: 430, top: 300 });
+  if (ballNode) ballNode.set({ left: 566, top: 640 });
+
+  canvas.add(buildLineObj('dribble', { x: 505, y: 686 }, { x: 600, y: 610 }));
+  canvas.add(buildLineObj('screen', { x: 430, y: 400 }, { x: 430, y: 300 }));
+  canvas.add(buildLineObj('cut', { x: 610, y: 600 }, { x: 545, y: 190 }));
+  const step2 = serializeCanvas();
+
+  state.frames = [
+    { id: uid(), name: '起始陣型', objects: step1 },
+    { id: uid(), name: '擋拆切入', objects: step2 }
+  ];
+  state.currentFrame = 0;
+  loadObjects(step1, function () { renderStepUI(); });
+}
+
+function boot() {
+  showSplash();
+  if (typeof fabric === 'undefined') {
+    setHint('Canvas 繪圖套件（fabric.js）載入失敗，請確認網路連線後重新整理。', true);
+    const holder = $('#boardHolder');
+    if (holder) {
+      holder.innerHTML = '<div style="padding:48px 24px;text-align:center;color:#B4342A;' +
+        'font-size:13px;line-height:2">無法載入 fabric.js CDN<br>' +
+        '請確認網路連線，或把 CDN 檔案下載到本機後修改 script src。</div>';
+    }
+    return;
+  }
+
+  state.tacticSource = null;
+  initCanvas();
+  bindUI();
+  ensureCourt();
+  seedDemo();
+  applyMode();
+  renderStepUI();
+  renderLibrary();
+  buildDefQuick();
+  startGlow();
+  updateStorePill();
+  renderPlaybook();
+
+  setTimeout(function () {
+    if (!supabaseReady()) {
+      toast('目前使用本機儲存 · 設定 Supabase 後會自動改存雲端');
+    }
+    if (typeof gifshot === 'undefined') {
+      toast('gifshot 未載入，GIF 匯出暫時不可用', 'warn');
+    }
+  }, 700);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
+
+</script>
+
+</body>
+</html>

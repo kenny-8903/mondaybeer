@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>narrow width check</title>
+<style>
+  html,body{margin:0;background:#1b1f24}
+  .row{display:flex;gap:10px;padding:8px}
+  iframe{border:1px solid #555;background:#fff}
+  #out{color:#0f0;font:11px/1.5 monospace;padding:6px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<div class="row">
+  <iframe id="f390" src="./preview-test.html" width="390" height="844"></iframe>
+  <iframe id="f420" src="./preview-test.html" width="420" height="880"></iframe>
+</div>
+<pre id="out">pending</pre>
+<script>
+function measure(id, label) {
+  var f = document.getElementById(id);
+  try {
+    var d = f.contentDocument, w = f.contentWindow;
+    var wrap = d.querySelector('.board-wrap').getBoundingClientRect();
+    var court = d.querySelector('.canvas-container').getBoundingClientRect();
+    var stage = d.querySelector('.stage').getBoundingClientRect();
+    return label
+      + ' innerW=' + w.innerWidth
+      + ' scrollW=' + d.documentElement.scrollWidth
+      + ' overflow=' + (d.documentElement.scrollWidth > w.innerWidth + 1 ? 'YES' : 'no')
+      + ' stageW=' + stage.width.toFixed(1)
+      + ' wrapW=' + wrap.width.toFixed(1)
+      + ' courtW=' + court.width.toFixed(1)
+      + ' courtRight=' + court.right.toFixed(1)
+      + ' fitsInViewport=' + (court.right <= w.innerWidth + 1 ? 'yes' : 'NO');
+  } catch (e) { return label + ' ERR ' + e.message; }
+}
+window.addEventListener('load', function () {
+  setTimeout(function () {
+    var lines = [measure('f390', 'W390'), measure('f420', 'W420')];
+    var t = document.getElementById('f420').contentDocument.getElementById('testout');
+    if (t) {
+      var txt = t.textContent || '';
+      var fails = (txt.match(/^FAIL/gm) || []).length;
+      var passes = (txt.match(/^PASS/gm) || []).length;
+      lines.push('W420 harness PASS=' + passes + ' FAIL=' + fails);
+    }
+    document.getElementById('out').textContent = lines.join('\n');
+    document.title = 'READY';
+  }, 12000);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# CSG PR 系統路徑設定檔
+MATERIAL_DB=Material_Database.xlsx
+PAID_BY_DB=PaidBy_Database.xlsx
+TEMPLATE_PATH=templates/CSG.001-PUR Purchase Requistion Form 物料申請表 06.2026 1.xlsx
+OUTPUT_DIR=Generated_PR_Forms
