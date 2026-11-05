@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "node scripts/build-static.mjs",
+    "build:app": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "node scripts/serve-dist.mjs",
+    "preview:app": "vite preview"
   },
   "dependencies": {
     "axios": "^1.7.0",

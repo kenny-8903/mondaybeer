@@ -16,6 +16,7 @@
   "scripts": {
     "build": "node scripts/build-static.mjs",
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
-    "preview": "node scripts/build-static.mjs && node scripts/serve-dist.mjs"
+    "preview": "node scripts/build-static.mjs && node scripts/serve-dist.mjs",
+    "sync:site": "node scripts/sync-site.mjs"
   }
 }
