@@ -127,6 +127,12 @@
 
 **狀態：已實作（2026-11-05）** — `<section class="panel panel-tips">` 整塊自原始碼刪除（連同 `kbd` 樣式與 `.panel-tips` CSS／媒體查詢），不是用 CSS 隱藏；鍵盤功能本身不受影響，見 FR-177、FR-178。
 
+### US-129 手機上就像一套專業運動 App
+
+**As a** 球員／教練，**I want** 手機打開就是「球場滿版 → 單一步驟控制列 → 教練工具從底部滑出」的乾淨版面，**so that** 我不會在同一頁看到兩套步驟控制、也不會被抽屜蓋住球場，站場邊單手操作時一眼就知道下一步要按哪裡。
+
+**狀態：已實作（2026-11-06）** — ≤767px 重排為 Header 44px → 球場 100vw（忠實比例、不裁切、無圓角）→ 唯讀步驟資訊卡 → 底部動作列；教練工具與戰術手冊改為 Bottom Sheet（把手、下滑關閉、動態限高，永不加蓋球場）；`.mobile-dock`（步驟縮圖＋解說卡＋防守快捷 chip）與 `#lockBadge` 整組移除。桌面（>1100px）與平板（768–1100px）版面完全未動，見 FR-189～FR-198。
+
 ---
 
 ## 📝 Requirements
@@ -478,6 +484,23 @@
 | FR-178 | 手機防誤觸（touch-action ＋ 裝置別門檻） | CSS `.board-holder .canvas-container`/`canvas` 的 `touch-action:none`、§8.4 `DRAG_EPS`(6) / `DRAG_EPS_TOUCH`(10) / `dragEpsOf()` / `beginNodeDrag(target, evt)` | US-128 | Complete |
 | NFR-121 | 純 CSS 宣告、無新增 JS 成本 | CSS `touch-action`、§8.4 `nearestOffense()`（`containsPoint` 優先、`PASS_SNAP` 後備） | US-128 | Complete |
 | C-111 | 鍵盤快捷鍵功能保留 | §13 `handleKeydown()`（未改動） | US-128 | Complete |
+| FR-189 | 手機只留一套步驟控制 | HTML 刪除 `.mobile-dock`（`#stepThumbs`／`#stepCards`／`#defQuick`）、`#lockBadge` 與「球員模式」提示字；JS 刪除 `thumbSvg()`／`renderStepDock()`／`buildDefQuick()`（含呼叫）與 lockBadge 切換；CSS 刪除 `.mobile-dock`／`.def-quick`／`.dock-*` 共 42＋9 行 | US-129 | Complete |
+| FR-190 | 球場 100vw、忠實比例、無圓角 | CSS `@media (max-width:767px)`：`.stage{display:flex;flex-direction:column;padding:0}`、`.board-panel{flex:1}`、`.board-restrict{flex:0 0 auto;align-items:flex-start}`、`.board-wrap{width:100%;max-width:min(100%,calc((100dvh - 200px)*1.0638));border:0;border-radius:0;box-shadow:none}` | US-129 | Complete |
+| FR-191 | Header 精簡到 44px | HTML `.brand-short`（`Monday<em>Beer</em>`）；CSS 隱藏 `.brand-han`／`.brand-title`／`.brand-sub`、`.brand-logo` 30px、`.mode-btn` 11px、`#btnHome` 只留 `⎋`（`.hb-txt` 隱藏）、`.store-pill` 隱藏 | US-129 | Complete |
+| FR-192 | 底部動作列（Grid 重排，不複製 DOM） | CSS `.stepbar{display:grid;grid-template-areas:"play steps steps book tools" "acts acts acts save save"}`、球員模式 `"play steps steps book gif"`；隱藏 `#btnPrev`／`#btnNext`／`#frameCounter`／`#btnDupStep`／`#btnDelStep`／`.v-divider`／`.spacer` | US-129 | Complete |
+| FR-193 | `播放／暫停` 長短標籤 | HTML `#btnPlay` 加 `.lbl-long`／`.lbl-short`；§7 `setPlaying()` 同步改寫兩個 span；CSS 桌機顯示長標籤、手機顯示短標籤 | US-129 | Complete |
+| FR-194 | 步驟膠囊自動捲到中央 | §9 `renderStepUI()` 尾端 `activeChip.scrollIntoView({block:'nearest',inline:'center'})`（播放／匯出中不捲動） | US-129 | Complete |
+| FR-195 | 當前步驟唯讀資訊卡 | HTML `#stepInfo`（`#stepInfoIdx`／`#stepInfoName`／`#stepInfoDesc`／`#stepInfoCue`）；§9 `renderMobileStepInfo()`（由 `renderStepUI()` 呼叫）；CSS `.mobile-stepinfo`（桌機 `display:none`） | US-129 | Complete |
+| FR-196 | 教練工具／戰術手冊＝Bottom Sheet | CSS `.playbook,.sidebar{position:fixed;left:0;right:0;top:auto;bottom:0;max-height:var(--sheet-max,46dvh);border-radius:20px 20px 0 0;transform:translateY(calc(100% + 34px))}` ＋ `.is-open{transform:none}` ＋ `::before` 把手；`enterCoachMode()` 手機不自動彈出 | US-129 | Complete |
+| FR-197 | 抽屜永不加蓋球場（動態限高） | §13 `updateSheetLimit()`：量測 `.board-wrap` 與 `.mobile-stepinfo` 下緣 → `documentElement.style.setProperty('--sheet-max', …)`；`resize`／`orientationchange`（延遲 240ms）重算 | US-129 | Complete |
+| FR-198 | 下滑或點背幕關閉抽屜 | §13 `enableSheetDrag()`（把手／標題區 64px 內起拖、`scrollTop>0` 不接管、位移 >min(150px, 30%) 或 340ms 內快滑即關閉）、`syncSheetScrim()`（兩張抽屜共用 `#pbScrim`、互斥開啟）、`.pb-head,.sidebar-head{touch-action:none}`；工具抽屜關閉鈕沿用 `.side-collapse`（手機改顯 `✕`） | US-129 | Complete |
+| FR-199 | GIF／複製／刪除步驟收進工具抽屜 | HTML `#btnGifSheet`／`#btnDupStepSheet`／`#btnDelStepSheet`（`.sheet-only`，僅手機顯示）；§7 `setPlaying()`／`setExporting()` 同步 `disabled`；`bindUI()` 綁定到既有 `exportGif`／`duplicateStep`／`deleteStep` | US-129 | Complete |
+| NFR-122 | 桌面／平板零回歸 | 全部新規則包在 `@media (max-width:767px)`；768–1100px 維持原左右抽屜、>1100px 維持三欄＋側欄收合（實測 820×1180 與 1280×900 的 `.stage`／`--sheet-max`／資訊卡皆維持原狀） | US-129 | Verified |
+| NFR-123 | 觸控目標 ≥36–40px | `.step-chip`／`#btnPlay`／`#btnLoop`／`#pbToggle`／`#sideToggle`／`#btnGif` 皆 40px，`.step-actions .icon-btn`／`#btnSaveTactic` 36px | US-129 | Complete |
+| NFR-124 | 不新增重複事件綁定 | 底部列僅用 CSS Grid 重排既有 `.stepbar` 子元素（未複製按鈕、未重綁事件） | US-129 | Complete |
+| C-112 | 幾何限制：1000×940 畫布在 390px 寬只能是 366px 高（43.4vh），無法同時「100vw ＋ 60–65vh ＋ 不變形」；選擇不裁切，留白交給資訊卡與 Bottom Sheet | `.board-wrap` 的 `1.0638` 比例計算 | US-129 | Accepted |
+| C-113 | 景觀（寬 >767px）沿用平板抽屜規則，不套用手機版 | `@media (max-width:767px)` 邊界 | US-129 | Accepted |
+| AC-143～AC-150 | 驗收 | 見「驗收紀錄（本輪：手機版專業運動 App 版面重構）」 | US-129 | Verified |
 | AC-143～AC-144 | 驗收 | 見下方「驗收紀錄（本輪：移除快捷鍵卡 + 手機防誤觸）」 | 全部 | Verified |
 
 ---
@@ -848,6 +871,52 @@ US-128 完成：快捷鍵說明卡自原始碼整塊移除（含死 CSS），桌
 
 ---
 
+## ✅ 驗收紀錄（本輪：手機版專業運動 App 版面重構）
+
+**日期**：2026-11-06 ｜ **方式**：`npm run build` ＋ headless Chrome（`scripts/serve-dist.mjs` 起本機預覽），以 iframe harness 固定 390×844／430×932／360×740 的真實 viewport 截圖，並用 `--dump-dom` 取 `getBoundingClientRect()` 實測幾何
+
+### 一、修正前後對照（≤767px）
+
+| 項目 | 修正前 | 修正後 |
+| --- | --- | --- |
+| 步驟控制 | 底部 chips ＋ `.mobile-dock` 縮圖（`#stepThumbs`）＋ 解說卡（`#stepCards`）三套並存 | **只剩底部列一套**；`#stepThumbs`／`#stepCards`／`#defQuick` 已自 DOM 刪除 |
+| 球場寬度 | 100% 但外框有 16px 圓角＋邊框＋16px 內距 | **100vw 滿版、無圓角、無邊框**（`.stage` padding 0） |
+| 球員模式解說 | 球場下方長期顯示「目前為球員模式：點左側戰術即自動循環播放…」 | **不再顯示**（`setHint('')`） |
+| 鎖定徽章 | 球員模式顯示「🔒 已鎖定 · 僅供閱覽」 | **整顆移除** |
+| Header | 73px，隊徽 44–52px ＋ 三段品牌字 | **44px**：30px 隊徽 ＋ `Monday Beer` ＋ 11px 身分切換 |
+| 教練工具／手冊 | 左右側滑抽屜（86–88vw），會蓋住球場大半 | **底部 Bottom Sheet**：20px 圓角、把手、`--sheet-max` 動態限高 |
+| 抽屜關閉 | 只有背幕或 ✕（僅手冊有） | 背幕／✕／**把手下滑**（>30% 或 340ms 內快滑） |
+| 抽屜高度 | 內容多長就多長（可蓋到球場中段） | 由 `updateSheetLimit()` 依「球場＋資訊卡下緣」算出；**390×844 實測抽屜頂端 462px、資訊卡下緣 460px → 完全不碰球場** |
+
+### 二、實測幾何（headless Chrome 實測值，非推算）
+
+| 量測 | 390×844 | 360×740 | 500×749（Chrome 最小視窗） | 820×1180（平板） | 1280×900（桌面） |
+| --- | --- | --- | --- | --- | --- |
+| `.topbar` 高度 | 44 | 44 | 44 | 73 | 73 |
+| `.board-wrap` | 390×366（100vw、比例 1.0638） | 360×338 | 500×470 | 772×726 | 582×547 |
+| `.mobile-stepinfo` | 54px 高 | 54px | 54px | **0（隱藏）** | **0（隱藏）** |
+| `.stepbar` 高度 | 59（球員）／100（教練） | 59／100 | 59／97 | 98 | 54 |
+| `--sheet-max` | 有值（220–367px） | 有值 | 有值 | **空字串（不套用）** | **空字串（不套用）** |
+| 水平溢出（`scrollWidth === innerWidth`） | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 步驟控制組數 | 1 | 1 | 1 | 1 | 1 |
+
+### 三、截圖（`.scratch/`）
+
+- `shot-mob2-court.png`（390×844 球員模式）：球場滿版無圓角、下方單一資訊卡（`1/2 起始陣型`）、底部單列 `播放／∞／步驟膠囊／☰／⬇`。
+- `shot-mob2-coach-bar.png`（390×844 教練模式）：底部多一列 `＋ … 💾 儲存戰術`，🛠 在右上。
+- `shot-mob2-tools-sheet.png`（390×844，🛠 展開）：把手 ＋ `教練工具 TOOLS` ＋ `✕`，抽屜頂端緊貼資訊卡下緣，球場完整可見。
+- `shot-mob2-playbook-sheet.png`（390×844，☰ 展開）：把手 ＋ `戰術手冊` ＋ ↻／✕ ＋ `＋ 新增戰術` ＋ 名稱框 ＋ 我的戰術清單。
+- `shot-mob2-360.png`、`shot-mob2-430.png`：360×740 與 430×932 皆無溢出、比例正確。
+
+### 四、已知取捨
+
+1. 1000×940 的畫布在 390px 寬只能是 366px 高（43.4vh）。「100vw ＋ 60–65vh ＋ 不變形」幾何上不可能；裁到 62vh 會切掉 13.8%（兩側底角三分），故不採用。下方留白與球場地板同色系延伸，同時就是 Bottom Sheet 的展開空間。
+2. 抽屜展開時仍以共用背幕（`rgba(31,42,55,.12)`）覆蓋球場，與舊抽屜行為一致。
+3. 真機（iOS Safari）手勢與 `dvh` 行為未經實機驗證；headless Chrome 已確認支援 `dvh`。
+4. 寬 >767px 的景觀手機沿用平板抽屜規則（本輪刻意不動），短高度下球場仍可能被垂直裁切，屬既有行為。
+
+---
+
 ## 🧭 使用說明
 
 1. **開啟**：直接雙擊 `index.html`（`file://` 可用），或放到任何靜態伺服器／Netlify／GitHub Pages。一進來是**開場首頁**：上方圓形隊徽（讀取同資料夾的 `WhatsApp Image …jpeg`，找不到時顯示 `MB` 字樣）＋ `MONDAY BEER & BASKETBALL`，下面兩張卡片選身分——**我是球員**（唯讀看戰術）或 **我是教練**（需密碼）；進站後頂部右側的 `⎋ 切換身分` 可隨時回到首頁。球場已改為乾淨紙白漸層（不再有隊徽浮水印）。
@@ -861,7 +930,7 @@ US-128 完成：快捷鍵說明卡自原始碼整塊移除（含死 CSS），桌
 9. **講解時收起工具列（桌面 >1100px）**：點右側「教練工具 TOOLS」標題列右端的 `›`，工具列收起、球場自動放大並居中，右緣中段留一個 `‹` 把手；點 `‹` 即展開。狀態會記在瀏覽器裡，下次進教練模式自動還原。
 10. **開一套新戰術**：左側「戰術手冊」最上方的 **「➕ 新增戰術」**＝一鍵把畫布清成預設 2-1-2（5 攻 5 守 1 球）＋ 只留「步驟 1」，並取消目前載入的戰術；下方「戰術名稱」直接打名字（`Enter` 或點一下球場即完成輸入），接著畫線、按「＋」加步驟，最後「💾 儲存戰術」就用這個名字存檔（不必再在彈窗打一次）。若畫布上已經有多個步驟或自訂線條，會先跳確認框避免誤觸；只想清空則用「重設球場」。
 11. **存檔／改名／刪除**：`儲存戰術` 若手冊上方已填名稱就直接存，沒填才跳命名框（預設「新戰術 N」）；左側「戰術手冊」每列右側有 ✎（改名）與垃圾桶（刪除，需確認），點名稱即載入；`↻` 可重新整理清單。
-12. **手機／平板**：≤1100px 時球場滿寬，步驟列左側 `☰` 開「戰術手冊」抽屜（最上方就是「➕ 新增戰術」與名稱框，一打開就能單手開新戰術）、右側 `🛠` 開教練工具列（兩者互斥，`Esc` 或點背幕關閉）；球場下方有防守陣型快捷 chip、可左右滑的步驟縮圖與解說卡，點縮圖即跳到該步。**手機上同樣可以直接用手指拖曳球員跑位、把球拖到隊友身上完成傳球**（籃球的感應區已比外觀放大約一倍，比看起來好抓）。畫布已設 `touch-action:none`，**手指拖曳球員時整頁不會跟著滾動**，輕點（位移 < 10px）也不會被誤判成拖曳。此寬度不顯示側欄收合鈕（本來就是抽屜），側欄裡也沒有「快捷鍵」卡片了。
+12. **手機（直向 ≤767px）**：版面只剩三塊——**球場滿版**（100vw、比例與 FIBA 一致、不裁切、無圓角）、**當前步驟卡**（第幾步／名稱／說明／機會標籤，唯讀）、**底部動作列**（`播放`／`∞`／可左右滑的步驟膠囊／`☰ 戰術手冊`／`🛠 教練工具`；教練模式多一列 `＋` 與 `💾 儲存戰術`，球員模式右側是 `⬇` 匯出 GIF）。`☰`／`🛠` 現在都是**從底部滑出的面板**（上方有把手，往下滑、按 `✕` 或點一下球場即收起），面板高度依球場下緣自動計算，**永遠不會蓋住球場**；教練工具面板裡多了「導出 GIF／複製此步驟／刪除此步驟」三顆按鈕（原本重複在底部列的那些按鈕已移除）。**手機上同樣可以直接用手指拖曳球員跑位、把球拖到隊友身上完成傳球**（籃球感應區已比外觀放大約一倍）；畫布設 `touch-action:none`，**拖曳時整頁不會跟著滾動**，輕點（位移 < 10px）也不會被誤判成拖曳。平板（768–1100px）與桌面（>1100px）版面與功能完全沒變。
 13. **分享**：`導出 GIF` 下載的檔名就是戰術名稱（`底線電梯門 · 底線發球` → `底線電梯門_底線發球.gif`，未命名時 `MondayBeer_Tactic.gif`），可直接貼群組。
 14. **雲端存檔（選用）**：在 `index.html` 的 `SUPABASE_URL` / `SUPABASE_ANON_KEY` 填入專案金鑰，並依檔案內註解建立 `tactics` 資料表與 RLS policy，之後儲存會自動改走 Supabase（右上狀態膠囊會變成綠色「Supabase 雲端」）。
 

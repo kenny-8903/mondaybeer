@@ -703,48 +703,6 @@ body[data-mode="player"] .pb-actions{display:none}
 .cue-tag.is-pop{animation:cuePop .42s cubic-bezier(.2,.9,.25,1.2) both}
 @keyframes cuePop{from{opacity:0;transform:translateY(-6px) scale(.94)}to{opacity:1;transform:none}}
 
-/* ── 手機 dock：步驟縮圖 + 解說卡 ── */
-.mobile-dock{display:none;flex-direction:column;gap:6px;flex:0 0 auto}
-.def-quick{display:flex;gap:5px;overflow-x:auto;padding-bottom:1px}
-.def-quick button{
-  flex:0 0 auto;padding:4px 9px;border-radius:999px;cursor:pointer;
-  border:1px solid var(--line);background:#FFFFFF;color:var(--ink-soft);
-  font-size:10.5px;font-weight:800;white-space:nowrap;
-  transition:border-color .15s,color .15s,background .15s;
-}
-.def-quick button:hover{border-color:var(--blue);color:var(--blue);background:rgba(47,111,168,.08)}
-.dock-thumbs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
-.dock-thumb{
-  flex:0 0 auto;width:64px;border-radius:8px;padding:0;cursor:pointer;overflow:hidden;
-  border:1px solid var(--line);background:#FFFFFF;
-  display:flex;flex-direction:column;align-items:stretch;
-}
-.dock-thumb svg{display:block;width:100%;height:44px}
-.dock-thumb span{
-  font-size:9px;font-weight:800;color:var(--muted);padding:2px 3px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-.dock-thumb.is-active{border-color:var(--brick);box-shadow:0 0 0 2px rgba(180,70,47,.16)}
-.dock-thumb.is-active span{color:#8E3520}
-.dock-cards{display:flex;gap:6px;overflow-x:auto}
-.dock-card{
-  flex:0 0 min(84vw,320px);
-  border:1px solid var(--line);border-radius:10px;background:#FFFFFF;
-  padding:7px 9px;display:flex;flex-direction:column;gap:3px;
-}
-.dock-card-head{display:flex;align-items:center;gap:6px}
-.dock-card-idx{
-  display:inline-grid;place-items:center;width:17px;height:17px;border-radius:5px;
-  background:var(--brick);color:#fff;font-size:10px;font-weight:800;
-}
-.dock-card-name{font-size:11.5px;font-weight:800;color:var(--cream)}
-.dock-card-cue{
-  font-size:10px;font-weight:800;color:#8E3520;
-  background:rgba(180,70,47,.10);border:1px solid rgba(180,70,47,.24);
-  padding:1px 6px;border-radius:999px;white-space:nowrap;
-}
-.dock-card-desc{margin:0;font-size:10.5px;line-height:1.55;color:var(--ink-soft)}
-.dock-empty{font-size:10.5px;color:var(--muted)}
 .pb-toggle{display:none}
 .side-toggle{display:none}
 /* 側欄收起後的浮動展開把手 */
@@ -906,7 +864,6 @@ body.splash-open .app{pointer-events:none;user-select:none}
   .pb-close{display:block}
   .pb-toggle{display:grid;place-items:center}
   .pb-meta{display:none}
-  .mobile-dock{display:flex}
   /* 收合鈕只在桌面出現；手機用 🛠 / 抽屜關閉 */
   .side-collapse{display:none}
 
@@ -940,10 +897,6 @@ body.splash-open .app{pointer-events:none;user-select:none}
   .board-hint{font-size:10.5px}
   .pb-name{font-size:11px}
   .cue-tag{top:6px;right:6px;padding:5px 9px;font-size:11px;max-width:calc(100% - 96px)}
-  .dock-thumb{width:56px}
-  .dock-thumb svg{height:38px}
-  .dock-card{flex:0 0 min(88vw,300px)}
-  .def-quick button{font-size:10px;padding:3px 8px}
   /* iOS 聚焦輸入框時不自動放大畫面 */
   .pb-name-input{font-size:16px}
 }
@@ -970,6 +923,215 @@ body.splash-open .app{pointer-events:none;user-select:none}
   .home-btn{width:34px;padding:0;gap:0;justify-content:center}
   .home-btn .hb-txt{display:none}
   .splash-foot{font-size:10px;letter-spacing:.02em}
+}
+
+/* ============================================================
+   6.5 手機（≤767px）：全寬球場 · 單一步驟控制 · 底部動作列 · Bottom Sheet
+   ※ 放在所有斷裂式之後，靠 cascade 順序覆寫上面的規則
+   ============================================================ */
+.brand-short,.lbl-short,.mobile-stepinfo,.sheet-only{display:none}
+
+@media (max-width:767px){
+  /* 直向手機：Header 44px → 球場（100vw、忠實比例）→ 底部動作列 */
+  .app{height:100dvh;overflow:hidden}
+  .topbar{order:1}
+  .stage{order:2}
+  .stepbar{order:3}
+  /* 球場下方留白與球場地板（#EBF1F6）同色系 → 看起來像同一片球場地板 */
+  .stage{background:linear-gradient(180deg,#EBF1F6 0%,#E9EFF5 46%,#E5EBF2 100%)}
+
+  /* ── 1) Header：只留隊徽 + 簡稱 + 身分切換 ── */
+  .topbar{
+    gap:8px;padding:calc(6px + env(safe-area-inset-top)) 12px 6px;
+    min-height:44px;
+    box-shadow:0 2px 10px rgba(31,42,55,.08);
+  }
+  .topbar::before{height:2px}
+  .brand{gap:8px}
+  .brand-logo,.brand-logo img,.brand-logo svg{width:30px;height:30px}
+  .brand-logo{filter:drop-shadow(0 2px 6px rgba(243,112,33,.32))}
+  .brand-han,.brand-title,.brand-sub{display:none}
+  .brand-short{
+    display:block;font-family:var(--font-display);
+    font-size:17px;font-weight:800;line-height:1;letter-spacing:.01em;
+    white-space:nowrap;color:var(--cream);
+  }
+  .brand-short em{font-style:normal;color:var(--orange)}
+  .topbar-right{gap:6px}
+  .mode-switch{gap:2px;padding:2px}
+  .mode-btn{padding:5px 9px;font-size:11px;letter-spacing:0}
+  .store-pill{display:none}
+  .home-btn{width:30px;height:30px;padding:0;gap:0;justify-content:center}
+  .home-btn .hb-txt{display:none}
+  .home-btn .hb-ico{font-size:14px}
+
+  /* ── 2) 球場：100vw 全寬、貼齊 header、不變形不裁切 ── */
+  .stage{
+    display:flex;flex-direction:column;align-items:stretch;
+    grid-template-columns:none;grid-template-rows:none;
+    padding:0;gap:0;
+  }
+  body[data-mode="player"] .stage{grid-template-columns:none;grid-template-rows:none}
+  .board-panel{
+    flex:1 1 auto;min-height:0;
+    justify-content:flex-start;gap:0;
+  }
+  .board-restrict{
+    flex:0 0 auto;min-height:0;
+    align-items:flex-start;justify-content:center;
+  }
+  .board-wrap{
+    --board-h-chrome:200px;
+    width:100%;
+    max-width:min(100%, calc((100dvh - var(--board-h-chrome)) * 1.0638));
+    border:0;border-radius:0;box-shadow:none;
+  }
+  .board-overlay{inset:6px 6px auto 6px;gap:6px}
+  .badge{font-size:10px;padding:3px 8px}
+  .board-hint{display:none}
+  .board-hint.is-error{
+    display:block;margin:6px 12px 0;padding:7px 10px;text-align:left;
+    font-size:11px;line-height:1.5;min-height:0;
+    background:rgba(229,72,77,.08);border:1px solid rgba(229,72,77,.28);border-radius:10px;
+  }
+
+  /* ── 3) 當前步驟說明（唯讀；不再重複步驟控制項） ── */
+  .mobile-stepinfo{
+    display:flex;align-items:center;gap:8px;flex:0 0 auto;
+    margin:8px 12px 0;padding:8px 11px;border-radius:12px;
+    min-height:54px;
+    background:rgba(255,255,255,.96);
+    border:1px solid var(--line);
+    box-shadow:0 4px 14px rgba(31,42,55,.06);
+    min-width:0;
+  }
+  .mobile-stepinfo .si-idx{
+    flex:0 0 auto;display:inline-grid;place-items:center;
+    min-width:30px;height:26px;padding:0 7px;border-radius:8px;
+    background:linear-gradient(180deg,#C25239,#A83E28);color:#fff;
+    font-family:var(--font-display);font-size:11.5px;font-weight:800;
+  }
+  .mobile-stepinfo .si-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .mobile-stepinfo .si-name{
+    font-size:13px;font-weight:800;color:var(--cream);line-height:1.25;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .mobile-stepinfo .si-desc{
+    margin:0;font-size:10.5px;line-height:1.45;color:var(--ink-soft);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .mobile-stepinfo .si-cue{
+    flex:0 0 auto;margin-left:auto;padding:2px 8px;border-radius:999px;
+    font-size:10px;font-weight:800;color:#8E3520;white-space:nowrap;
+    background:rgba(180,70,47,.10);border:1px solid rgba(180,70,47,.24);
+  }
+  .mobile-stepinfo .si-cue:empty{display:none}
+
+  /* ── 4) 底部動作列：▶播放 ∞循環 │ 步驟膠囊 │ ☰手冊 🛠工具（教練第二列：＋ / 💾儲存） ── */
+  .stepbar{
+    display:grid;flex-wrap:nowrap;
+    grid-template-columns:auto minmax(0,1fr) auto auto auto;
+    grid-template-areas:
+      "play steps steps book tools"
+      "acts acts acts save save";
+    gap:6px 8px;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    background:rgba(255,255,255,.97);
+    border-top:1px solid rgba(31,42,55,.08);
+    border-bottom:0;
+    backdrop-filter:blur(14px);
+    box-shadow:0 -8px 24px rgba(31,42,55,.10);
+    z-index:40;
+  }
+  body[data-mode="player"] .stepbar{grid-template-areas:"play steps steps book gif"}
+  .playback{grid-area:play;display:flex;align-items:center;gap:6px}
+  #btnPlay{height:40px;padding:0 13px;border-radius:12px;font-size:12px}
+  #btnPlay .lbl-long{display:none}
+  #btnPlay .lbl-short{display:inline}
+  #btnLoop{width:40px;height:40px;border-radius:12px}
+  #btnPrev,#btnNext{display:none}
+  .steps{
+    grid-area:steps;width:100%;max-width:none;min-width:0;
+    overflow-x:auto;overflow-y:hidden;
+    padding:1px 0;gap:6px;
+    scrollbar-width:none;overscroll-behavior-x:contain;
+    scroll-snap-type:x proximity;
+    -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 8px,#000 calc(100% - 8px),transparent 100%);
+    mask-image:linear-gradient(90deg,transparent 0,#000 8px,#000 calc(100% - 8px),transparent 100%);
+  }
+  .steps::-webkit-scrollbar{display:none}
+  .step-chip{
+    scroll-snap-align:center;min-height:40px;
+    padding:8px 11px;border-radius:12px;font-size:11.5px;gap:6px;
+  }
+  .step-chip:hover{transform:none}
+  .step-idx{width:18px;height:18px;border-radius:5px;font-size:10px}
+  #pbToggle,#sideToggle{
+    display:grid;place-items:center;
+    width:40px;height:40px;border-radius:12px;font-size:15px;
+  }
+  #pbToggle{grid-area:book}
+  #sideToggle{grid-area:tools}
+  #btnGif{display:none}
+  body[data-mode="player"] #btnGif{
+    grid-area:gif;display:grid;place-items:center;
+    width:40px;height:40px;padding:0;border-radius:12px;
+    font-size:0;letter-spacing:0;
+  }
+  body[data-mode="player"] #btnGif::before{content:"⬇";font-size:15px}
+  .step-actions{grid-area:acts;justify-self:start;display:flex;gap:6px}
+  .step-actions .icon-btn{width:36px;height:36px;border-radius:10px;font-size:14px}
+  #btnDupStep,#btnDelStep{display:none}
+  #btnSaveTactic{
+    grid-area:save;justify-self:end;
+    height:36px;padding:0 13px;border-radius:10px;font-size:11.5px;
+  }
+  .v-divider,.spacer,#frameCounter{display:none}
+
+  /* ── 5) 教練工具 / 戰術手冊 → Bottom Sheet（高度由 --sheet-max 動態限制） ── */
+  .playbook,.sidebar{
+    position:fixed;left:0;right:0;top:auto;bottom:0;
+    width:auto;max-width:none;
+    max-height:var(--sheet-max,46dvh);
+    padding:4px 12px calc(12px + env(safe-area-inset-bottom));
+    border:0;border-radius:20px 20px 0 0;
+    background:linear-gradient(180deg,#FFFFFF,#EEF4FA);
+    box-shadow:0 -18px 44px rgba(31,42,55,.24);
+    transform:translateY(calc(100% + 34px));
+    transition:transform .28s cubic-bezier(.2,.85,.2,1);
+    z-index:72;overscroll-behavior:contain;gap:8px;
+    will-change:transform;
+  }
+  .playbook{overflow:hidden}
+  .sidebar{overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .playbook.is-open,.sidebar.is-open{transform:none}
+  body[data-mode="coach"] .sidebar.is-open{transform:none}
+  .playbook::before,.sidebar::before{
+    content:"";display:block;flex:0 0 auto;
+    width:40px;height:4px;margin:4px auto 6px;
+    border-radius:99px;background:var(--line);
+  }
+  .pb-head,.sidebar-head{
+    position:sticky;top:0;z-index:5;
+    padding:2px 2px 8px;
+    background:linear-gradient(180deg,#FFFFFF 0%,#FFFFFF 84%,rgba(255,255,255,0) 100%);
+    /* 這條是把手區：交給 JS 做下滑關閉，不要被瀏覽器當成捲動手勢 */
+    touch-action:none;
+  }
+  .pb-head h2{font-size:12px}
+  .pb-close,.pb-refresh{width:30px;height:30px;border-radius:9px;font-size:14px}
+  /* 工具抽屜的關閉鈕：沿用側欄收起鈕，圖示改成 ✕ */
+  .sidebar-head .side-collapse{
+    display:grid;place-items:center;margin-left:auto;
+    width:30px;height:30px;border-radius:9px;font-size:0;
+  }
+  .sidebar-head .side-collapse::before{content:"✕";font-size:13px;font-weight:800}
+  .pb-scrim{background:rgba(31,42,55,.12);backdrop-filter:none}
+  .fab,.side-expand{display:none !important}
+
+  /* 手機專用動作（收在工具抽屜內，球場與底部列都不佔位） */
+  .sheet-only{display:flex}
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -1047,6 +1209,7 @@ body.splash-open .app{pointer-events:none;user-select:none}
         <span class="brand-han">九龍城</span>
         <span class="brand-title">MONDAY <em>BEER &amp; BASKETBALL</em></span>
         <span class="brand-sub">戰術板 · TACTICS BOARD</span>
+        <span class="brand-short">Monday<em>Beer</em></span>
       </span>
     </div>
 
@@ -1076,7 +1239,7 @@ body.splash-open .app{pointer-events:none;user-select:none}
 
     <div class="playback">
       <button type="button" class="icon-btn" id="btnPrev" title="上一步" aria-label="上一步">◀</button>
-      <button type="button" class="btn btn-primary" id="btnPlay"><span class="ico">▶</span>播放動畫</button>
+      <button type="button" class="btn btn-primary" id="btnPlay"><span class="ico">▶</span><span class="lbl-long">播放動畫</span><span class="lbl-short">播放</span></button>
       <button type="button" class="icon-btn" id="btnNext" title="下一步" aria-label="下一步">▶</button>
       <button type="button" class="icon-btn" id="btnLoop" title="循環播放 (L)" aria-label="循環播放" aria-pressed="false">∞</button>
     </div>
@@ -1163,7 +1326,6 @@ body.splash-open .app{pointer-events:none;user-select:none}
             <canvas id="board" width="1000" height="940" aria-label="籃球半場戰術畫布"></canvas>
           </div>
           <div class="board-overlay">
-            <span class="badge badge-lock" id="lockBadge">🔒 已鎖定 · 僅供閱覽</span>
             <span class="badge badge-tool" id="toolBadge" hidden>繪製中：<b id="toolBadgeName">切入</b> · Esc 結束</span>
           </div>
           <span class="cue-tag" id="cueTag" aria-live="polite" hidden></span>
@@ -1171,11 +1333,14 @@ body.splash-open .app{pointer-events:none;user-select:none}
       </div>
       <p class="board-hint" id="boardHint">拖曳球員調整站位 · 選擇線條工具後在球場上拖曳繪製</p>
 
-      <!-- 手機 / 平板：步驟縮圖 + 解說卡 -->
-      <div class="mobile-dock" id="mobileDock">
-        <div class="def-quick coach-only" id="defQuick" aria-label="防守陣型快速套用"></div>
-        <div class="dock-thumbs" id="stepThumbs" role="tablist" aria-label="步驟縮圖"></div>
-        <div class="dock-cards" id="stepCards" aria-live="polite"></div>
+      <!-- 手機專用：當前步驟說明（唯讀，不重複步驟控制） -->
+      <div class="mobile-stepinfo" id="stepInfo">
+        <span class="si-idx" id="stepInfoIdx">1/1</span>
+        <span class="si-body">
+          <b class="si-name" id="stepInfoName">起始陣型</b>
+          <p class="si-desc" id="stepInfoDesc"></p>
+        </span>
+        <span class="si-cue" id="stepInfoCue" hidden></span>
       </div>
     </section>
 
@@ -1292,6 +1457,9 @@ body.splash-open .app{pointer-events:none;user-select:none}
           <button type="button" class="btn btn-block" id="btnPng">🖼 匯出 PNG</button>
           <button type="button" class="btn btn-block" id="btnUndo">↶ 復原 (Ctrl+Z)</button>
           <button type="button" class="btn btn-danger btn-block" id="btnReset">⟲ 重設球場</button>
+          <button type="button" class="btn btn-block sheet-only" id="btnGifSheet">⬇ 導出 GIF</button>
+          <button type="button" class="btn btn-block sheet-only" id="btnDupStepSheet">⧉ 複製此步驟</button>
+          <button type="button" class="btn btn-block sheet-only" id="btnDelStepSheet">✕ 刪除此步驟</button>
         </div>
       </section>
 
@@ -2805,8 +2973,6 @@ function applyMode() {
     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
 
-  const lockBadge = $('#lockBadge');
-  if (lockBadge) lockBadge.hidden = isCoach();
 
   $$('.tool[data-tool]').forEach(function (btn) {
     btn.classList.toggle('is-active', btn.dataset.tool === state.tool);
@@ -2838,7 +3004,7 @@ function updateHint() {
     return;
   }
   if (!isCoach()) {
-    setHint('目前為球員模式：點左側戰術即自動循環播放；切換到教練模式即可編輯。');
+    setHint('');
     return;
   }
   if (isLineTool(state.tool)) {
@@ -2860,8 +3026,9 @@ function setPlaying(playing) {
   state.playing = playing;
   if (!playing) state.stopRequested = false;
   const disable = playing || state.exporting;
-  ['#btnGif', '#btnAddStep', '#btnDupStep', '#btnDelStep',
-    '#btnPrev', '#btnNext', '#btnSaveTactic', '#btnUndo'].forEach(function (sel) {
+  ['#btnGif', '#btnGifSheet', '#btnAddStep', '#btnDupStep', '#btnDupStepSheet',
+    '#btnDelStep', '#btnDelStepSheet', '#btnPrev', '#btnNext',
+    '#btnSaveTactic', '#btnUndo'].forEach(function (sel) {
     const el = $(sel);
     if (el) el.disabled = disable;
   });
@@ -2869,8 +3036,8 @@ function setPlaying(playing) {
   if (playBtn) {
     playBtn.disabled = state.exporting;
     playBtn.innerHTML = playing
-      ? '<span class="ico">■</span>停止播放'
-      : '<span class="ico">▶</span>播放動畫';
+      ? '<span class="ico">■</span><span class="lbl-long">停止播放</span><span class="lbl-short">暫停</span>'
+      : '<span class="ico">▶</span><span class="lbl-long">播放動畫</span><span class="lbl-short">播放</span>';
   }
   if (!playing) renderStepUI();
   updateHint();
@@ -2879,8 +3046,9 @@ function setPlaying(playing) {
 function setExporting(exporting) {
   state.exporting = exporting;
   const disable = exporting || state.playing;
-  ['#btnPlay', '#btnGif', '#btnAddStep', '#btnDupStep', '#btnDelStep',
-    '#btnPrev', '#btnNext', '#btnSaveTactic', '#btnUndo'].forEach(function (sel) {
+  ['#btnPlay', '#btnGif', '#btnGifSheet', '#btnAddStep', '#btnDupStep',
+    '#btnDupStepSheet', '#btnDelStep', '#btnDelStepSheet', '#btnPrev',
+    '#btnNext', '#btnSaveTactic', '#btnUndo'].forEach(function (sel) {
     const el = $(sel);
     if (el) el.disabled = disable;
   });
@@ -3595,7 +3763,42 @@ function renderStepUI() {
   if (next) next.disabled = state.playing || state.exporting || state.currentFrame >= state.frames.length - 1;
 
   renderCueTag();
-  renderStepDock();
+  renderMobileStepInfo();
+
+  /* 手機底部列：把當前步驟膠囊捲回可視範圍中央 */
+  const activeChip = list.querySelector('.step-chip.is-active');
+  if (activeChip && activeChip.scrollIntoView && !state.playing && !state.exporting) {
+    try {
+      activeChip.scrollIntoView({ block: 'nearest', inline: 'center' });
+    } catch (err) {
+      activeChip.scrollIntoView();
+    }
+  }
+}
+
+/* ── 手機：當前步驟說明卡（唯讀，取代原本重複的步驟縮圖／解說卡） ── */
+function renderMobileStepInfo() {
+  const box = $('#stepInfo');
+  if (!box) return;
+  const frame = state.frames[state.currentFrame];
+  if (!frame) {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  const idxEl = $('#stepInfoIdx');
+  const nameEl = $('#stepInfoName');
+  const descEl = $('#stepInfoDesc');
+  const cueEl = $('#stepInfoCue');
+  if (idxEl) idxEl.textContent = (state.currentFrame + 1) + '/' + state.frames.length;
+  if (nameEl) nameEl.textContent = frame.name || ('步驟 ' + (state.currentFrame + 1));
+  if (descEl) descEl.textContent = frame.desc || '';
+  if (cueEl) {
+    const cue = frame.cue ? String(frame.cue) : '';
+    cueEl.textContent = cue;
+    cueEl.hidden = !cue;
+  }
+  updateSheetLimit();
 }
 
 /* ── 機會標籤：把目前步驟的 cue 大字顯示在球場右上 ── */
@@ -3619,74 +3822,6 @@ function renderCueTag() {
   }
 }
 
-/* ── 迷你半球場縮圖（只用座標畫點，不重建 fabric 物件） ── */
-function thumbSvg(objects) {
-  const parts = [];
-  parts.push('<rect x="0" y="0" width="1000" height="940" fill="#FDFEFF"/>');
-  parts.push('<rect x="336.7" y="0" width="326.6" height="386.7" fill="rgba(180,70,47,.09)"/>');
-  parts.push('<path d="M336.7 0 V386.7 H663.3 V0" fill="none" stroke="rgba(31,42,55,.45)" stroke-width="12"/>');
-  parts.push('<path d="M60 0 V300 A450 450 0 0 0 940 300 V0" fill="none" stroke="rgba(31,42,55,.32)" stroke-width="12"/>');
-  parts.push('<circle cx="500" cy="105" r="14" fill="none" stroke="#B4462F" stroke-width="12"/>');
-  (objects || []).forEach(function (obj) {
-    if (!obj || typeof obj.left !== 'number' || typeof obj.top !== 'number') return;
-    if (obj.kind === 'defense') {
-      parts.push('<circle cx="' + obj.left + '" cy="' + obj.top + '" r="32" fill="#FFFFFF" stroke="#2F6FA8" stroke-width="16"/>');
-    } else if (obj.kind === 'offense') {
-      parts.push('<circle cx="' + obj.left + '" cy="' + obj.top + '" r="32" fill="#B4462F"/>');
-    } else if (obj.kind === 'line') {
-      parts.push('<circle cx="' + obj.left + '" cy="' + obj.top + '" r="16" fill="rgba(47,111,168,.5)"/>');
-    } else if (obj.kind === 'ball') {
-      parts.push('<circle cx="' + obj.left + '" cy="' + obj.top + '" r="20" fill="#F37021"/>');
-    }
-  });
-  return '<svg viewBox="0 0 1000 700" preserveAspectRatio="xMidYMin meet" aria-hidden="true">' +
-    parts.join('') + '</svg>';
-}
-
-/* ── 手機 dock：步驟縮圖條 + 解說卡（與 renderStepUI 同步） ── */
-function renderStepDock() {
-  const thumbs = $('#stepThumbs');
-  const cards = $('#stepCards');
-  if (!thumbs || !cards) return;
-  thumbs.innerHTML = '';
-  cards.innerHTML = '';
-
-  if (!state.frames.length) {
-    cards.innerHTML = '<p class="dock-empty">尚未有步驟</p>';
-    return;
-  }
-
-  state.frames.forEach(function (frame, index) {
-    const label = frame.name || ('步驟 ' + (index + 1));
-    const thumb = document.createElement('button');
-    thumb.type = 'button';
-    thumb.className = 'dock-thumb' + (index === state.currentFrame ? ' is-active' : '');
-    thumb.setAttribute('role', 'tab');
-    thumb.setAttribute('aria-selected', index === state.currentFrame ? 'true' : 'false');
-    thumb.title = label;
-    thumb.innerHTML = thumbSvg(frame.objects) + '<span>' + escapeHtml(label) + '</span>';
-    thumb.addEventListener('click', function () {
-      if (state.playing || state.exporting || index === state.currentFrame) return;
-      goToFrame(index);
-    });
-    thumbs.appendChild(thumb);
-
-    const card = document.createElement('article');
-    card.className = 'dock-card';
-    card.innerHTML =
-      '<div class="dock-card-head"><span class="dock-card-idx">' + (index + 1) + '</span>' +
-      '<span class="dock-card-name">' + escapeHtml(label) + '</span>' +
-      (frame.cue ? '<span class="dock-card-cue">' + escapeHtml(frame.cue) + '</span>' : '') +
-      '</div>' +
-      '<p class="dock-card-desc">' + escapeHtml(frame.desc || '—') + '</p>';
-    cards.appendChild(card);
-  });
-
-  const active = cards.children[state.currentFrame];
-  if (active && active.scrollIntoView && !state.playing) {
-    active.scrollIntoView({ block: 'nearest', inline: 'center' });
-  }
-}
 
 function goToFrame(index) {
   if (!state.frames.length) return;
@@ -4546,16 +4681,55 @@ async function removeTactic(item) {
    ============================================================ */
 const SESSION_KEY = 'mbab:coach';
 
-/* ── 手機抽屜：戰術手冊（左側） ── */
+/* ── 手機 Bottom Sheet：戰術手冊（左抽屜）/ 教練工具（右抽屜） ── */
+function isMobileSheet() {
+  return window.matchMedia('(max-width: 767px)').matches;
+}
+
+/* 依球場（含步驟說明卡）下緣動態換算抽屜高度上限 → 抽屜永遠不會蓋到球場 */
+function updateSheetLimit() {
+  const root = document.documentElement;
+  if (!isMobileSheet()) {
+    root.style.removeProperty('--sheet-max');
+    return;
+  }
+  const board = document.querySelector('.board-wrap');
+  if (!board) return;
+  let bottom = board.getBoundingClientRect().bottom;
+  const info = document.querySelector('.mobile-stepinfo');
+  if (info && !info.hidden && info.offsetParent) {
+    const rect = info.getBoundingClientRect();
+    if (rect.height > 0) bottom = Math.max(bottom, rect.bottom);
+  }
+  const avail = Math.round(window.innerHeight - bottom - 12);
+  const max = Math.max(220, Math.min(560, avail));
+  root.style.setProperty('--sheet-max', max + 'px');
+}
+
+function syncSheetScrim() {
+  const scrim = $('#pbScrim');
+  const open = !!document.querySelector('.playbook.is-open, .sidebar.is-open');
+  if (scrim) scrim.hidden = !open;
+  document.body.classList.toggle('sheet-open', open);
+  if (open) updateSheetLimit();
+}
+
 function openPlaybookDrawer(open) {
   const pb = $('#playbook');
   if (!pb) return;
   pb.classList.toggle('is-open', !!open);
-  const scrim = $('#pbScrim');
-  if (scrim) scrim.hidden = !open;
   const toggle = $('#pbToggle');
   if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-  if (open) openSidebar(false);
+  if (open) {
+    const sidebar = $('#sidebar');
+    if (sidebar && sidebar.classList.contains('is-open')) {
+      sidebar.classList.remove('is-open');
+      const sideToggle = $('#sideToggle');
+      if (sideToggle) sideToggle.setAttribute('aria-expanded', 'false');
+    }
+    updateSheetLimit();
+  }
+  syncSheetScrim();
 }
 
 function closePlaybookDrawer() {
@@ -4564,28 +4738,66 @@ function closePlaybookDrawer() {
   if (pb.classList.contains('is-open')) openPlaybookDrawer(false);
 }
 
-/* 手機快速防守佈陣（呼叫同一支 applyDefensePreset） */
-function buildDefQuick() {
-  const host = $('#defQuick');
-  if (!host) return;
-  host.innerHTML = '';
-  Object.keys(DEFENSE_PRESETS).forEach(function (key) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.dataset.preset = key;
-    btn.textContent = DEFENSE_PRESETS[key].label;
-    btn.addEventListener('click', function () { applyDefensePreset(key); });
-    host.appendChild(btn);
-  });
-}
-
 function openSidebar(open) {
   const sidebar = $('#sidebar');
   if (!sidebar) return;
   sidebar.classList.toggle('is-open', !!open);
   const toggle = $('#sideToggle');
   if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-  if (open) closePlaybookDrawer();
+  if (open) {
+    const pb = $('#playbook');
+    if (pb && pb.classList.contains('is-open')) openPlaybookDrawer(false);
+    updateSheetLimit();
+  }
+  syncSheetScrim();
+}
+
+/* 手機：在抽屜頂部（把手／標題區）往下滑即關閉 */
+function enableSheetDrag(el) {
+  if (!el) return;
+  let startY = 0;
+  let startTime = 0;
+  let delta = 0;
+  let dragging = false;
+
+  el.addEventListener('pointerdown', function (event) {
+    if (!isMobileSheet() || !el.classList.contains('is-open')) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    const rect = el.getBoundingClientRect();
+    if (event.clientY - rect.top > 64) return;   // 只認把手與標題列
+    if (el.scrollTop > 0) return;
+    dragging = true;
+    startY = event.clientY;
+    startTime = Date.now();
+    delta = 0;
+    el.style.transition = 'none';
+    if (el.setPointerCapture) {
+      try { el.setPointerCapture(event.pointerId); } catch (err) { /* noop */ }
+    }
+  });
+
+  el.addEventListener('pointermove', function (event) {
+    if (!dragging) return;
+    delta = Math.max(0, event.clientY - startY);
+    el.style.transform = 'translateY(' + delta + 'px)';
+  });
+
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    el.style.transition = '';
+    el.style.transform = '';
+    const height = el.getBoundingClientRect().height || 0;
+    const quickFlick = delta > 36 && (Date.now() - startTime) < 340;
+    if (delta > Math.min(150, height * 0.3) || quickFlick) {
+      if (el.id === 'sidebar') openSidebar(false);
+      else openPlaybookDrawer(false);
+      syncSheetScrim();
+    }
+  }
+
+  el.addEventListener('pointerup', endDrag);
+  el.addEventListener('pointercancel', endDrag);
 }
 
 /* ── 桌面側欄：收起 / 展開（記住上次狀態） ── */
@@ -4617,7 +4829,8 @@ function enterCoachMode(silent) {
   renderStepUI();
   renderPlaybook();
   setSideCollapsed(readSideCollapsed(), true);
-  openSidebar(true);
+  /* 手機：教練模式不自動彈出抽屜（避免一解鎖就蓋住球場） */
+  if (!isMobileSheet()) openSidebar(true);
   hideSplash();
   if (!silent) toast('教練模式已解鎖', 'success');
 }
@@ -4837,6 +5050,9 @@ function bindUI() {
   bind('#btnNext', nextStep);
   bind('#btnPlay', playAnimation);
   bind('#btnGif', exportGif);
+  bind('#btnGifSheet', exportGif);
+  bind('#btnDupStepSheet', duplicateStep);
+  bind('#btnDelStepSheet', deleteStep);
   bind('#btnSaveTactic', openSaveDialog);
   bind('#btnLoop', toggleLoop);
   $$('#defGrid .def-btn').forEach(function (btn) {
@@ -4848,7 +5064,11 @@ function bindUI() {
     openPlaybookDrawer(!(pb && pb.classList.contains('is-open')));
   });
   bind('#pbClose', function () { openPlaybookDrawer(false); });
-  bind('#pbScrim', function () { openPlaybookDrawer(false); });
+  bind('#pbScrim', function () {
+    openPlaybookDrawer(false);
+    openSidebar(false);
+    syncSheetScrim();
+  });
   bind('#pbNewTactic', newTactic);
   const nameField = $('#pbNameInput');
   if (nameField) {
@@ -4874,8 +5094,21 @@ function bindUI() {
     const sidebar = $('#sidebar');
     openSidebar(!(sidebar && sidebar.classList.contains('is-open')));
   });
-  bind('#sideCollapse', function () { setSideCollapsed(true); });
+  bind('#sideCollapse', function () {
+    /* 手機：這顆是抽屜的關閉鈕；桌面才是「收起側欄」 */
+    if (isMobileSheet()) { openSidebar(false); return; }
+    setSideCollapsed(true);
+  });
   bind('#sideExpand', function () { setSideCollapsed(false); });
+
+  /* 手機 Bottom Sheet：把手下滑關閉 + 依球場下緣動態限高 */
+  enableSheetDrag($('#playbook'));
+  enableSheetDrag($('#sidebar'));
+  updateSheetLimit();
+  window.addEventListener('resize', updateSheetLimit);
+  window.addEventListener('orientationchange', function () {
+    setTimeout(updateSheetLimit, 240);
+  });
 
   /* 表單 */
   const pwForm = $('#pwForm');
@@ -4967,7 +5200,6 @@ function boot() {
   applyMode();
   renderStepUI();
   renderLibrary();
-  buildDefQuick();
   startGlow();
   updateStorePill();
   renderPlaybook();
