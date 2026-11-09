@@ -1813,6 +1813,8 @@ body.has-pwa-tip .toast-stack{bottom:calc(var(--stepbar-h, 101px) + 112px)}
 body.has-review .pwa-tip{bottom:calc(var(--stepbar-h, 101px) + 68px)}
 @media (min-width:768px){
   .pwa-tip{left:auto;right:16px;bottom:16px;width:min(360px,calc(100vw - 40px))}
+  /* 桌機是右下角卡片，沒有要指向的底部控制卡 → 收掉箭頭 */
+  .pwa-tip-arrow{display:none}
   body.has-review .pwa-tip{bottom:72px}
   body.has-pwa-tip .toast-stack{bottom:150px}
 }
@@ -7382,6 +7384,13 @@ function pwaTipMutedUntil() {
 function showPwaTip() {
   const el = $('#pwaTip');
   if (!el || !el.hidden) return;
+  /* 出場前再量一次底部控制卡高度：步驟文字換行／密集模式切換時，
+     ResizeObserver 可能還沒回報 → --stepbar-h 會偏舊，提示卡就壓到卡片上緣 */
+  const bar = document.querySelector('.stepbar');
+  if (bar && window.innerWidth < 768) {
+    const h = Math.round(bar.getBoundingClientRect().height);
+    if (h > 0) document.documentElement.style.setProperty('--stepbar-h', h + 'px');
+  }
   el.hidden = false;
   document.body.classList.add('has-pwa-tip');
   void el.offsetWidth;      /* 先讓瀏覽器算過初始 transform，滑入動畫才會播 */

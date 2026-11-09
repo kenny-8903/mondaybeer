@@ -185,6 +185,20 @@ const SPECS = {
     pre: CREATE_THEN_DRAW,
     post: PEN_PREVIEW_SETUP,
   },
+
+  /* US-143：iOS「加入主畫面」引導卡（headless 是桌機 UA → 用 pre 手動叫出） */
+  pwa390: {
+    name: 'us143-pwa-390', width: 390, height: 844, mobile: true, query: '', hdr: 52,
+    pre: 'showPwaTip(); "tip-shown"',
+  },
+  pwa360: {
+    name: 'us143-pwa-360', width: 360, height: 740, mobile: true, query: '', hdr: 52,
+    pre: 'showPwaTip(); "tip-shown"',
+  },
+  pwa1440: {
+    name: 'us143-pwa-1440', width: 1440, height: 900, mobile: false, query: '?full=1', hdr: 68,
+    pre: 'showPwaTip(); "tip-shown"',
+  },
 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

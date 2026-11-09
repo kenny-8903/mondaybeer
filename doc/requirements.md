@@ -2055,10 +2055,12 @@ US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布�
 | `1184x820` | 1184×820（中桌機） | **PASS=212 · FAIL=0** |
 | `1440x900` | 1440×900（`?full=1` 桌機三欄） | **PASS=212 · FAIL=0** |
 
-- 靜態檢查：CSS 大括號 **632／632** 平衡、兩段 inline script 語法通過（`script0` 702 chars／`script1` 177695 chars）、`index.html`／`dist/index.html`／`frontend/site/index.html` 雜湊一致（`90A0F825326B`）。
+- 靜態檢查：CSS 大括號 **633／633** 平衡、兩段 inline script 語法通過（`script0` 702 chars／`script1` 178037 chars）、`index.html`／`dist/index.html`／`frontend/site/index.html` 雜湊一致（`287E6F65D040`）。
 - 打包：`dist/` 與 `frontend/site/` 皆為「1 個 HTML ＋ 4 個資源」＝`index.html`、隊徽 jpeg、`icon-192.png`、`icon-512.png`、`manifest.json`。
-- 新增的斷言（15 條）：`pwa.manifestLinked`、`pwa.appleTouchIcon`、`pwa.metaTags`、`pwa.tipElement`、`pwa.tipIdleOnDesktop`、`pwa.tipShown`、`pwa.tipInsideViewport`、`pwa.tipAboveStepbar`、`pwa.dismissPersists`、`pwa.tipHiddenAfterDismiss`、`pwa.purgeRemoved`、`pwa.purgeNoTacticKeys`、`pwa.purgeIndexCleared`、`pwa.purgeRecordsGone`、`pwa.purgeFlagSet`、`pwa.purgeIdempotent`。
-- 實測值（手機）：390×844 → `tipBottom=401 / barTop=411`；375×667 → `tipBottom=386 / barTop=397`；360×740 同級，皆未遮住底部 4 鍵。
+- 新增的斷言（16 條）：`pwa.manifestLinked`、`pwa.appleTouchIcon`、`pwa.metaTags`、`pwa.tipElement`、`pwa.tipIdleOnDesktop`、`pwa.tipShown`、`pwa.tipInsideViewport`、`pwa.tipAboveStepbar`、`pwa.dismissPersists`、`pwa.tipHiddenAfterDismiss`、`pwa.purgeRemoved`、`pwa.purgeNoTacticKeys`、`pwa.purgeIndexCleared`、`pwa.purgeRecordsGone`、`pwa.purgeFlagSet`、`pwa.purgeIdempotent`。
+- 實測值（手機）：390×844 → `tipBottom=401 / barTop=411`；375×667 → `tipBottom=386 / barTop=397`；360×740 → `tipBottom=372 / barTop=382`，皆未遮住底部 4 鍵。
+- 修正過程：360×740 曾量到 `tipBottom=386 / barTop=382`（只差 4px）——原因是步驟文字換行後 `--stepbar-h` 比控制卡實高矮 14px（`ResizeObserver` 尚未回報）。改為 `showPwaTip()` 出場前重量一次 `.stepbar` 並回寫 CSS 變數後，全部規格回到 `FAIL=0`。
+- 目視：`.scratch/us143-pwa-390.png`／`us143-pwa-360.png`／`us143-pwa-1440.png`（`node .scratch/smoke/shot.js pwa390,pwa360,pwa1440`）；手機箭頭指向底部控制卡、桌機（≥768px）改右下角卡片並收掉箭頭。
 
 ### 已知取捨／限制
 

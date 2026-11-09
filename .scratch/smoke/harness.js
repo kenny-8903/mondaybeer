@@ -836,9 +836,10 @@
   ok('pwa.tipIdleOnDesktop', !!tip && tip.hidden === true &&
     !document.body.classList.contains('has-pwa-tip'));
 
-  /* 手動模擬「iOS 未加入主畫面」→ 彈窗出現，且（手機）貼在底部控制卡上方不重疊 */
+  /* 手動模擬「iOS 未加入主畫面」→ 彈窗出現，且（手機）貼在底部控制卡上方不重疊
+     等 700ms：進場是 translateY(14px)→0 的 300ms 動畫，太早量會量到動畫中的位置 */
   showPwaTip();
-  await sleep(400);
+  await sleep(700);
   const tipRect = tip.getBoundingClientRect();
   const barEl = document.querySelector('.stepbar');
   const barRect = barEl ? barEl.getBoundingClientRect() : null;
