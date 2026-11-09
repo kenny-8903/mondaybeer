@@ -3,7 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#EBF1F6">
+<!-- ══════════ PWA ＆ iOS Safari 主畫面配置（manifest 與圖示都在專案根目錄，
+     以 ./ 相對路徑引用 → scripts/build-static.mjs／sync-site.mjs 會一併複製到 dist/） ══════════ -->
+<meta name="theme-color" content="#EA580C">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MondayBeer">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
 <meta name="description" content="九龍城 MONDAY BEER &amp; BASKETBALL 籃球戰術板 — 多步驟戰術編輯、動畫播放與 GIF 匯出。">
 <title>九龍城 MONDAY BEER &amp; BASKETBALL 戰術板</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='31' fill='%23EBF1F6' stroke='%23B4462F' stroke-width='4'/%3E%3Ccircle cx='32' cy='30' r='14' fill='%23F37021'/%3E%3Cpath d='M18 30h28M32 16v28' stroke='%231F2A37' stroke-width='2'/%3E%3Crect x='27' y='13' width='10' height='14' rx='3' fill='%23FFBA08'/%3E%3C/svg%3E">
@@ -62,9 +71,16 @@ input{font-family:inherit}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 [hidden]{display:none !important}
 
-body[data-mode="player"] .coach-only{display:none !important}
-body[data-mode="player"] .sidebar{display:none !important}
-body[data-mode="player"] .stage{grid-template-columns:232px minmax(0,1fr)}
+/* US-142：視覺一律看 data-edit（草稿 session），不看 data-mode（身分）——
+   教練模式預設＝瀏覽，與球員 100% 相同；只有按「＋ 新增」/「✏️ 微調後發布」才進編輯器。 */
+body:not([data-edit="1"]) .coach-only{display:none !important}
+body:not([data-edit="1"]) .sidebar{display:none !important}
+body:not([data-edit="1"]) .stage{grid-template-columns:232px minmax(0,1fr)}
+/* US-137 / US-139 / US-142：只有「正在編輯」（state.editing = true）才露出教練工具，
+   唯讀瀏覽（含教練身分）時整個工具列（戰術線條／動作／防守與球）完全不佔版面。
+   （球員名單與防守陣型自 US-139 起移進控制卡的 #toolPanel，由 👥／🛡 切換）
+   ─ >1100px 由 .stage 三欄排版帶出；≤1100px 由抽屜帶出（面板 ⚙ 開啟，見 6.5 與檔尾 media） */
+body[data-edit="1"] .sidebar{display:flex !important}
 
 /* ============================================================
    1. 版面骨架
@@ -81,6 +97,7 @@ body[data-mode="player"] .stage{grid-template-columns:232px minmax(0,1fr)}
   position:relative;
   display:flex;
   align-items:center;
+  justify-content:space-between;   /* 左：品牌　右：［切換滑塊］＋［＋ 新增］ */
   gap:16px;
   padding:10px 18px;
   background:linear-gradient(180deg,rgba(255,255,255,.98) 0%,rgba(246,249,252,.97) 100%);
@@ -95,7 +112,16 @@ body[data-mode="player"] .stage{grid-template-columns:232px minmax(0,1fr)}
   background:linear-gradient(90deg,var(--orange) 0%,var(--gold) 42%,rgba(243,112,33,0) 88%);
   opacity:.9;
 }
-.brand{display:flex;align-items:center;gap:12px;min-width:0}
+/* 品牌區＝回首頁入口（US-137：手冊的「⎋ 切換身分」已移除 → 改點左上隊徽／隊名回首頁）
+   ─ 用 <button> 才有鍵盤可達性；把原生按鈕樣式全部歸零，外觀與原本的 <div> 完全一致 */
+.brand{
+  display:flex;align-items:center;gap:12px;min-width:0;
+  padding:0;border:0;background:none;color:inherit;font:inherit;
+  text-align:left;cursor:pointer;border-radius:12px;
+  transition:opacity .16s ease,transform .1s ease;
+}
+.brand:hover{opacity:.85}
+.brand:active{transform:scale(.985)}
 .brand-logo{
   display:grid;place-items:center;width:52px;height:52px;flex:0 0 auto;
   filter:drop-shadow(0 4px 12px rgba(243,112,33,.45));
@@ -115,17 +141,21 @@ body[data-mode="player"] .stage{grid-template-columns:232px minmax(0,1fr)}
 }
 .brand-title em{font-style:normal;color:var(--orange)}
 .brand-sub{font-size:10px;letter-spacing:.32em;color:var(--muted);font-weight:600}
-.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.topbar-right{margin-left:auto;flex:0 0 auto;display:flex;align-items:center;gap:12px}
+/* ［滑塊］＋［＋ 新增］同一列：align-items:stretch 讓「＋ 新增」高度自動等於滑塊高度 */
+.topbar-actions{display:flex;align-items:stretch;gap:10px}
 .mode-switch{
-  display:flex;gap:3px;padding:3px;
+  display:flex;align-items:center;gap:3px;padding:3px;
   background:#F0F4F8;border:1px solid var(--line);border-radius:999px;
 }
 .mode-btn{
+  display:inline-flex;align-items:center;justify-content:center;
   border:0;background:transparent;color:var(--muted);
-  font-size:12.5px;font-weight:800;letter-spacing:.04em;
+  font-size:12.5px;font-weight:800;letter-spacing:.04em;line-height:1.2;
   padding:7px 16px;border-radius:999px;cursor:pointer;
   transition:background .18s ease,color .18s ease,box-shadow .18s ease;
 }
+.mode-btn .mb-short{display:none}
 .mode-btn:hover{color:var(--cream)}
 .mode-btn.is-active{
   color:#fff;
@@ -184,9 +214,11 @@ body[data-mode="player"] .stage{grid-template-columns:232px minmax(0,1fr)}
   background:rgba(31,42,55,.09);font-size:11px;font-weight:800;
 }
 .step-chip.is-active .step-idx{background:var(--orange);color:#fff}
+/* 手機「長卡片」用的包裝層：桌機以 display:contents 完全透明（外觀 1px 不變） */
+.step-body,.step-head{display:contents}
+.step-desc,.step-cue,.step-hint{display:none}
 .step-actions{display:flex;gap:5px}
 .v-divider{width:1px;height:24px;background:rgba(31,42,55,.1)}
-.playback{display:flex;align-items:center;gap:6px}
 .frame-counter{
   font-family:var(--font-display);font-size:13px;font-weight:700;
   letter-spacing:.08em;color:var(--muted);
@@ -425,6 +457,14 @@ body[data-mode="player"] .stage{grid-template-columns:232px minmax(0,1fr)}
   font-size:13.5px;letter-spacing:.02em;
 }
 .input::placeholder{color:#9AA8B6}
+select.input{
+  appearance:none;-webkit-appearance:none;
+  height:42px;padding:0 32px 0 13px;line-height:42px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),
+                   linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 17px) 18px, calc(100% - 12px) 18px;
+  background-size:5px 5px, 5px 5px;background-repeat:no-repeat;
+}
 .input:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(243,112,33,.18)}
 .input.is-invalid{border-color:var(--danger);box-shadow:0 0 0 3px rgba(229,72,77,.18)}
 .form-error{margin:8px 0 0;min-height:16px;font-size:11.5px;color:#B4342A;font-weight:700}
@@ -524,12 +564,6 @@ body[data-mode="player"] .stage{grid-template-columns:232px minmax(0,1fr)}
   margin:0;font-family:var(--font-display);
   font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);
 }
-.pb-refresh{
-  width:24px;height:24px;border-radius:7px;flex-shrink:0;
-  border:1px solid var(--line);background:rgba(31,42,55,.04);
-  color:var(--muted);font-size:13px;line-height:1;cursor:pointer;
-}
-.pb-refresh:hover{border-color:var(--gold);color:var(--gold)}
 .pb-list{flex:0 0 auto;display:flex;flex-direction:column;gap:6px}
 .pb-item{
   display:flex;align-items:stretch;min-width:0;overflow:hidden;
@@ -549,6 +583,7 @@ body[data-mode="player"] .stage{grid-template-columns:232px minmax(0,1fr)}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .pb-meta{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)}
+.pb-author{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pb-actions{display:flex;align-items:center;gap:2px;padding-right:5px}
 .pb-act{
   width:22px;height:22px;display:grid;place-items:center;
@@ -559,40 +594,12 @@ body[data-mode="player"] .stage{grid-template-columns:232px minmax(0,1fr)}
 .pb-act svg{width:12px;height:12px;display:block}
 .pb-act:hover{border-color:var(--brick);color:var(--brick);background:rgba(180,70,47,.10)}
 .pb-act[data-act="delete"]:hover{border-color:var(--danger);color:#B4342A;background:rgba(229,72,77,.16)}
-body[data-mode="player"] .pb-actions{display:none}
+body:not([data-edit="1"]) .pb-actions{display:none}
 .pb-empty{
   padding:14px 10px;border-radius:10px;text-align:center;line-height:1.7;
   font-size:11.5px;color:var(--muted);border:1px dashed var(--line);
 }
 .pb-foot{margin:0;font-size:10px;color:var(--muted);text-align:center}
-
-/* ── 新增戰術（教練專用；球員模式由 .coach-only 隱藏） ── */
-.pb-new-row{display:flex;flex-direction:column;gap:6px}
-.pb-new{
-  justify-content:center;gap:6px;padding:9px 10px;
-  font-size:13px;letter-spacing:.04em;
-}
-.pb-new .pb-new-en{
-  font-family:var(--font-display);font-style:normal;
-  font-size:9.5px;font-weight:700;letter-spacing:.14em;opacity:.82;
-}
-.pb-name-field{display:flex;flex-direction:column;gap:3px}
-.pb-name-label{
-  font-family:var(--font-display);font-size:9.5px;font-weight:700;
-  letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
-}
-.pb-name-input{
-  width:100%;padding:7px 9px;border-radius:9px;
-  border:1px solid var(--line);background:#FFFFFF;
-  font-family:inherit;font-size:12px;font-weight:800;color:var(--cream);
-  transition:border-color .16s,box-shadow .16s;
-}
-.pb-name-input::placeholder{font-weight:600;color:rgba(123,140,158,.9)}
-.pb-name-input:focus{
-  outline:none;border-color:var(--orange);
-  box-shadow:0 0 0 3px rgba(243,112,33,.18);
-}
-.pb-name-hint{margin:0;font-size:9.5px;line-height:1.5;color:var(--muted)}
 
 /* ── 球員名單 ── */
 .roster-grid{
@@ -645,6 +652,10 @@ body[data-mode="player"] .pb-actions{display:none}
 }
 .pb-scroll::-webkit-scrollbar{width:6px}
 .pb-scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
+/* 手冊視圖容器：手機在「分類清單 ↔ 分類子頁面」之間切換；桌機只有主清單（子頁面永遠 hidden） */
+.pb-views{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;gap:8px}
+.pb-view{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0;gap:8px}
+.pb-sub-view[hidden]{display:none}
 .pb-group-title{
   margin:2px 0 1px;display:flex;align-items:baseline;gap:6px;
   font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--muted);
@@ -795,18 +806,6 @@ body[data-mode="player"] .pb-actions{display:none}
 body.splash-open .app{pointer-events:none;user-select:none}
 .splash[hidden]{display:none}
 
-/* ── 頂部「切換身分 / 返回首頁」 ── */
-.home-btn{
-  display:inline-flex;align-items:center;gap:7px;
-  height:32px;padding:0 12px;flex:0 0 auto;
-  border:1px solid var(--line);border-radius:999px;
-  background:#FFFFFF;color:var(--ink-soft);cursor:pointer;
-  font-size:12px;font-weight:800;letter-spacing:.02em;white-space:nowrap;
-  transition:border-color .15s,color .15s,background .15s,transform .15s;
-}
-.home-btn:hover{border-color:var(--orange);color:var(--orange-600);background:rgba(243,112,33,.1);transform:translateX(-1px)}
-.home-btn .hb-ico{font-family:var(--font-display);font-size:15px;font-weight:800;line-height:1}
-
 /* ── 名單位置篩選 chips ── */
 .pos-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
 .pos-chip{
@@ -847,7 +846,7 @@ body.splash-open .app{pointer-events:none;user-select:none}
    ============================================================ */
 @media (max-width:1100px){
   .stage{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
-  body[data-mode="player"] .stage{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+  body:not([data-edit="1"]) .stage{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
   .board-wrap{max-width:100%}
 
   /* 戰術手冊 → 左側抽屜（☰ 開關） */
@@ -877,9 +876,9 @@ body.splash-open .app{pointer-events:none;user-select:none}
     transform:translateX(105%);
     transition:transform .24s ease;
   }
-  body[data-mode="coach"] .sidebar.is-open{transform:none}
-  body[data-mode="coach"] .side-toggle{display:grid;place-items:center}
-  body[data-mode="coach"] .fab{display:none}
+  body[data-edit="1"] .sidebar.is-open{transform:none}
+  body[data-edit="1"] .side-toggle{display:grid;place-items:center}
+  body[data-edit="1"] .fab{display:none}
   .steps{max-width:100%}
   .brand-sub{display:none}
   .store-pill{display:none}
@@ -897,16 +896,18 @@ body.splash-open .app{pointer-events:none;user-select:none}
   .board-hint{font-size:10.5px}
   .pb-name{font-size:11px}
   .cue-tag{top:6px;right:6px;padding:5px 9px;font-size:11px;max-width:calc(100% - 96px)}
-  /* iOS 聚焦輸入框時不自動放大畫面 */
-  .pb-name-input{font-size:16px}
 }
 /* ── 側欄收起（僅桌面 / 平板 >1100px；手機本來就是抽屜 + 🛠） ── */
 @media (min-width:1101px){
+  /* US-137：球員按「＋ 新增」進入繪製模式 → 教練工具（名單／防守陣型／線條）以第三欄出現 */
+  body[data-edit="1"] .stage{
+    grid-template-columns:232px minmax(0,1fr) var(--side-w);
+  }
   body.side-collapsed .stage{--side-w:0px;gap:14px 0}
   body.side-collapsed .sidebar{display:none}
   body.side-collapsed .board-hint{display:none}
   body.side-collapsed .board-wrap{--board-h-chrome:232px}
-  body[data-mode="coach"].side-collapsed .side-expand{display:grid}
+  body[data-edit="1"].side-collapsed .side-expand{display:grid}
 }
 
 @media (max-width:860px){
@@ -920,25 +921,360 @@ body.splash-open .app{pointer-events:none;user-select:none}
   .splash-sub{letter-spacing:.16em;line-height:1.6}
 }
 @media (max-width:720px){
-  .home-btn{width:34px;padding:0;gap:0;justify-content:center}
-  .home-btn .hb-txt{display:none}
   .splash-foot{font-size:10px;letter-spacing:.02em}
 }
+
+/* ============================================================
+   6.4 手機控制列新增元件（US-133 版面 / US-134 免帳號批核）
+   ─ 這些元素只在手機出現：桌機一律 display:none，確保零回歸。
+   ─ 手機的開啟規則寫在 6.5 的 @media (max-width:767px) 內。
+   ============================================================ */
+.key-lbl,
+#btnShare,
+.pb-mobile-actions{display:none}
+
+/* 「＋ 新增」：頂部右上角，緊接在身分切換滑塊右方（桌機／手機共用同一顆）
+   ─ 高度靠父層 .topbar-actions 的 align-items:stretch 與滑塊自動對齊，不寫死數字。
+   ─ 桌機標籤「＋ 新增」（.ntb-short）；手機標籤「＋ 新增戰術」（.ntb-long，見 6.5）。 */
+.new-tactic-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  align-self:stretch;min-height:30px;padding:0 14px;border-radius:999px;
+  border:1px solid rgba(243,112,33,.55);
+  background:linear-gradient(180deg,#F5873C,#E85F13);
+  color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.02em;
+  white-space:nowrap;cursor:pointer;
+  box-shadow:0 4px 12px rgba(243,112,33,.32);
+  transition:background .16s ease,box-shadow .16s ease,transform .1s ease;
+}
+.new-tactic-btn:hover{background:linear-gradient(180deg,#FF9A55,#F26A1C);box-shadow:0 6px 16px rgba(243,112,33,.42)}
+.new-tactic-btn:active{transform:scale(.96)}
+.new-tactic-btn .ntb-ico{font-size:13px;line-height:1;transform:translateY(-.5px)}
+.new-tactic-btn .ntb-long{display:none}
+
+/* ════════════════════════════════════════════════════════════
+   US-139 建立／編輯模式重構（桌機預設值；手機覆寫在 §6.5）
+   1) 頂部「＋ 新增」⇄「✕ 退出」  2) 底部「播放 4 鍵」⇄「編輯 4 鍵」
+   3) 中間動態工具面板 #toolPanel（步驟資訊 ⇄ 球員陣容 ⇄ 防守陣型）
+   ════════════════════════════════════════════════════════════ */
+
+/* ── 1) 頂部：編輯中＝退出（磚紅字、白底，跟狀態滑塊明顯區隔） ── */
+body[data-edit="1"] .new-tactic-btn{
+  border-color:rgba(180,70,47,.32);
+  background:linear-gradient(180deg,#FFFFFF,#F7EFEC);
+  color:#A83E28;
+  box-shadow:0 4px 12px rgba(31,42,55,.14);
+}
+body[data-edit="1"] .new-tactic-btn:hover{
+  background:linear-gradient(180deg,#FFFFFF,#F3E4DF);
+  box-shadow:0 6px 16px rgba(31,42,55,.18);
+}
+
+/* ── 2) 底部工具列：兩個互斥群組 ── */
+#playKeys,#editKeys{display:flex;align-items:center;gap:6px;min-width:0}
+#editKeys{display:none}
+body[data-keys="edit"] #playKeys{display:none}
+body[data-keys="edit"] #editKeys{display:flex}
+/* 繪製中不需要播放／匯出／手冊切換（預覽改由面板 ▶ 提供） */
+body[data-keys="edit"] #frameCounter,
+body[data-keys="edit"] #btnGif{display:none}
+.ek-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  height:32px;padding:0 12px;border-radius:9px;
+  border:1px solid rgba(31,42,55,.13);background:#F5F8FB;
+  color:var(--ink-soft);font-size:12px;font-weight:800;
+  white-space:nowrap;cursor:pointer;
+  transition:transform .1s ease,border-color .16s ease,background .16s ease;
+}
+.ek-btn:hover{border-color:rgba(243,112,33,.55)}
+.ek-btn:active{transform:scale(.97)}
+.ek-btn:disabled{opacity:.45;cursor:not-allowed}
+.ek-btn.is-on{color:#8E3520;border-color:var(--brick);background:rgba(243,112,33,.12)}
+/* US-140：桌機版 4 鍵均分剩餘寬度（與手機的 4 等分 grid 一致，不再依文字長短忽寬忽窄） */
+#editKeys{flex:1 1 auto}
+#editKeys .ek-btn{flex:1 1 0;min-width:0;padding:0 8px}
+.ek-save{
+  border-color:transparent;color:#fff;
+  background:linear-gradient(180deg,#F5873C,#E85F13);
+  box-shadow:0 4px 12px rgba(243,112,33,.30);
+}
+.ek-save.is-publish{background:linear-gradient(180deg,#4E9A6A,#3C7F55);box-shadow:0 4px 12px rgba(60,127,85,.30)}
+
+/* ── 2b) US-140：輕量「＋ 加步驟」條（球場正下方 → 步驟內容區之前） ── */
+.step-add{
+  display:none;align-items:center;gap:8px;
+  width:100%;min-width:0;order:5;flex-basis:100%;
+}
+body[data-keys="edit"] .step-add{display:flex}
+.step-add-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  height:30px;padding:0 12px;border-radius:9px;cursor:pointer;
+  border:1px dashed rgba(243,112,33,.55);background:rgba(243,112,33,.07);
+  color:#8E3520;font-size:11.5px;font-weight:800;white-space:nowrap;
+  transition:background .16s ease,border-color .16s ease,transform .1s ease;
+}
+.step-add-btn:hover{background:rgba(243,112,33,.14);border-style:solid;border-color:rgba(243,112,33,.72)}
+.step-add-btn:active{transform:scale(.97)}
+.step-add-btn:disabled{opacity:.45;cursor:not-allowed}
+.step-add-btn .sab-ico{font-size:13px;font-weight:800;line-height:1}
+.step-add-count{
+  margin-left:auto;font-size:10.5px;font-weight:700;
+  color:var(--muted);white-space:nowrap;
+}
+
+/* ── 3) 動態工具面板 ── */
+#toolPanel{
+  display:none;flex:0 0 auto;flex-direction:column;gap:6px;
+  width:100%;min-width:0;
+}
+body[data-keys="edit"] #toolPanel{display:flex;order:-1;flex-basis:100%}
+.tp-view{display:flex;flex-direction:column;gap:6px;min-width:0;min-height:0}
+.tp-view[hidden]{display:none}
+.tp-head{display:flex;align-items:center;gap:6px;min-width:0}
+.tp-idx{
+  flex:0 0 auto;display:inline-grid;place-items:center;height:30px;padding:0 9px;
+  border-radius:9px;border:1px solid rgba(180,70,47,.24);
+  background:rgba(180,70,47,.09);color:#8E3520;
+  font-size:11.5px;font-weight:800;white-space:nowrap;
+}
+.tp-input{
+  flex:1 1 auto;min-width:0;width:100%;height:30px;padding:0 9px;
+  border-radius:9px;border:1px solid rgba(31,42,55,.14);
+  background:#F8FAFC;color:var(--cream);font-size:12.5px;font-weight:700;
+}
+.tp-input::placeholder{color:var(--muted);font-weight:600}
+.tp-input:focus{
+  outline:none;border-color:rgba(243,112,33,.6);background:#fff;
+  box-shadow:0 0 0 3px rgba(243,112,33,.12);
+}
+.tp-desc{font-size:11.5px;font-weight:600;color:var(--ink-soft)}
+.tp-icon{
+  flex:0 0 auto;display:grid;place-items:center;
+  width:30px;height:30px;border-radius:9px;
+  border:1px solid rgba(31,42,55,.13);background:#F5F8FB;
+  color:var(--ink-soft);font-size:13px;font-weight:800;cursor:pointer;
+}
+.tp-icon:active{transform:scale(.96)}
+/* 名單／防守：面板內緊湊版（桌機一列排開） */
+#tpRoster .roster-grid{grid-template-columns:repeat(6,minmax(0,1fr));max-height:120px;overflow-y:auto}
+#tpRoster .pos-chips{margin:0}
+#tpDefense .def-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+#tpDefense .def-btn{justify-content:center;padding:6px 4px}
+/* US-140：✏️ 走位畫筆（跑位線／傳球虛線／掩護擋拆） */
+#tpDraw .draw-grid{
+  display:grid;justify-content:start;
+  grid-template-columns:repeat(3,minmax(0,150px));gap:6px;
+}
+#tpDraw .draw-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  padding:7px 6px;border-radius:10px;cursor:pointer;
+  border:1px solid rgba(31,42,55,.13);background:#F5F8FB;color:var(--ink-soft);
+  font-size:11.5px;font-weight:800;white-space:nowrap;
+  transition:border-color .16s ease,background .16s ease,transform .1s ease;
+}
+#tpDraw .draw-btn:hover{border-color:rgba(243,112,33,.55)}
+#tpDraw .draw-btn:active{transform:scale(.97)}
+#tpDraw .draw-btn.is-active{
+  border-color:var(--brick);background:rgba(243,112,33,.12);color:#8E3520;
+  box-shadow:0 0 0 2px rgba(243,112,33,.14) inset;
+}
+#tpDraw .draw-btn svg{width:24px;height:13px;flex:0 0 auto}
+.tp-note{margin:0;font-size:10.5px;line-height:1.4;color:var(--muted)}
+/* ════════════════════════════════════════════════════════════
+   US-142 待批審核中心：頂部 🔔 徽章 ＋ 待審核 Bottom Sheet ＋ 球場右下批核浮條
+   （面板裡舊的「待批核提案 / ✅ 批准 / ✏️ 修改後批核」已整組移除）
+   ════════════════════════════════════════════════════════════ */
+
+/* ── 1) 頂部「🔔 待批 (N)」 ── */
+.pending-btn{
+  position:relative;display:inline-flex;align-items:center;gap:4px;
+  align-self:stretch;min-height:30px;padding:0 10px;border-radius:999px;
+  border:1px solid rgba(47,111,168,.45);
+  background:linear-gradient(180deg,#FFFFFF,#EEF4FA);
+  color:#1F4E79;font-size:12px;font-weight:800;letter-spacing:.02em;
+  white-space:nowrap;cursor:pointer;
+  box-shadow:0 3px 10px rgba(47,111,168,.18);
+  transition:background .16s ease,box-shadow .16s ease,transform .1s ease;
+}
+.pending-btn:hover{background:linear-gradient(180deg,#FFFFFF,#E3EEF8);box-shadow:0 5px 14px rgba(47,111,168,.26)}
+.pending-btn:active{transform:scale(.96)}
+.pending-btn .pend-ico{font-size:12px;line-height:1;transform:translateY(-.5px)}
+.pend-badge{
+  display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 4px;
+  border-radius:999px;background:var(--brick);color:#fff;
+  font-size:9.5px;font-weight:800;line-height:1;letter-spacing:0;
+}
+
+/* ── 2) 待審核清單 Bottom Sheet（手機由下往上滑；桌機置中貼底） ── */
+.pend-sheet{
+  position:fixed;left:50%;bottom:16px;z-index:72;
+  width:min(560px,92vw);max-height:min(72dvh,520px);
+  display:flex;flex-direction:column;gap:8px;padding:10px 12px 12px;
+  border:1px solid rgba(47,111,168,.28);border-radius:18px;
+  background:linear-gradient(180deg,#FFFFFF,#F2F7FC);
+  box-shadow:0 18px 44px rgba(31,42,55,.26);
+  transform:translate(-50%,16px);
+  opacity:0;pointer-events:none;
+  transition:transform .24s cubic-bezier(.2,.85,.2,1),opacity .18s ease;
+}
+.pend-sheet.is-open{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.pend-handle{
+  display:none;flex:0 0 auto;width:40px;height:4px;margin:2px auto 4px;
+  border-radius:99px;background:var(--line);
+}
+.pend-head{display:flex;align-items:center;gap:8px}
+.pend-head h2{
+  flex:1 1 auto;margin:0;font-family:var(--font-display);
+  font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);
+}
+.pend-head h2 span{color:var(--brick);letter-spacing:.04em}
+.pend-close{
+  flex:0 0 auto;width:26px;height:26px;border-radius:8px;
+  border:1px solid var(--line);background:rgba(31,42,55,.04);
+  color:var(--muted);font-size:12px;line-height:1;cursor:pointer;
+}
+.pend-close:hover{border-color:var(--brick);color:var(--brick)}
+.pend-list{
+  flex:1 1 auto;min-height:0;overflow-y:auto;
+  display:flex;flex-direction:column;gap:6px;padding-right:2px;
+}
+.pend-item{
+  display:flex;flex-direction:column;gap:2px;width:100%;
+  padding:8px 10px;border-radius:11px;cursor:pointer;text-align:left;
+  border:1px solid var(--line);background:#fff;color:var(--cream);
+  transition:border-color .16s,background .16s,box-shadow .16s;
+}
+.pend-item:hover{border-color:rgba(47,111,168,.55);background:#F7FBFF;box-shadow:0 4px 12px rgba(47,111,168,.12)}
+.pend-item.is-current{border-color:rgba(47,111,168,.6);background:#EFF6FD;box-shadow:inset 3px 0 0 var(--brick)}
+.pend-item-name{display:flex;align-items:center;gap:6px;min-width:0;font-size:12px;font-weight:800}
+.pend-item-name b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pend-item-tag{
+  flex:0 0 auto;padding:0 5px;border-radius:999px;
+  font-size:9px;font-weight:800;line-height:1.5;
+  color:#8E3520;background:rgba(243,112,33,.14);border:1px solid rgba(243,112,33,.34);
+}
+.pend-item-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10.5px;color:var(--muted)}
+.pend-item-meta .tag{font-size:8.5px}
+.pend-empty{margin:0;padding:12px 8px;text-align:center;font-size:11.5px;line-height:1.7;color:var(--muted)}
+
+/* ── 3) 球場右下批核浮條（載入待批提案後自動出現） ── */
+.review-bar{
+  position:fixed;right:16px;bottom:16px;z-index:62;
+  display:flex;align-items:center;gap:8px;
+  max-width:min(620px,94vw);padding:8px 10px;
+  border:1px solid rgba(47,111,168,.3);border-radius:14px;
+  background:linear-gradient(180deg,#FFFFFF,#F4F9FD);
+  box-shadow:0 14px 34px rgba(31,42,55,.22);
+}
+.rv-info{display:flex;flex-direction:column;min-width:0;gap:1px}
+.rv-info b{
+  min-width:0;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:12px;color:var(--cream);
+}
+.rv-meta{
+  font-size:10px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.rv-acts{display:flex;align-items:center;gap:6px}
+.rv-btn{
+  flex:0 0 auto;height:32px;padding:0 11px;border-radius:9px;
+  border:1px solid rgba(31,42,55,.13);background:#F5F8FB;
+  color:var(--ink-soft);font-size:11.5px;font-weight:800;
+  white-space:nowrap;cursor:pointer;
+}
+.rv-btn:active{transform:scale(.97)}
+.rv-btn.is-primary{
+  border-color:transparent;color:#fff;
+  background:linear-gradient(180deg,#4E9A6A,#3C7F55);
+  box-shadow:0 4px 10px rgba(60,127,85,.28);
+}
+.rv-btn.is-danger{border-color:rgba(180,52,42,.32);color:#B4342A;background:rgba(229,72,77,.10)}
+.rv-close{
+  flex:0 0 auto;width:24px;height:24px;border-radius:7px;
+  border:1px solid var(--line);background:rgba(31,42,55,.04);
+  color:var(--muted);font-size:11px;line-height:1;cursor:pointer;
+}
+.rv-close:hover{border-color:var(--brick);color:var(--brick)}
+
+/* 手機（≤767px）：sheet 由下往上滑；浮條貼在底部 4 鍵上方，提示條再往上讓開 */
+@media (max-width:767px){
+  /* 手機：只留 🔔 ＋ 數字，把 header 寬度讓給「＋ 新增戰術」（品牌名不被擠掉） */
+  .pending-btn{padding:0 6px;font-size:11px;gap:2px}
+  .pending-btn .pend-lbl{display:none}
+  .pend-badge{min-width:16px;height:16px;padding:0 3px;font-size:9px}
+  .pend-sheet{
+    left:0;right:0;bottom:0;width:auto;max-width:none;
+    max-height:78dvh;padding:4px 12px calc(12px + env(safe-area-inset-bottom));
+    border:0;border-radius:20px 20px 0 0;
+    box-shadow:0 -18px 44px rgba(31,42,55,.24);
+    transform:translateY(calc(100% + 24px));
+  }
+  .pend-sheet.is-open{transform:none}
+  .pend-handle{display:block}
+  .review-bar{
+    left:12px;right:12px;bottom:calc(var(--stepbar-h, 101px) + 10px);
+    max-width:none;padding:7px 8px;gap:6px;
+  }
+  .rv-info b{max-width:none}
+  .rv-btn{height:30px;padding:0 8px;font-size:10.5px}
+  body.has-review .toast-stack{bottom:calc(var(--stepbar-h, 101px) + 78px)}
+}
+
+/* 面板出現時球場縮一級，避免 .board-restrict 裁切（US-140：多一列「＋ 加步驟」條） */
+body[data-keys="edit"] .board-wrap{--board-h-chrome:390px}
+
+/* 儲存對話框：球員／教練角色切換 */
+.role-seg{
+  display:grid;grid-template-columns:1fr 1fr;gap:4px;
+  padding:3px;margin:0 0 10px;border-radius:11px;
+  background:rgba(31,42,55,.05);border:1px solid rgba(31,42,55,.08);
+}
+.role-btn{
+  height:32px;border:0;border-radius:8px;background:transparent;
+  color:var(--ink-soft);font-size:12px;font-weight:800;cursor:pointer;
+}
+.role-btn.is-active{
+  color:#fff;background:linear-gradient(180deg,#C25239,#A83E28);
+  box-shadow:0 3px 10px rgba(180,70,47,.28);
+}
+.save-field{margin:0 0 10px}
+.save-note{margin:0 0 10px;font-size:10.5px;line-height:1.5;color:var(--muted)}
+
+/* 戰術手冊：未批核戰術標記（球員提案） */
+.pb-name-row{display:flex;align-items:center;gap:5px;min-width:0}
+.pb-name-row .pb-name{flex:0 1 auto;min-width:0}
+.pb-pending-tag{
+  flex:0 0 auto;padding:0 5px;border-radius:999px;
+  max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:9px;font-weight:800;line-height:1.5;
+  color:#8E3520;background:rgba(243,112,33,.14);
+  border:1px solid rgba(243,112,33,.34);
+}
+.pb-item.is-pending .pb-name{color:#8E3520}
+
+/* 手機：手冊抽屜底部下載列（⬇ 儲存 GIF） */
+.pb-tool{
+  flex:1 1 0;height:30px;border-radius:9px;
+  border:1px solid rgba(31,42,55,.13);background:#F5F8FB;
+  color:var(--ink-soft);font-size:11.5px;font-weight:800;
+  white-space:nowrap;cursor:pointer;
+}
+.pb-tool:active{transform:scale(.97)}
+.pb-mobile-actions{display:none;gap:6px;margin:6px 0 0}
+.pb-mobile-actions .pb-tool{height:32px}
 
 /* ============================================================
    6.5 手機（≤767px）：全寬球場 · 單一步驟控制 · 底部動作列 · Bottom Sheet
    ※ 放在所有斷裂式之後，靠 cascade 順序覆寫上面的規則
    ============================================================ */
-.brand-short,.lbl-short,.mobile-stepinfo,.sheet-only{display:none}
+.brand-short,.lbl-short,.ico-short,.sheet-only{display:none}
 
 @media (max-width:767px){
-  /* 直向手機：Header 44px → 球場（100vw、忠實比例）→ 底部動作列 */
+  /* 直向手機：Header 44px → 球場（100vw、忠實比例）→ 單一控制卡（長到螢幕底） */
   .app{height:100dvh;overflow:hidden}
   .topbar{order:1}
-  .stage{order:2}
-  .stepbar{order:3}
-  /* 球場下方留白與球場地板（#EBF1F6）同色系 → 看起來像同一片球場地板 */
-  .stage{background:linear-gradient(180deg,#EBF1F6 0%,#E9EFF5 46%,#E5EBF2 100%)}
+  /* 球場只佔自己的比例高度；剩下高度全部交給下方白底控制卡，不再有灰色留白 */
+  .stage{order:2;flex:0 0 auto;background:none}
+  .stepbar{order:3;flex:1 1 auto}
 
   /* ── 1) Header：只留隊徽 + 簡稱 + 身分切換 ── */
   .topbar{
@@ -957,13 +1293,19 @@ body.splash-open .app{pointer-events:none;user-select:none}
     white-space:nowrap;color:var(--cream);
   }
   .brand-short em{font-style:normal;color:var(--orange)}
+  /* 右上角：［球員｜教練］短標籤滑塊 ＋ ［＋ 新增戰術］同一列並排（390px 內不溢出） */
   .topbar-right{gap:6px}
-  .mode-switch{gap:2px;padding:2px}
-  .mode-btn{padding:5px 9px;font-size:11px;letter-spacing:0}
   .store-pill{display:none}
-  .home-btn{width:30px;height:30px;padding:0;gap:0;justify-content:center}
-  .home-btn .hb-txt{display:none}
-  .home-btn .hb-ico{font-size:14px}
+  .topbar-actions{gap:6px}
+  .mode-switch{display:flex;padding:2px;gap:2px}
+  .mode-btn{padding:5px 10px;font-size:11px;letter-spacing:.02em}
+  .mode-btn .mb-full{display:none}
+  .mode-btn .mb-short{display:inline}
+  .new-tactic-btn{display:inline-flex;padding:0 11px;font-size:11.5px;min-height:0}
+  .new-tactic-btn .ntb-short{display:none}
+  .new-tactic-btn .ntb-long{display:inline}
+  .brand{flex:0 1 auto;min-width:0}
+  .brand-short{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 
   /* ── 2) 球場：100vw 全寬、貼齊 header、不變形不裁切 ── */
   .stage{
@@ -971,7 +1313,7 @@ body.splash-open .app{pointer-events:none;user-select:none}
     grid-template-columns:none;grid-template-rows:none;
     padding:0;gap:0;
   }
-  body[data-mode="player"] .stage{grid-template-columns:none;grid-template-rows:none}
+  body:not([data-edit="1"]) .stage{grid-template-columns:none;grid-template-rows:none}
   .board-panel{
     flex:1 1 auto;min-height:0;
     justify-content:flex-start;gap:0;
@@ -981,7 +1323,7 @@ body.splash-open .app{pointer-events:none;user-select:none}
     align-items:flex-start;justify-content:center;
   }
   .board-wrap{
-    --board-h-chrome:200px;
+    --board-h-chrome:230px;
     width:100%;
     max-width:min(100%, calc((100dvh - var(--board-h-chrome)) * 1.0638));
     border:0;border-radius:0;box-shadow:none;
@@ -995,101 +1337,212 @@ body.splash-open .app{pointer-events:none;user-select:none}
     background:rgba(229,72,77,.08);border:1px solid rgba(229,72,77,.28);border-radius:10px;
   }
 
-  /* ── 3) 當前步驟說明（唯讀；不再重複步驟控制項） ── */
-  .mobile-stepinfo{
-    display:flex;align-items:center;gap:8px;flex:0 0 auto;
-    margin:8px 12px 0;padding:8px 11px;border-radius:12px;
-    min-height:54px;
-    background:rgba(255,255,255,.96);
-    border:1px solid var(--line);
-    box-shadow:0 4px 14px rgba(31,42,55,.06);
-    min-width:0;
-  }
-  .mobile-stepinfo .si-idx{
-    flex:0 0 auto;display:inline-grid;place-items:center;
-    min-width:30px;height:26px;padding:0 7px;border-radius:8px;
-    background:linear-gradient(180deg,#C25239,#A83E28);color:#fff;
-    font-family:var(--font-display);font-size:11.5px;font-weight:800;
-  }
-  .mobile-stepinfo .si-body{display:flex;flex-direction:column;gap:2px;min-width:0}
-  .mobile-stepinfo .si-name{
-    font-size:13px;font-weight:800;color:var(--cream);line-height:1.25;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  .mobile-stepinfo .si-desc{
-    margin:0;font-size:10.5px;line-height:1.45;color:var(--ink-soft);
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
-    overflow:hidden;
-  }
-  .mobile-stepinfo .si-cue{
-    flex:0 0 auto;margin-left:auto;padding:2px 8px;border-radius:999px;
-    font-size:10px;font-weight:800;color:#8E3520;white-space:nowrap;
-    background:rgba(180,70,47,.10);border:1px solid rgba(180,70,47,.24);
-  }
-  .mobile-stepinfo .si-cue:empty{display:none}
-
-  /* ── 4) 底部動作列：▶播放 ∞循環 │ 步驟膠囊 │ ☰手冊 🛠工具（教練第二列：＋ / 💾儲存） ── */
+  /* ── 3) 球場下方：單一白底控制卡（動態工具面板 ＋ 步驟卡片清單 ＋ 均分 4 鍵） ──
+     US-139：繪製中＝編輯 4 鍵（加步驟／名單／防守／提交·發布），其餘＝播放 4 鍵；
+     步驟資訊與名單／陣型都在清單上方的 #toolPanel，不佔用底部按鈕格。 */
   .stepbar{
     display:grid;flex-wrap:nowrap;
-    grid-template-columns:auto minmax(0,1fr) auto auto auto;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    grid-template-rows:auto auto minmax(0,1fr) auto;
     grid-template-areas:
-      "play steps steps book tools"
-      "acts acts acts save save";
-    gap:6px 8px;
-    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
-    background:rgba(255,255,255,.97);
+      "add   add   add   add"
+      "panel panel panel panel"
+      "steps steps steps steps"
+      "keys  keys  keys  keys";
+    align-content:stretch;
+    align-items:stretch;
+    gap:6px;
+    padding:8px 12px calc(8px + env(safe-area-inset-bottom));
+    background:#FFFFFF;
     border-top:1px solid rgba(31,42,55,.08);
     border-bottom:0;
-    backdrop-filter:blur(14px);
-    box-shadow:0 -8px 24px rgba(31,42,55,.10);
+    border-radius:18px 18px 0 0;
+    box-shadow:0 -10px 26px rgba(31,42,55,.10);
+    overflow-x:hidden;overflow-y:hidden;
+    overscroll-behavior:contain;
     z-index:40;
   }
-  body[data-mode="player"] .stepbar{grid-template-areas:"play steps steps book gif"}
-  .playback{grid-area:play;display:flex;align-items:center;gap:6px}
-  #btnPlay{height:40px;padding:0 13px;border-radius:12px;font-size:12px}
-  #btnPlay .lbl-long{display:none}
-  #btnPlay .lbl-short{display:inline}
-  #btnLoop{width:40px;height:40px;border-radius:12px}
+
+  /* ── 3a0) US-140：「＋ 加步驟」條＝球場正下方第一列（輕量、不佔底部 4 鍵） ── */
+  .step-add{grid-area:add;order:0;gap:6px}
+  .step-add-btn{height:32px;padding:0 14px;border-radius:10px;font-size:12px}
+  .step-add-btn .sab-ico{font-size:14px}
+
+  /* ── 3a) 動態工具面板：預設＝目前步驟（名稱＋走位說明）；👥／🛡 時接手清單的位置 ── */
+  #toolPanel{grid-area:panel;padding:0}
+  #tpRoster,#tpDefense,#tpDraw{flex:1 1 auto}
+  #tpRoster .roster-grid{
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    max-height:none;flex:1 1 auto;overflow-y:auto;
+  }
+  #tpRoster .roster-btn{padding:4px 2px}
+  #tpDefense .def-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #tpDefense .def-btn svg{display:none}
+  #tpDefense .def-badge{display:none}
+  #tpDefense .def-btn span{font-size:11px}
+  /* 陣型只有 5 顆 → 面板吃掉清單高度時把內容擺中間，不要留一大片空白 */
+  /* US-140：三種面板模式一致靠上對齊（面板吃掉 #stepList 的高度，置中會留下大片空白） */
+  #tpDefense{justify-content:flex-start}
+  /* US-140：走位畫筆面板（三種線條，直立大字好點；內容靠上對齊避免大片空白） */
+  #tpDraw{justify-content:flex-start}
+  #tpDraw .draw-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #tpDraw .draw-btn{flex-direction:column;height:56px;gap:4px;font-size:11px}
+  #tpDraw .draw-btn svg{width:26px;height:14px}
+  /* 決策 A：名單／陣型／畫筆時面板吃掉步驟清單的位置（省手機高度；加步驟條仍在第 1 列） */
+  body[data-panel="roster"] #toolPanel,
+  body[data-panel="defense"] #toolPanel,
+  body[data-panel="draw"] #toolPanel{grid-row:2 / span 2;overflow:hidden}
+  body[data-panel="roster"] #stepList,
+  body[data-panel="defense"] #stepList,
+  body[data-panel="draw"] #stepList{display:none}
+  body[data-keys="edit"] .board-wrap{--board-h-chrome:336px}
+
+
+  /* ── 4) 卡片主體＝步驟卡片清單（單欄、自動長高填滿）；底部一列＝均分 4 鍵 ── */
+  #playKeys,#editKeys{
+    grid-area:keys;
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+    align-items:stretch;gap:6px;min-height:0;
+  }
+  #editKeys{display:none}
+  body[data-keys="edit"] #playKeys{display:none}
+  body[data-keys="edit"] #editKeys{display:grid}
   #btnPrev,#btnNext{display:none}
+  /* 編輯 4 鍵：跟播放 4 鍵同尺寸（46px 高、12px 圓角、單行文字） */
+  .ek-btn{
+    display:flex;flex-direction:row;align-items:center;justify-content:center;gap:3px;
+    width:100%;height:46px;min-height:46px;padding:0 2px;border-radius:12px;
+    font-size:10.5px;font-weight:800;letter-spacing:0;white-space:nowrap;
+  }
+  #btnPlay,#btnLoop,#pbToggle,#btnShare{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    width:100%;height:46px;min-height:46px;padding:0;border-radius:12px;
+    font-size:10.5px;font-weight:800;letter-spacing:0;white-space:nowrap;
+  }
+  #btnPlay .lbl-long{display:none}
+  #btnPlay .lbl-short{display:block}
+  #btnPlay .ico-full{display:none}
+  #btnPlay .ico-short{display:block;font-size:13px;line-height:1}
+  #btnPlay .ico{margin:0}
+  .key-lbl{display:block;font-size:10.5px;font-weight:800;line-height:1}
+  #btnLoop .key-ico,#pbToggle .key-ico,#btnShare .key-ico{font-size:15px;line-height:1}
+  /* 循環／手冊的「開啟中」狀態（原本是 icon 尺寸的 is-active，這裡改成整鍵高亮） */
+  #btnLoop.is-active{
+    color:#8E3520;border-color:var(--brick);
+    background:rgba(243,112,33,.12);
+  }
+  #pbToggle.is-open{
+    color:#fff;border-color:var(--brick);
+    background:linear-gradient(180deg,#C25239,#A83E28);
+  }
+  #btnShare{
+    border:1px solid rgba(31,42,55,.14);
+    background:#F5F8FB;color:var(--ink-soft);
+  }
+  #btnShare:active{transform:scale(.97)}
+  #btnShare:disabled{opacity:.5}
+
+
+  /* 清單本體：單欄 flex、有空間就把卡片撐高，空間不夠就自己捲動 */
   .steps{
-    grid-area:steps;width:100%;max-width:none;min-width:0;
-    overflow-x:auto;overflow-y:hidden;
-    padding:1px 0;gap:6px;
-    scrollbar-width:none;overscroll-behavior-x:contain;
-    scroll-snap-type:x proximity;
-    -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 8px,#000 calc(100% - 8px),transparent 100%);
-    mask-image:linear-gradient(90deg,transparent 0,#000 8px,#000 calc(100% - 8px),transparent 100%);
+    grid-area:steps;
+    display:flex;flex-direction:column;
+    align-content:stretch;
+    justify-content:safe center;
+    width:100%;max-width:none;min-width:0;height:100%;
+    gap:6px;
+    padding:0;
+    overflow-x:hidden;overflow-y:auto;
+    scrollbar-width:none;overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    -webkit-mask-image:none;mask-image:none;
   }
   .steps::-webkit-scrollbar{display:none}
-  .step-chip{
-    scroll-snap-align:center;min-height:40px;
-    padding:8px 11px;border-radius:12px;font-size:11.5px;gap:6px;
+  /* 清單還有內容在下面時，底部做 20px 淡出，避免卡片被硬切 */
+  .steps.is-scrollable{
+    -webkit-mask-image:linear-gradient(180deg,#000 0,#000 calc(100% - 20px),rgba(0,0,0,0) 100%);
+    mask-image:linear-gradient(180deg,#000 0,#000 calc(100% - 20px),rgba(0,0,0,0) 100%);
   }
-  .step-chip:hover{transform:none}
-  .step-idx{width:18px;height:18px;border-radius:5px;font-size:10px}
-  #pbToggle,#sideToggle{
-    display:grid;place-items:center;
-    width:40px;height:40px;border-radius:12px;font-size:15px;
-  }
-  #pbToggle{grid-area:book}
-  #sideToggle{grid-area:tools}
-  #btnGif{display:none}
-  body[data-mode="player"] #btnGif{
-    grid-area:gif;display:grid;place-items:center;
-    width:40px;height:40px;padding:0;border-radius:12px;
-    font-size:0;letter-spacing:0;
-  }
-  body[data-mode="player"] #btnGif::before{content:"⬇";font-size:15px}
-  .step-actions{grid-area:acts;justify-self:start;display:flex;gap:6px}
-  .step-actions .icon-btn{width:36px;height:36px;border-radius:10px;font-size:14px}
-  #btnDupStep,#btnDelStep{display:none}
-  #btnSaveTactic{
-    grid-area:save;justify-self:end;
-    height:36px;padding:0 13px;border-radius:10px;font-size:11.5px;
-  }
-  .v-divider,.spacer,#frameCounter{display:none}
+  /* 矮螢幕（375×667 等）：JS 依清單實高自動切「單行密集模式」，
+     4 張卡片（≈38–52px／張）不需要滑動就能全部看見 */
+  .steps.is-dense .step-chip{min-height:38px;max-height:52px;padding:5px 10px;gap:7px;border-radius:11px}
+  .steps.is-dense .step-idx{width:22px;height:22px;border-radius:7px;font-size:11px}
+  .steps.is-dense .step-body{gap:2px}
+  .steps.is-dense .step-name{font-size:12.5px}
+  .steps.is-dense .step-desc{-webkit-line-clamp:1;font-size:11px;line-height:1.3}
+  .steps.is-dense .step-cue{padding:0 5px;font-size:9px}
+  .steps.is-dense .step-hint{width:14px}
 
-  /* ── 5) 教練工具 / 戰術手冊 → Bottom Sheet（高度由 --sheet-max 動態限制） ── */
+  /* 長條卡片：左＝編號徽章、中＝標題＋跑位提示、右＝切換箭頭／播放指示
+     US-132/133：卡片壓縮到 56–96px，390×844 可完整顯示 4 張、375×667 用 is-dense */
+  .step-chip{
+    flex:1 1 auto;
+    display:flex;align-items:center;gap:6px;
+    width:100%;min-width:0;min-height:56px;max-height:96px;
+    padding:8px 12px;border-radius:13px;
+    text-align:left;white-space:normal;
+    background:#FFFFFF;
+    border:1px solid #F1F5F9;
+    box-shadow:0 1px 2px rgba(31,42,55,.05);
+    overflow:hidden;
+    transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .12s ease;
+  }
+  .step-chip:hover{transform:none;border-color:#E2E8F0}
+  .step-chip:active{transform:scale(.98)}
+  .step-chip.is-active{
+    color:#fff;border-color:var(--brick);
+    background:linear-gradient(180deg,#C25239,#A83E28);
+    box-shadow:0 8px 20px rgba(180,70,47,.26);
+  }
+  .step-chip.is-active:active{transform:scale(.98)}
+  .step-idx{
+    flex:0 0 auto;width:26px;height:26px;border-radius:8px;
+    font-size:12px;font-weight:800;
+    background:rgba(31,42,55,.07);color:var(--muted);
+  }
+  .step-chip.is-active .step-idx{background:#fff;color:#A83E28}
+  .step-body{display:flex;flex-direction:column;gap:2px;flex:1 1 auto;min-width:0}
+  .step-head{display:flex;align-items:center;gap:6px;min-width:0}
+  .step-name{
+    font-size:14px;font-weight:600;line-height:1.3;color:var(--cream);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .step-desc{
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+    font-size:12px;font-weight:500;line-height:1.375;color:#64748B;
+  }
+  .step-cue{
+    flex:0 0 auto;padding:1px 6px;border-radius:999px;
+    font-size:9.5px;font-weight:800;white-space:nowrap;
+    color:#8E3520;background:rgba(180,70,47,.10);border:1px solid rgba(180,70,47,.22);
+  }
+  .step-hint{display:grid;place-items:center;flex:0 0 auto;width:18px;color:#B9C6D3}
+  .step-hint::before{content:"›";font-size:17px;font-weight:800;line-height:1}
+  .step-chip.is-active .step-name{color:#fff}
+  .step-chip.is-active .step-desc{color:rgba(255,255,255,.86)}
+  .step-chip.is-active .step-cue{
+    color:#fff;background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.28);
+  }
+  .step-chip.is-active .step-hint{color:#fff}
+  .step-chip.is-active .step-hint::before{content:"●";font-size:8px}
+  .step-chip.is-active.is-live .step-hint::before{animation:stepPulse 1.1s ease-in-out infinite}
+  @keyframes stepPulse{
+    0%,100%{opacity:1;transform:scale(1)}
+    50%{opacity:.3;transform:scale(.78)}
+  }
+
+  /* 舊的第 5 排按鈕全部收起來：加步驟／提交在編輯 4 鍵，工具移到教練抽屜（面板 ⚙） */
+  .step-actions,
+  #btnDupStep,
+  #btnDelStep,
+  #sideToggle,
+  #btnGif,
+  .v-divider,
+  .spacer,
+  #frameCounter{display:none}
+
+
+  /* ── 5) 戰術手冊（78dvh 大抽屜，分類→子頁面）/ 教練工具（依球場下緣限高） ── */
   .playbook,.sidebar{
     position:fixed;left:0;right:0;top:auto;bottom:0;
     width:auto;max-width:none;
@@ -1104,9 +1557,11 @@ body.splash-open .app{pointer-events:none;user-select:none}
     will-change:transform;
   }
   .playbook{overflow:hidden}
+  /* 戰術手冊：固定 78dvh（75～80vh 之間），不再只露一小截 */
+  .playbook{height:78dvh;max-height:calc(100dvh - 56px)}
   .sidebar{overflow-y:auto;-webkit-overflow-scrolling:touch}
   .playbook.is-open,.sidebar.is-open{transform:none}
-  body[data-mode="coach"] .sidebar.is-open{transform:none}
+  body[data-edit="1"] .sidebar.is-open{transform:none}
   .playbook::before,.sidebar::before{
     content:"";display:block;flex:0 0 auto;
     width:40px;height:4px;margin:4px auto 6px;
@@ -1120,26 +1575,289 @@ body.splash-open .app{pointer-events:none;user-select:none}
     touch-action:none;
   }
   .pb-head h2{font-size:12px}
-  .pb-close,.pb-refresh{width:30px;height:30px;border-radius:9px;font-size:14px}
+  .pb-close{width:30px;height:30px;border-radius:9px;font-size:14px}
   /* 工具抽屜的關閉鈕：沿用側欄收起鈕，圖示改成 ✕ */
   .sidebar-head .side-collapse{
     display:grid;place-items:center;margin-left:auto;
     width:30px;height:30px;border-radius:9px;font-size:0;
   }
   .sidebar-head .side-collapse::before{content:"✕";font-size:13px;font-weight:800}
+  /* ── 5b) 手冊二層清單：點分類 → 整層切換到子頁面（不再原地展開 Accordion） ── */
+  .pb-views{position:relative;flex:1 1 auto;min-height:0;overflow:hidden}
+  .pb-view{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;gap:8px;
+    transition:transform .24s cubic-bezier(.2,.85,.2,1),opacity .18s ease;
+  }
+  .pb-main-view{transform:none;opacity:1}
+  .pb-sub-view{transform:translateX(102%);opacity:0;pointer-events:none}
+  .pb-sub-view[hidden]{display:none}
+  .playbook.is-sub .pb-main-view{transform:translateX(-18%);opacity:0;pointer-events:none}
+  .playbook.is-sub .pb-sub-view{transform:none;opacity:1;pointer-events:auto}
+  .pb-sub-head{
+    position:sticky;top:0;z-index:5;flex:0 0 auto;
+    display:flex;align-items:center;gap:6px;
+    padding:2px 2px 8px;
+    background:linear-gradient(180deg,#FFFFFF 0%,#FFFFFF 84%,rgba(255,255,255,0) 100%);
+    touch-action:none;
+  }
+  .pb-back{
+    flex:0 0 auto;display:inline-flex;align-items:center;
+    height:30px;padding:0 10px;border-radius:9px;
+    border:1px solid var(--line);background:rgba(31,42,55,.04);
+    color:var(--cream);font-size:11.5px;font-weight:800;cursor:pointer;
+  }
+  .pb-back:hover{border-color:var(--brick);color:var(--brick)}
+  .pb-sub-title{
+    flex:1 1 auto;min-width:0;font-size:13px;font-weight:800;color:var(--cream);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .pb-sub-en{
+    flex:0 0 auto;font-family:var(--font-display);font-size:9px;
+    letter-spacing:.06em;color:var(--muted);white-space:nowrap;
+  }
+  .pb-sub-list{
+    flex:1 1 auto;min-height:0;overflow-y:auto;
+    display:flex;flex-direction:column;gap:6px;padding:0 2px 2px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .pb-sub-list .pb-lib{padding:10px 11px;border-radius:10px}
+  .pb-sub-list .pb-lib-name{font-size:12.5px;white-space:normal;line-height:1.35}
+  .pb-sub-empty{
+    padding:16px 10px;border-radius:10px;text-align:center;
+    font-size:11.5px;color:var(--muted);border:1px dashed var(--line);
+  }
+  /* 分類列＝入口（手機不吃原地展開）：箭頭改 ›，內嵌清單不再顯示 */
+  .pb-cat > summary{padding:10px;font-size:12.5px}
+  .pb-cat > summary::before{content:"›";font-size:14px;color:var(--blue);transition:none}
+  .pb-cat[open] > summary::before{transform:none}
+  .pb-cat-list{display:none}
   .pb-scrim{background:rgba(31,42,55,.12);backdrop-filter:none}
   .fab,.side-expand{display:none !important}
 
-  /* 手機專用動作（收在工具抽屜內，球場與底部列都不佔位） */
+  /* 手機專用動作（收在工具抽屜／手冊抽屜內，球場與底部 4 鍵都不佔位） */
   .sheet-only{display:flex}
+  .pb-mobile-actions{display:flex}
+
+  /* 提示條：一次只顯示 1 顆、1.5 秒淡出，浮在控制卡下半部不擋按鈕 */
+  .toast-stack{bottom:calc(var(--stepbar-h, 101px) + 12px);width:min(90vw,360px)}
+}
+
+/* 矮螢幕（≤760px 高，例如 375×667／360×740）
+   ※ 卡片密集化改由 JS 依「步驟清單實高」切 .steps.is-dense（見 initStepbarMetrics），
+     這裡只保留 FOUC 前的保險值，避免首屏一瞬間卡片被撐高。 */
+@media (max-width:767px) and (max-height:760px){
+  .step-chip{min-height:44px;padding:6px 10px}
+  .step-desc{-webkit-line-clamp:1}
+}
+
+/* 超窄機（≤380px）：右上［滑塊＋＋ 新增］再收一級，確保 360px 不擠壓、不換行
+   ※ 必須放在 6.5 的 @media (max-width:767px) 之後，靠 cascade 覆寫手機字級 */
+@media (max-width:380px){
+  .brand-short{font-size:16px}
+  .mode-btn{padding:5px 8px;font-size:10.5px}
+  .new-tactic-btn{padding:0 9px;font-size:11px}
+}
+
+/* ── US-137／US-139：平板／窄桌機（768～1100）繪製中也要能開「教練工具」抽屜 ──
+   .coach-only 的 display:none!important 與 .stepbar 的收合規則都寫在這裡覆寫，
+   且限定 768px 以上 → 手機（用面板的 ⚙ 開抽屜）完全不受影響。 */
+@media (min-width:768px) and (max-width:1100px){
+  body[data-edit="1"] #sideToggle{display:grid !important;place-items:center}
+  body[data-edit="1"] .sidebar.is-open{transform:none}
 }
 
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms !important;transition-duration:.001ms !important}
 }
+
+/* ============================================================
+   手機框預覽（Desktop Phone Frame）
+   ─ 桌面視窗（≥768px）預設把整個 App 裝進 390 × 844 裝置框，
+     框內 iframe 載入同一份 index.html?phone=1 → 真實手機排版。
+   ─ 真機（<768px）、iframe 內、?full=1 一律不啟用外殼。
+   ============================================================ */
+.phone-shell{display:none}
+
+html.phone-frame,
+html.phone-frame body{background:#1e293b}
+html.phone-frame .phone-shell{
+  position:fixed;inset:0;z-index:900;
+  display:flex;align-items:center;justify-content:center;
+  padding:16px 14px;
+  background:
+    radial-gradient(1100px 560px at 50% -8%,rgba(243,112,33,.15) 0%,rgba(243,112,33,0) 62%),
+    radial-gradient(900px 520px at 6% 106%,rgba(76,110,245,.16) 0%,rgba(76,110,245,0) 60%),
+    #1e293b;
+  font-family:var(--font-ui);
+}
+/* 桌面只留手機框：App 本體不顯示（boot() 在 JS 端也會跳過，不做任何初始化） */
+html.phone-frame body > :not(#phoneShell){display:none !important}
+
+.ps-stage{
+  /* 螢幕（iframe）尺寸：寬固定 390，高度最多 844；視窗不夠高就等比縮短 */
+  --ps-w:min(390px,calc(100vw - 44px));
+  --ps-h:min(844px,calc(100dvh - 140px));
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  max-height:100%;min-height:0;
+}
+.ps-device{
+  position:relative;
+  width:calc(var(--ps-w) + 16px);
+  height:calc(var(--ps-h) + 16px);
+  padding:8px;
+  border-radius:46px;
+  background:linear-gradient(155deg,#3B4859 0%,#1C2532 46%,#0B1119 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    0 0 0 1px rgba(255,255,255,.07),
+    0 34px 74px -26px rgba(2,6,14,.92),
+    0 14px 28px -18px rgba(2,6,14,.88);
+  flex:0 1 auto;
+}
+/* 螢幕內圈高光（純裝飾，不擋操作） */
+.ps-device::after{
+  content:"";position:absolute;inset:8px;border-radius:38px;z-index:2;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
+  pointer-events:none;
+}
+.ps-screen{
+  position:relative;z-index:1;display:block;
+  width:100%;height:100%;
+  border:0;border-radius:38px;
+  background:#F4F1EA;
+  overflow:hidden;
+}
+.ps-bar{
+  display:flex;align-items:center;gap:9px;
+  max-width:calc(var(--ps-w) + 16px);
+  width:100%;
+  padding:6px 7px 6px 12px;
+  border-radius:99px;
+  background:rgba(255,255,255,.07);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09);
+  color:#C6D2E2;font-size:11.5px;letter-spacing:.02em;
+  flex:0 0 auto;
+}
+.ps-dot{
+  width:7px;height:7px;border-radius:50%;flex:0 0 auto;
+  background:var(--gold);box-shadow:0 0 9px rgba(240,169,69,.85);
+}
+.ps-bar b{color:#F3F6FA;font-weight:800;letter-spacing:.04em}
+.ps-bar .ps-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ps-exit{
+  margin-left:auto;flex:0 0 auto;
+  display:inline-flex;align-items:center;gap:4px;
+  padding:5px 11px;border-radius:99px;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.06);
+  color:#DCE5F1;font-size:11.5px;font-weight:700;
+  cursor:pointer;
+  transition:background .18s,border-color .18s,color .18s;
+}
+.ps-exit:hover{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.32);color:#fff}
+.ps-exit:active{transform:translateY(1px)}
+/* 極矮視窗（例如 1280×620 的筆電）就把說明列收掉，只留框 */
+@media (max-height:620px){
+  html.phone-frame .ps-bar{display:none}
+  .ps-stage{--ps-h:min(844px,calc(100dvh - 40px))}
+}
+
+/* ============================================================
+   7. PWA 安裝提示（iOS「加入主畫面」引導）
+   ─ 只在 iOS Safari、且尚未 standalone（還沒加入主畫面）時出現；
+     按 ✕ 後 7 天內不再打擾（mbab:pwa-tip-dismissed-until）。
+   ─ 手機貼在底部控制卡上方：沿用 --stepbar-h 避讓機制（與 .review-bar 同一套），
+     層級 61＝高於 stepbar(40)/review-bar(62 以下)，低於 sheet(72)/modal(80)/splash(110)。
+   ============================================================ */
+.pwa-tip{
+  position:fixed;left:12px;right:12px;bottom:calc(var(--stepbar-h, 101px) + 10px);
+  z-index:61;
+  transform:translateY(14px);opacity:0;pointer-events:none;
+  transition:transform .3s cubic-bezier(.2,.85,.2,1),opacity .22s ease;
+}
+.pwa-tip.is-open{transform:none;opacity:1;pointer-events:auto}
+.pwa-tip-card{
+  position:relative;display:flex;flex-direction:column;gap:6px;
+  padding:12px 14px 14px;border-radius:16px;
+  background:linear-gradient(180deg,rgba(31,42,55,.97) 0%,rgba(15,23,42,.95) 100%);
+  border:1px solid rgba(148,163,184,.38);
+  box-shadow:0 18px 42px rgba(15,23,42,.42);
+  -webkit-backdrop-filter:blur(10px);
+  backdrop-filter:blur(10px);
+  color:#F8FAFC;
+}
+.pwa-tip-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pwa-tip-title{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:800;letter-spacing:.01em}
+.pwa-tip-title .pwa-tip-ico{font-size:15px;line-height:1}
+.pwa-tip-close{
+  flex:0 0 auto;width:26px;height:26px;display:grid;place-items:center;
+  border:1px solid rgba(148,163,184,.34);border-radius:8px;
+  background:rgba(148,163,184,.12);color:#CBD5E1;
+  font-size:12px;line-height:1;cursor:pointer;
+  transition:background .16s,border-color .16s,color .16s;
+}
+.pwa-tip-close:hover{background:rgba(148,163,184,.22);border-color:rgba(226,232,240,.6);color:#fff}
+.pwa-tip-text{margin:0;font-size:11.5px;line-height:1.75;color:#CBD5E1}
+.pwa-tip-text strong{color:#FDBA74;font-weight:800}
+.pwa-tip-share{display:inline-block;width:15px;height:15px;margin:0 1px;vertical-align:-3px;color:#38BDF8}
+.pwa-tip-arrow{
+  position:absolute;left:50%;bottom:-7px;width:0;height:0;margin-left:-8px;
+  border-left:8px solid transparent;border-right:8px solid transparent;
+  border-top:8px solid rgba(15,23,42,.95);
+  filter:drop-shadow(0 1px 0 rgba(148,163,184,.38));
+}
+/* 提示卡出現時把 toast 疊上去，避免兩個浮層互相遮擋 */
+body.has-pwa-tip .toast-stack{bottom:calc(var(--stepbar-h, 101px) + 112px)}
+/* 批核浮條（z-index 62）同樣貼底 → 有浮條時提示卡再往上讓開 */
+body.has-review .pwa-tip{bottom:calc(var(--stepbar-h, 101px) + 68px)}
+@media (min-width:768px){
+  .pwa-tip{left:auto;right:16px;bottom:16px;width:min(360px,calc(100vw - 40px))}
+  body.has-review .pwa-tip{bottom:72px}
+  body.has-pwa-tip .toast-stack{bottom:150px}
+}
+@media (prefers-reduced-motion:reduce){
+  .pwa-tip{transition:none}
+}
 </style>
+
+<script>
+/* ── 手機框預覽判定（放在 head：先決定視角再渲染，避免版面閃動）─────
+   規則：桌面視窗（≥768px 且為滑鼠/觸控板）預設套用 .phone-frame；
+        真機（<768px 或觸控為主的裝置，例如 iPad）→ 全螢幕 App 模式；
+        已在 iframe 內、或網址帶 ?full=1 → 一律不套用。
+   桌面想看原本的大螢幕版面 → 網址加 ?full=1（或用框下方的「桌面視窗」鈕）。 */
+(function () {
+  var q = window.location.search || '';
+  var wantsFull = /[?&]full=1(&|$)/.test(q);
+  var inPhone = /[?&]phone=1(&|$)/.test(q);
+  if (wantsFull || inPhone || window.self !== window.top) return;
+  if (window.innerWidth < 768) return;
+  /* 真平板（iPad 等）：主要輸入是手指 → 不套框，直接用原生版面 */
+  if (window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches) return;
+  document.documentElement.classList.add('phone-frame');
+})();
+</script>
 </head>
 <body data-mode="player">
+
+<!-- ══════════ 手機框外殼（只在桌面視窗顯示；真機不啟用） ══════════
+     框內的 iframe 載入同一份 index.html?phone=1，因此內部是完全真實的
+     390 × 844 手機環境：媒體查詢、dvh、matchMedia 全部按手機判定。 -->
+<div class="phone-shell" id="phoneShell" hidden>
+  <div class="ps-stage">
+    <div class="ps-device">
+      <iframe class="ps-screen" id="phoneView"
+              title="MondayBeer 戰術 · 手機版預覽（390 × 844）"
+              scrolling="no" loading="eager" allow="clipboard-write"></iframe>
+    </div>
+    <div class="ps-bar">
+      <span class="ps-dot" aria-hidden="true"></span>
+      <span class="ps-label">手機版預覽 <b id="psSize">390 × 844</b> · 真機開啟即全螢幕</span>
+      <button type="button" class="ps-exit" id="phoneExit">🖥 桌面視窗</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════ 開場歡迎畫面（球員 / 教練身分選擇） ══════════ -->
 <section class="splash" id="splash" aria-labelledby="splashTitle">
@@ -1171,7 +1889,7 @@ body.splash-open .app{pointer-events:none;user-select:none}
         </span>
       </button>
     </div>
-    <p class="splash-foot">選好身分即可進入 · 進站後可按 ⎋「切換身分」隨時回到此頁</p>
+    <p class="splash-foot">選好身分即可進入 · 進站後可隨時用右上角滑塊切換角色視野</p>
   </div>
 </section>
 
@@ -1179,7 +1897,9 @@ body.splash-open .app{pointer-events:none;user-select:none}
 
   <!-- ══════════ 頂部導航列 ══════════ -->
   <header class="topbar">
-    <div class="brand">
+    <!-- 品牌區：點一下回開場首頁重新選身分（US-137：手冊的「⎋ 切換身分」已移除） -->
+    <button type="button" class="brand" id="brandHome"
+            title="回到開場首頁重新選擇身分" aria-label="回到開場首頁重新選擇身分">
       <span class="brand-logo">
         <img id="brandLogo"
              src="./WhatsApp Image 2026-11-05 at 11.27.43 AM.jpeg"
@@ -1211,150 +1931,59 @@ body.splash-open .app{pointer-events:none;user-select:none}
         <span class="brand-sub">戰術板 · TACTICS BOARD</span>
         <span class="brand-short">Monday<em>Beer</em></span>
       </span>
-    </div>
+    </button>
 
     <div class="topbar-right">
-      <div class="mode-switch" role="group" aria-label="身分切換">
-        <button type="button" class="mode-btn is-active" data-mode="player" aria-pressed="true">球員模式</button>
-        <button type="button" class="mode-btn" data-mode="coach" aria-pressed="false">教練模式</button>
+      <!-- 右側固定排列：［身分切換滑塊］＋［＋ 新增］（US-136）
+           桌機顯示全形標籤「球員模式／教練模式」＋「＋ 新增」；
+           手機（≤767px）改短標籤「球員／教練」＋「＋ 新增戰術」，才塞得進 390／360px。
+           `#btnNewTactic` 沿用原 id → bindUI() 的 newTactic() 綁定不需修改。 -->
+      <div class="topbar-actions">
+        <div class="mode-switch" role="group" aria-label="身分切換">
+          <button type="button" class="mode-btn is-active" data-mode="player" aria-pressed="true"
+                  title="球員模式：唯讀瀏覽戰術"><span class="mb-full">球員模式</span><span class="mb-short">球員</span></button>
+          <button type="button" class="mode-btn" data-mode="coach" aria-pressed="false"
+                  title="教練模式：編輯、繪製與儲存戰術"><span class="mb-full">教練模式</span><span class="mb-short">教練</span></button>
+        </div>
+        <!-- US-142：教練專屬「待批審核中心」入口（僅教練且有 pending 時由 JS 顯示；桌機全形、手機只露 🔔＋數字） -->
+        <button type="button" class="pending-btn" id="btnPending" hidden
+                aria-haspopup="dialog" aria-expanded="false"
+                title="待批審核中心：查看並批核球員提交的戰術" aria-label="待批審核">
+          <span class="pend-ico" aria-hidden="true">🔔</span><span class="pend-lbl">待批</span><span class="pend-badge" id="pendBadge">0</span>
+        </button>
+        <button type="button" class="new-tactic-btn" id="btnNewTactic"
+                aria-label="新增戰術：清空畫布，重新開始一套新戰術"
+                title="新增戰術：清空畫布，重新開始一套新戰術"><span class="ntb-ico" aria-hidden="true">＋</span><span class="ntb-short">新增</span><span class="ntb-long">新增戰術</span></button>
       </div>
       <span class="store-pill" id="storePill" title="目前儲存來源">本機儲存</span>
-      <button type="button" class="home-btn" id="btnHome" title="切換身分 / 返回首頁" aria-label="切換身分，返回首頁">
-        <span class="hb-ico" aria-hidden="true">⎋</span><span class="hb-txt">切換身分</span>
-      </button>
     </div>
   </header>
 
-  <!-- ══════════ 步驟控制器 ══════════ -->
+  <!-- ══════════ 步驟控制器（手機：球場下方那張白卡＝動態工具面板＋步驟卡片清單＋均分 4 鍵） ══════════ -->
   <div class="stepbar">
-    <div class="steps" id="stepList" role="tablist" aria-label="戰術步驟"></div>
-
-    <div class="step-actions coach-only">
-      <button type="button" class="icon-btn" id="btnAddStep" title="新增步驟" aria-label="新增步驟">＋</button>
-      <button type="button" class="icon-btn" id="btnDupStep" title="複製此步驟" aria-label="複製此步驟">⧉</button>
-      <button type="button" class="icon-btn" id="btnDelStep" title="刪除此步驟" aria-label="刪除此步驟">✕</button>
+    <!-- US-140：輕量「＋ 加步驟」條 —— 位置在球場正下方、步驟內容區之前（不再佔底部 4 鍵一格） -->
+    <div class="step-add" id="stepAdd">
+      <button type="button" class="step-add-btn" id="ekAdd" title="新增一個步驟">
+        <span class="sab-ico" aria-hidden="true">＋</span><span class="sab-lbl">加步驟</span>
+      </button>
+      <span class="step-add-count" id="saCount">共 1 步</span>
     </div>
 
-    <div class="v-divider"></div>
-
-    <div class="playback">
-      <button type="button" class="icon-btn" id="btnPrev" title="上一步" aria-label="上一步">◀</button>
-      <button type="button" class="btn btn-primary" id="btnPlay"><span class="ico">▶</span><span class="lbl-long">播放動畫</span><span class="lbl-short">播放</span></button>
-      <button type="button" class="icon-btn" id="btnNext" title="下一步" aria-label="下一步">▶</button>
-      <button type="button" class="icon-btn" id="btnLoop" title="循環播放 (L)" aria-label="循環播放" aria-pressed="false">∞</button>
-    </div>
-
-    <span class="frame-counter" id="frameCounter">1 / 1</span>
-    <button type="button" class="icon-btn pb-toggle" id="pbToggle"
-            title="戰術手冊" aria-label="開關戰術手冊" aria-expanded="false" aria-controls="playbook">☰</button>
-    <button type="button" class="icon-btn side-toggle coach-only" id="sideToggle"
-            title="教練工具" aria-label="開關教練工具列" aria-expanded="false" aria-controls="sidebar">🛠</button>
-    <div class="spacer"></div>
-
-    <button type="button" class="btn btn-gold" id="btnGif">⬇ 導出 GIF</button>
-    <button type="button" class="btn btn-ghost coach-only" id="btnSaveTactic">💾 儲存戰術</button>
-  </div>
-
-  <!-- ══════════ 主舞台 ══════════ -->
-  <main class="stage">
-
-    <!-- 戰術手冊側欄 -->
-    <aside class="playbook" id="playbook" aria-label="隊伍戰術手冊">
-      <div class="pb-head">
-        <h2>戰術手冊</h2>
-        <div class="pb-head-actions">
-          <button type="button" class="pb-refresh" id="pbRefresh" title="重新整理" aria-label="重新整理戰術清單">↻</button>
-          <button type="button" class="pb-close" id="pbClose" title="收起手冊" aria-label="收起戰術手冊">✕</button>
+    <!-- US-139：動態工具面板 —— 預設＝目前步驟（名稱＋走位說明）；👥／🛡／✏️ 時接手名單／防守陣型／走位畫筆 -->
+    <div id="toolPanel" aria-label="編輯工具面板">
+      <div class="tp-view" id="tpStep">
+        <div class="tp-head">
+          <span class="tp-idx" id="tpIndex">步驟 1</span>
+          <input type="text" id="tpStepName" class="tp-input" maxlength="24"
+                 placeholder="步驟名稱" autocomplete="off" enterkeyhint="done" aria-label="步驟名稱">
+          <button type="button" class="tp-icon" id="tpPreview" title="預覽播放" aria-label="預覽播放">▶</button>
+          <button type="button" class="tp-icon" id="tpTools" title="教練工具：線條／動作" aria-label="開啟教練工具">⚙</button>
         </div>
+        <input type="text" id="tpStepDesc" class="tp-input tp-desc" maxlength="80"
+               placeholder="走位說明（例：4 號上擋，1 號往右切入）" autocomplete="off" enterkeyhint="done" aria-label="走位說明">
       </div>
 
-      <!-- 教練專用：新增戰術（球員模式由 .coach-only 自動隱藏） -->
-      <div class="pb-new-row coach-only">
-        <button type="button" class="btn btn-primary btn-block pb-new" id="pbNewTactic"
-                title="清空畫布並建立新戰術">
-          <span aria-hidden="true">➕</span><span>新增戰術</span><em class="pb-new-en">NEW TACTIC</em>
-        </button>
-        <div class="pb-name-field">
-          <label class="pb-name-label" for="pbNameInput">戰術名稱</label>
-          <input type="text" id="pbNameInput" class="pb-name-input" maxlength="60"
-                 placeholder="請輸入戰術名稱" autocomplete="off" enterkeyhint="done">
-          <p class="pb-name-hint">輸入名稱 → 收起手冊 → 畫線／＋新增步驟 → 按「💾 儲存戰術」</p>
-        </div>
-      </div>
-
-      <div class="pb-scroll" id="pbScroll">
-        <p class="pb-group-title">經典戰術 <span id="pbLibCount">7 套</span></p>
-
-        <details class="pb-cat" open>
-          <summary>
-            <span class="pb-cat-label">破 2-1-2 聯防</span>
-            <span class="pb-cat-en">BEAT 2-1-2</span>
-            <span class="pb-cat-count" data-cat="beat212">2</span>
-          </summary>
-          <div class="pb-cat-list" data-cat="beat212"></div>
-        </details>
-
-        <details class="pb-cat" open>
-          <summary>
-            <span class="pb-cat-label">破 3-2 聯防</span>
-            <span class="pb-cat-en">BEAT 3-2</span>
-            <span class="pb-cat-count" data-cat="beat32">2</span>
-          </summary>
-          <div class="pb-cat-list" data-cat="beat32"></div>
-        </details>
-
-        <details class="pb-cat" open>
-          <summary>
-            <span class="pb-cat-label">底線開球</span>
-            <span class="pb-cat-en">BLOB</span>
-            <span class="pb-cat-count" data-cat="blob">3</span>
-          </summary>
-          <div class="pb-cat-list" data-cat="blob"></div>
-        </details>
-
-        <p class="pb-group-title">我的戰術 <span id="pbMineCount">0</span></p>
-        <div class="pb-list" id="pbList" role="list"></div>
-      </div>
-
-      <p class="pb-foot" id="pbFoot">點一下即可載入播放</p>
-    </aside>
-    <!-- 球場畫布 -->
-    <section class="board-panel" aria-label="戰術畫布">
-      <div class="board-restrict">
-        <div class="board-wrap">
-          <div class="board-holder" id="boardHolder">
-            <canvas id="board" width="1000" height="940" aria-label="籃球半場戰術畫布"></canvas>
-          </div>
-          <div class="board-overlay">
-            <span class="badge badge-tool" id="toolBadge" hidden>繪製中：<b id="toolBadgeName">切入</b> · Esc 結束</span>
-          </div>
-          <span class="cue-tag" id="cueTag" aria-live="polite" hidden></span>
-        </div>
-      </div>
-      <p class="board-hint" id="boardHint">拖曳球員調整站位 · 選擇線條工具後在球場上拖曳繪製</p>
-
-      <!-- 手機專用：當前步驟說明（唯讀，不重複步驟控制） -->
-      <div class="mobile-stepinfo" id="stepInfo">
-        <span class="si-idx" id="stepInfoIdx">1/1</span>
-        <span class="si-body">
-          <b class="si-name" id="stepInfoName">起始陣型</b>
-          <p class="si-desc" id="stepInfoDesc"></p>
-        </span>
-        <span class="si-cue" id="stepInfoCue" hidden></span>
-      </div>
-    </section>
-
-    <!-- 教練工具列 -->
-    <aside class="sidebar" id="sidebar" aria-label="教練工具列">
-
-      <header class="sidebar-head">
-        <b>教練工具</b><span>TOOLS</span>
-        <button type="button" class="side-collapse" id="sideCollapse"
-                title="收起工具列" aria-label="收起教練工具列" aria-expanded="true" aria-controls="sidebar">›</button>
-      </header>
-
-      <section class="panel">
-        <header class="panel-head"><h2>球員名單</h2><span>ROSTER 18</span></header>
+      <div class="tp-view" id="tpRoster" hidden>
         <div class="pos-chips" id="posChips" role="group" aria-label="依位置篩選名單">
           <button type="button" class="pos-chip is-on" data-pos="all" aria-pressed="true">全部<em>ALL</em></button>
           <button type="button" class="pos-chip" data-pos="PG/SG" aria-pressed="false">PG/SG<em>後衛</em></button>
@@ -1362,11 +1991,10 @@ body.splash-open .app{pointer-events:none;user-select:none}
           <button type="button" class="pos-chip" data-pos="PF/C" aria-pressed="false">PF/C<em>中前鋒</em></button>
         </div>
         <div class="roster-grid" id="rosterGrid" aria-label="球隊名單，點擊派上場"></div>
-        <p class="panel-note">點擊背號即可派上場</p>
-      </section>
+        <p class="tp-note">點擊背號即可派上場</p>
+      </div>
 
-      <section class="panel">
-        <header class="panel-head"><h2>防守陣型</h2><span>DEFENSE</span></header>
+      <div class="tp-view" id="tpDefense" hidden>
         <div class="def-grid" id="defGrid" aria-label="防守陣型預設，點擊套用">
           <button type="button" class="def-btn is-default" data-preset="212" aria-label="套用 2-1-2 聯防（首選陣型）">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1406,8 +2034,167 @@ body.splash-open .app{pointer-events:none;user-select:none}
             </svg><span>自訂防守</span>
           </button>
         </div>
-        <p class="panel-note">點擊即把 PG/SG/SF/PF/C 排成標準防區 · 自訂防守可自由拖曳</p>
-      </section>
+        <p class="tp-note">點擊即把 PG/SG/SF/PF/C 排成標準防區 · 自訂防守可自由拖曳</p>
+      </div>
+
+      <!-- US-140：✏️ 走位畫筆 —— 三種主要線條（其餘工具仍在面板 ⚙ 的教練抽屜）
+           3 顆鍵沿用側欄的 .tool[data-tool]，bindUI() 自動綁 setTool()、applyMode() 自動標 is-active -->
+      <div class="tp-view" id="tpDraw" hidden>
+        <div class="draw-grid" id="drawGrid" role="group" aria-label="走位畫筆：選一種線條">
+          <button type="button" class="draw-btn tool" data-tool="cut" aria-label="跑位線（直線切入箭頭）">
+            <svg viewBox="0 0 32 16" aria-hidden="true">
+              <path d="M2 8h20" stroke="#B4462F" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M21 3l9 5-9 5z" fill="#B4462F"/>
+            </svg><span>跑位線</span>
+          </button>
+          <button type="button" class="draw-btn tool" data-tool="pass" aria-label="傳球虛線">
+            <svg viewBox="0 0 32 16" aria-hidden="true">
+              <path d="M2 8h18" stroke="#2F6FA8" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="4 3"/>
+              <path d="M21 3l9 5-9 5z" fill="none" stroke="#2F6FA8" stroke-width="2"/>
+            </svg><span>傳球虛線</span>
+          </button>
+          <button type="button" class="draw-btn tool" data-tool="screen" aria-label="掩護擋拆線">
+            <svg viewBox="0 0 32 16" aria-hidden="true">
+              <path d="M14 15V8" stroke="#A8791A" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M6 8h16" stroke="#A8791A" stroke-width="3.4" stroke-linecap="round"/>
+            </svg><span>掩護擋拆</span>
+          </button>
+        </div>
+        <p class="tp-note">選一種線後直接在球場上拖曳 · Esc 結束 · 運球／選取／橡皮在 ⚙</p>
+      </div>
+    </div>
+
+    <div class="steps" id="stepList" role="tablist" aria-label="戰術步驟"></div>
+
+    <div class="step-actions coach-only">
+      <button type="button" class="icon-btn" id="btnAddStep" title="新增步驟" aria-label="新增步驟">＋</button>
+      <button type="button" class="icon-btn" id="btnDupStep" title="複製此步驟" aria-label="複製此步驟">⧉</button>
+      <button type="button" class="icon-btn" id="btnDelStep" title="刪除此步驟" aria-label="刪除此步驟">✕</button>
+    </div>
+
+    <div class="v-divider"></div>
+
+    <!-- US-139：播放 4 鍵（唯讀瀏覽／播放中）→ 繪製中整組讓位給編輯 4 鍵 -->
+    <div id="playKeys">
+      <button type="button" class="icon-btn" id="btnPrev" title="上一步" aria-label="上一步">◀</button>
+      <button type="button" class="btn btn-primary" id="btnPlay"><span class="ico ico-full">▶</span><span class="ico ico-short">▶</span><span class="lbl-long">播放動畫</span><span class="lbl-short">播放</span></button>
+      <button type="button" class="icon-btn" id="btnNext" title="下一步" aria-label="下一步">▶</button>
+      <button type="button" class="icon-btn" id="btnLoop" title="循環播放 (L)" aria-label="循環播放" aria-pressed="false"><span class="key-ico" aria-hidden="true">∞</span><span class="key-lbl">循環</span></button>
+      <button type="button" class="icon-btn pb-toggle" id="pbToggle"
+              title="戰術手冊" aria-label="開關戰術手冊" aria-expanded="false" aria-controls="playbook"><span class="key-ico" aria-hidden="true">☰</span><span class="key-lbl">戰術</span></button>
+      <button type="button" class="icon-btn" id="btnShare" title="分享戰術（WhatsApp）" aria-label="分享戰術"><span class="key-ico" aria-hidden="true">💬</span><span class="key-lbl">分享</span></button>
+    </div>
+
+    <!-- US-140：底部 4 鍵＝名單／陣型／走位畫筆／提交審核·正式發布（加步驟已移到球場下方的輕量條） -->
+    <div id="editKeys">
+      <button type="button" class="ek-btn" id="ekRoster" title="球員陣容" aria-pressed="false">👥 球員陣容</button>
+      <button type="button" class="ek-btn" id="ekDefense" title="防守陣型" aria-pressed="false">🛡 防守陣型</button>
+      <button type="button" class="ek-btn" id="ekDraw" title="走位畫筆：跑位線／傳球虛線／掩護擋拆" aria-pressed="false">✏️ 走位畫筆</button>
+      <button type="button" class="ek-btn ek-save" id="ekSave" title="提交審核／正式發布">📤 提交審核</button>
+    </div>
+
+    <span class="frame-counter" id="frameCounter">1 / 1</span>
+    <button type="button" class="icon-btn side-toggle coach-only" id="sideToggle"
+            title="教練工具" aria-label="開關教練工具列" aria-expanded="false" aria-controls="sidebar">🛠</button>
+    <div class="spacer"></div>
+
+    <button type="button" class="btn btn-gold" id="btnGif">⬇ 導出 GIF</button>
+  </div>
+
+  <!-- ══════════ 主舞台 ══════════ -->
+  <main class="stage">
+
+    <!-- 戰術手冊側欄（US-137：只剩「標題＋✕＋清單」，所有操作都移到右上角「＋ 新增」與繪製模式） -->
+    <aside class="playbook" id="playbook" aria-label="隊伍戰術手冊">
+      <div class="pb-head">
+        <h2>戰術手冊</h2>
+        <div class="pb-head-actions">
+          <button type="button" class="pb-close" id="pbClose" title="收起手冊" aria-label="收起戰術手冊">✕</button>
+        </div>
+      </div>
+
+      <div class="pb-views">
+        <div class="pb-view pb-main-view">
+          <div class="pb-scroll" id="pbScroll">
+            <p class="pb-group-title">經典戰術 <span id="pbLibCount">7 套</span></p>
+
+            <details class="pb-cat" data-cat="beat212" open>
+              <summary>
+                <span class="pb-cat-label">破 2-1-2 聯防</span>
+                <span class="pb-cat-en">BEAT 2-1-2</span>
+                <span class="pb-cat-count" data-cat="beat212">2</span>
+              </summary>
+              <div class="pb-cat-list" data-cat="beat212"></div>
+            </details>
+
+            <details class="pb-cat" data-cat="beat32" open>
+              <summary>
+                <span class="pb-cat-label">破 3-2 聯防</span>
+                <span class="pb-cat-en">BEAT 3-2</span>
+                <span class="pb-cat-count" data-cat="beat32">2</span>
+              </summary>
+              <div class="pb-cat-list" data-cat="beat32"></div>
+            </details>
+
+            <details class="pb-cat" data-cat="blob" open>
+              <summary>
+                <span class="pb-cat-label">底線開球</span>
+                <span class="pb-cat-en">BLOB</span>
+                <span class="pb-cat-count" data-cat="blob">3</span>
+              </summary>
+              <div class="pb-cat-list" data-cat="blob"></div>
+            </details>
+
+            <p class="pb-group-title">我的戰術 <span id="pbMineCount">0</span></p>
+            <div class="pb-list" id="pbList" role="list"></div>
+          </div>
+
+          <!-- 手機：GIF 下載改放在手冊抽屜（底部 4 鍵留給分享） -->
+          <div class="pb-mobile-actions sheet-only">
+            <button type="button" class="pb-tool" id="btnGifBook"
+                    title="把目前戰術匯出成 GIF 存到裝置">⬇ 儲存 GIF</button>
+          </div>
+
+          <p class="pb-foot" id="pbFoot">點一下即可載入播放</p>
+        </div>
+
+        <!-- 第二層：分類子頁面（手機專用；桌機永遠 hidden） -->
+        <div class="pb-view pb-sub-view" id="pbSubView" hidden>
+          <header class="pb-sub-head">
+            <button type="button" class="pb-back" id="pbSubBack">‹ 返回分類</button>
+            <b class="pb-sub-title" id="pbSubTitle">經典戰術</b>
+            <span class="pb-sub-en" id="pbSubEn"></span>
+            <span class="pb-cat-count" id="pbSubCount">0</span>
+          </header>
+          <div class="pb-sub-list" id="pbSubList"></div>
+          <p class="pb-foot">點一下即可載入並自動播放</p>
+        </div>
+      </div>
+    </aside>
+    <!-- 球場畫布 -->
+    <section class="board-panel" aria-label="戰術畫布">
+      <div class="board-restrict">
+        <div class="board-wrap">
+          <div class="board-holder" id="boardHolder">
+            <canvas id="board" width="1000" height="940" aria-label="籃球半場戰術畫布"></canvas>
+          </div>
+          <div class="board-overlay">
+            <span class="badge badge-tool" id="toolBadge" hidden>繪製中：<b id="toolBadgeName">切入</b> · Esc 結束</span>
+          </div>
+          <span class="cue-tag" id="cueTag" aria-live="polite" hidden></span>
+        </div>
+      </div>
+      <p class="board-hint" id="boardHint">拖曳球員調整站位 · 選擇線條工具後在球場上拖曳繪製</p>
+    </section>
+
+    <!-- 教練工具列 -->
+    <aside class="sidebar" id="sidebar" aria-label="教練工具列">
+
+      <header class="sidebar-head">
+        <b>教練工具</b><span>TOOLS</span>
+        <button type="button" class="side-collapse" id="sideCollapse"
+                title="收起工具列" aria-label="收起教練工具列" aria-expanded="true" aria-controls="sidebar">›</button>
+      </header>
 
       <section class="panel">
         <header class="panel-head"><h2>戰術線條</h2><span>ROUTES</span></header>
@@ -1488,6 +2275,30 @@ body.splash-open .app{pointer-events:none;user-select:none}
     </aside>
   </main>
 
+  <!-- ══════════ US-142：待批審核中心（教練） ══════════ -->
+  <!-- 1) 待審核清單 Bottom Sheet：手機由下往上滑、桌機置中貼底 -->
+  <div class="pend-sheet" id="pendingSheet" role="dialog" aria-modal="true"
+       aria-labelledby="pendTitle" hidden>
+    <span class="pend-handle" aria-hidden="true"></span>
+    <header class="pend-head">
+      <h2 id="pendTitle">待審核提案 <span id="pendCount">0</span></h2>
+      <button type="button" class="pend-close" id="pendClose" aria-label="關閉待審核清單">✕</button>
+    </header>
+    <div class="pend-list" id="pendList" role="list"></div>
+    <p class="pend-empty" id="pendEmpty" hidden>目前沒有待審核提案 · 球員提交後會出現在這裡</p>
+  </div>
+
+  <!-- 2) 批核浮條：載入待批提案後浮在球場右下（不擋走位影格與底部 4 鍵） -->
+  <div class="review-bar" id="reviewBar" role="group" aria-label="待批戰術批核" hidden>
+    <span class="rv-info"><b id="rvName">未命名戰術</b><span class="rv-meta" id="rvMeta"></span></span>
+    <div class="rv-acts">
+      <button type="button" class="rv-btn is-primary" id="rvApprove" title="批准納入官方手冊">✅ 批准發布</button>
+      <button type="button" class="rv-btn" id="rvEdit" title="微調後再發布">✏️ 微調後發布</button>
+      <button type="button" class="rv-btn is-danger" id="rvReject" title="退回並刪除這套提案">🗑 退回</button>
+    </div>
+    <button type="button" class="rv-close" id="rvClose" title="收起批核列" aria-label="收起批核列">✕</button>
+  </div>
+
   <div class="pb-scrim" id="pbScrim" hidden></div>
 
 </div>
@@ -1541,6 +2352,72 @@ body.splash-open .app{pointer-events:none;user-select:none}
   </div>
 </div>
 
+<!-- ══════════ 儲存戰術（US-134：免帳號，球員提案／教練直接發布） ══════════ -->
+<div class="modal" id="saveModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="saveTitle">
+    <h2 id="saveTitle">儲存戰術</h2>
+    <p class="modal-desc" id="saveDesc">球員提案會標記「未批核」，等教練批核後才進官方手冊。</p>
+    <form id="saveForm" novalidate>
+      <div class="save-field">
+        <label class="field-label" for="saveName">戰術名稱</label>
+        <input type="text" id="saveName" class="input" maxlength="60"
+               placeholder="例：Horns 45 擋拆" autocomplete="off" enterkeyhint="done">
+      </div>
+
+      <div class="role-seg" role="group" aria-label="儲存身分">
+        <button type="button" class="role-btn is-active" data-role="player" aria-pressed="true">🏃 我是球員</button>
+        <button type="button" class="role-btn" data-role="coach" aria-pressed="false">📋 我是教練</button>
+      </div>
+
+      <div class="save-field" id="savePlayerWrap">
+        <label class="field-label" for="savePerson">提議球員 / 作者 (Author)</label>
+        <select id="savePerson" class="input"></select>
+        <p class="save-note">提案會標記「未批核 · 由○○提議」，教練批核後才出現在官方手冊。</p>
+      </div>
+
+      <div class="save-field" id="saveCoachWrap" hidden>
+        <label class="field-label" for="saveCode">教練暗號</label>
+        <input type="password" id="saveCode" class="input" inputmode="numeric"
+               autocomplete="off" placeholder="預設 1234">
+        <p class="save-note">暗號正確 → 直接發布為「已批核」的官方戰術（教練模式已解鎖時免輸入）。</p>
+      </div>
+
+      <p class="form-error" id="saveError" role="alert"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close="saveModal">取消</button>
+        <button type="submit" class="btn btn-primary" id="saveOk">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════ 建立新戰術（US-139：只剩名稱＋作者；防守陣型進畫布後用 🛡 切換） ══════════ -->
+<div class="modal" id="createModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="createTitle">
+    <h2 id="createTitle">建立新戰術</h2>
+    <p class="modal-desc" id="createDesc">填好名稱與作者，按「開始繪製」即進入步驟 1 的半場畫布。</p>
+    <form id="createForm" novalidate>
+      <div class="save-field">
+        <label class="field-label" for="createName">戰術名稱</label>
+        <input type="text" id="createName" class="input" maxlength="60"
+               placeholder="例：Horns 45 擋拆" autocomplete="off" enterkeyhint="done">
+      </div>
+
+      <div class="save-field">
+        <label class="field-label" for="createPerson">提議球員 / 作者 (Author)</label>
+        <select id="createPerson" class="input"></select>
+        <p class="save-note">選球員 → 按「📤 提交審核」（未批核 · 由○○提議）；選 🏀 教練 → 按「🚀 發布」直接進官方手冊。</p>
+      </div>
+
+      <p class="form-error" id="createError" role="alert"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close="createModal">取消</button>
+        <button type="submit" class="btn btn-primary" id="createOk">開始繪製</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
 
 <div class="loader" id="loader" hidden>
@@ -1587,6 +2464,8 @@ const SUPABASE_TABLE = 'tactics';
 
 /* ── 教練密碼（前端遮蔽用，非資安等級驗證） ── */
 const COACH_PASSWORD = 'coach888';
+/* 儲存／批核暗號（US-134）：教練在儲存對話框輸入即可直接發布為「已批核」 */
+const COACH_APPROVE_CODE = '1234';
 
 /* ── 畫布邏輯解析度（CSS 縮放不影響座標） ── */
 const BASE_W = 1000;
@@ -1725,6 +2604,29 @@ const OFF_ROSTER = [1, 5, 34, 0, 31];
 /* 名單球員上場落點（6 欄網格，避開兩側戰術區塊） */
 const ROSTER_SPAWN = { x0: 150, y0: 866, dx: 140, dy: 74, cols: 6 };
 
+/* ── US-138：作者（Author）＝下拉的「教練」sentinel 值，不是名單背號 ──
+   提案／發布由「作者」決定：作者＝球員 → 未批核提案；作者＝教練 → 直接發布（已批核）。 */
+const AUTHOR_COACH = 'coach';
+
+/* 舊紀錄沒有 meta.author → 退回用「模式」判斷（教練模式視為教練發布） */
+function isCoachAuthor() {
+  const author = state.tacticAuthor;
+  return author ? !!author.coach : isCoach();
+}
+
+/* 身分自動連結：教練模式預設「🏀 教練」；球員模式預設上次選的球員（沒有就第一位） */
+function lastPlayerAuthorValue() {
+  let last = '';
+  try { last = window.localStorage.getItem(LS_SAVE_PERSON) || ''; } catch (err) { last = ''; }
+  if (last && ROSTER.some(function (player) { return String(player.no) === last; })) return last;
+  return String(ROSTER[0].no);
+}
+
+function defaultAuthorValue() {
+  if (isCoach()) return AUTHOR_COACH;
+  return lastPlayerAuthorValue();
+}
+
 function rosterByNo(no) {
   const target = Number(no);
   for (let i = 0; i < ROSTER.length; i++) {
@@ -1740,6 +2642,11 @@ let courtGroup = null;
 const state = {
   mode: 'player',
   tool: 'select',
+  editing: false,          /* US-134：免帳號繪製模式（按右上角「＋ 新增」進入） */
+  tacticStatus: null,      /* 'pending' | 'approved' | null（目前載入的戰術批核狀態） */
+  approveOnSave: false,    /* 教練按了「✏️ 修改後批核」→ 下次儲存直接發布 */
+  reviewDismissed: false,  /* US-142：教練手動收起右下批核浮條（換戰術／重載即恢復） */
+  saveRole: 'player',      /* 儲存對話框選的身分 */
   frames: [],
   currentFrame: 0,
   playing: false,
@@ -1751,6 +2658,10 @@ const state = {
   undo: [],
   tacticId: null,
   tacticName: '',
+  tacticDefense: '212',    /* US-137：最近一次套用的防守陣型 key（寫進 meta.defense） */
+  tacticAuthor: null,      /* US-137：建立新戰術時選的提議球員 { no, name, pos } */
+  toolPanel: 'step',       /* US-139：中間面板視圖 'step' | 'roster' | 'defense' */
+  returnTo: null,          /* US-139：進編輯前的快照，「✕ 退出」時原樣還原 */
   playbookItems: [],
   tweening: false,
   customDefense: false,
@@ -1773,19 +2684,34 @@ function escapeHtml(value) {
   })[ch]);
 }
 
+/* ── 提示訊息：同一時間最多 1 顆，顯示 1.5 秒後自動淡出（不再多層堆疊遮擋畫面） ── */
+let toastNode = null;
+let toastTimer = null;
+const TOAST_MS = 1500;
+
 function toast(message, type) {
   const stack = $('#toastStack');
   if (!stack) return;
+  clearTimeout(toastTimer);
+  if (toastNode) {
+    toastNode.remove();          // 舊的立刻移除 → 永遠只有一顆
+    toastNode = null;
+  }
+  if (!message) return;
   const el = document.createElement('div');
   el.className = 'toast' + (type ? ' is-' + type : '');
   el.textContent = message;
   stack.appendChild(el);
-  setTimeout(() => {
+  toastNode = el;
+  toastTimer = setTimeout(function () {
     el.style.opacity = '0';
     el.style.transform = 'translateY(8px)';
     el.style.transition = 'opacity .2s ease, transform .2s ease';
-    setTimeout(() => el.remove(), 220);
-  }, 2800);
+    setTimeout(function () {
+      el.remove();
+      if (toastNode === el) toastNode = null;
+    }, 220);
+  }, TOAST_MS);
 }
 
 function openModal(id) {
@@ -1900,6 +2826,8 @@ function tacticFileName(ext) {
    ============================================================ */
 const LS_INDEX_KEY = 'mbab:tactics:index';
 const LS_TACTIC_PREFIX = 'mbab:tactic:';
+/* 儲存對話框記住上次選的提案人（US-134） */
+const LS_SAVE_PERSON = 'mbab:save-person';
 let supabaseClient = null;
 
 function isConfigured(value) {
@@ -1931,6 +2859,46 @@ function lsSet(key, value) {
   try { window.localStorage.setItem(key, value); } catch (err) { /* 記憶體模式 */ }
 }
 
+/* ── 一次性遷移（2026-11）：清掉早期測試留下的自訂戰術 ──────────
+   為什麼寫在程式裡？Supabase 未設定時，自訂戰術只存在「這台裝置」的
+   localStorage（mbab:tactics:index ＋ mbab:tactic:<id>），伺服器端沒有資料可刪，
+   所以只能由 App 自己在第一次載入時清。
+   手冊上的 7 套經典戰術是程式內建的 TACTIC_LIBRARY（不在儲存層）→ 清完仍保留。
+   ※ 若日後填入 Supabase 金鑰，雲端資料表請自行在 SQL Editor 執行：
+       delete from tactics;
+   （刻意不在前端自動打刪除 API，避免誤刪全隊的正式戰術） */
+const LS_PURGE_FLAG = 'mbab:migrate:purge-test-tactics:2026-11';
+
+function purgeTestTacticsOnce() {
+  let done = '';
+  try { done = window.localStorage.getItem(LS_PURGE_FLAG) || ''; }
+  catch (err) { return 0; }               /* 私密模式／停用儲存 → 沒有東西可清 */
+  if (done) return 0;
+
+  let removed = 0;
+  try {
+    const stale = [];
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i);
+      if (key && key.indexOf(LS_TACTIC_PREFIX) === 0) stale.push(key);
+    }
+    removed = Math.max(stale.length, localIndex().length);
+    stale.forEach(function (key) { window.localStorage.removeItem(key); });
+    window.localStorage.setItem(LS_INDEX_KEY, '[]');
+    window.localStorage.setItem(LS_PURGE_FLAG,
+      JSON.stringify({ at: new Date().toISOString(), removed: removed }));
+  } catch (err) {
+    console.warn('[migrate] 清除本機測試戰術失敗', err);
+    return 0;
+  }
+  /* 記憶體快取（file:// 或私密模式的回退路徑）同步歸零 */
+  Object.keys(state.memoryStore).forEach(function (key) {
+    if (key.indexOf(LS_TACTIC_PREFIX) === 0) delete state.memoryStore[key];
+  });
+  state.memoryStore[LS_INDEX_KEY] = '[]';
+  return removed;
+}
+
 function localIndex() {
   try {
     const parsed = JSON.parse(lsGet(LS_INDEX_KEY) || '[]');
@@ -1941,16 +2909,24 @@ function localIndex() {
 }
 function localSave(payload) {
   const id = payload.id || ('loc-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+  const meta = payload.meta || {};
   const record = {
     id: id,
     name: payload.name || '未命名戰術',
     frames: payload.frames || [],
-    meta: payload.meta || {},
+    meta: meta,
     updated_at: new Date().toISOString()
   };
   lsSet(LS_TACTIC_PREFIX + id, JSON.stringify(record));
   const index = localIndex().filter((item) => item.id !== id);
-  index.unshift({ id: id, name: record.name, updated_at: record.updated_at });
+  /* US-134：批核狀態與提案人放進索引，手冊清單不必逐筆讀內容 */
+  index.unshift({
+    id: id,
+    name: record.name,
+    updated_at: record.updated_at,
+    status: meta.status || 'approved',
+    authorLabel: meta.authorLabel || ''
+  });
   lsSet(LS_INDEX_KEY, JSON.stringify(index.slice(0, 100)));
   return record;
 }
@@ -1978,10 +2954,33 @@ function localRename(id, name) {
     } catch (err) { /* 損壞的紀錄就只更新索引 */ }
   }
   const index = localIndex().map((item) => (item.id === id
-    ? { id: item.id, name: clean, updated_at: now }
+    ? Object.assign({}, item, { name: clean, updated_at: now })
     : item));
   lsSet(LS_INDEX_KEY, JSON.stringify(index.slice(0, 100)));
   return { id: id, name: clean, updated_at: now };
+}
+
+/* 本機批核：同步更新單筆紀錄的 meta.status 與索引（US-134） */
+function localSetStatus(id, status) {
+  const next = status === 'pending' ? 'pending' : 'approved';
+  const now = new Date().toISOString();
+  const raw = lsGet(LS_TACTIC_PREFIX + id);
+  if (raw) {
+    try {
+      const record = JSON.parse(raw);
+      record.meta = Object.assign({}, record.meta || {}, {
+        status: next,
+        approvedAt: next === 'approved' ? now : null
+      });
+      record.updated_at = now;
+      lsSet(LS_TACTIC_PREFIX + id, JSON.stringify(record));
+    } catch (err) { /* 損壞的紀錄就只更新索引 */ }
+  }
+  const index = localIndex().map((item) => (item.id === id
+    ? Object.assign({}, item, { status: next, updated_at: now })
+    : item));
+  lsSet(LS_INDEX_KEY, JSON.stringify(index.slice(0, 100)));
+  return { id: id, status: next, updated_at: now };
 }
 
 /* ── Supabase CRUD ── */
@@ -2004,8 +3003,9 @@ async function sbSave(payload) {
 async function sbList() {
   const client = getSupabaseClient();
   if (!client) throw new Error('Supabase 未設定');
+  /* US-134：meta 是 jsonb，批核狀態放在 meta.status，不需要改資料表結構 */
   const res = await client.from(SUPABASE_TABLE)
-    .select('id,name,updated_at').order('updated_at', { ascending: false }).limit(100);
+    .select('id,name,updated_at,meta').order('updated_at', { ascending: false }).limit(100);
   if (res.error) throw res.error;
   return res.data || [];
 }
@@ -2028,6 +3028,21 @@ async function sbRename(id, name) {
   if (!client) throw new Error('Supabase 未設定');
   const res = await client.from(SUPABASE_TABLE)
     .update({ name: String(name || '').trim() || '未命名戰術', updated_at: new Date().toISOString() })
+    .eq('id', id).select().single();
+  if (res.error) throw res.error;
+  return res.data;
+}
+/* 雲端批核：讀回 meta 後只改 status／approvedAt（jsonb，不需 migration） */
+async function sbSetStatus(id, status) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase 未設定');
+  const current = await sbLoad(id);
+  const meta = Object.assign({}, (current && current.meta) || {}, {
+    status: status === 'pending' ? 'pending' : 'approved',
+    approvedAt: status === 'pending' ? null : new Date().toISOString()
+  });
+  const res = await client.from(SUPABASE_TABLE)
+    .update({ meta: meta, updated_at: new Date().toISOString() })
     .eq('id', id).select().single();
   if (res.error) throw res.error;
   return res.data;
@@ -2056,14 +3071,21 @@ const store = {
       try {
         const rows = await sbList();
         rows.forEach((row) => items.push({
-          id: row.id, name: row.name, updated_at: row.updated_at, source: 'supabase'
+          id: row.id, name: row.name, updated_at: row.updated_at,
+          source: 'supabase',
+          status: (row.meta && row.meta.status) || 'approved',
+          authorLabel: (row.meta && row.meta.authorLabel) || ''
         }));
       } catch (err) {
         console.warn('[supabase] list failed', err);
       }
     }
+    /* 舊紀錄沒有 status → 視為已批核（不會突然全部變成待批核） */
     localIndex().forEach((item) => items.push({
-      id: item.id, name: item.name, updated_at: item.updated_at, source: 'local'
+      id: item.id, name: item.name, updated_at: item.updated_at,
+      source: 'local',
+      status: item.status || 'approved',
+      authorLabel: item.authorLabel || ''
     }));
     return items.sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
   },
@@ -2094,6 +3116,20 @@ const store = {
       }
     }
     return localRename(id, name);
+  },
+
+  /* 批核 / 退回（US-134）：只有教練會呼叫，但 API 本身與身分無關 */
+  async setStatus(id, source, status) {
+    const next = status === 'pending' ? 'pending' : 'approved';
+    if (source === 'supabase' && supabaseReady()) {
+      try {
+        const row = await sbSetStatus(id, next);
+        return { id: row.id, status: (row.meta && row.meta.status) || next };
+      } catch (err) {
+        console.warn('[supabase] setStatus failed, fallback to local', err);
+      }
+    }
+    return localSetStatus(id, next);
   }
 };
 
@@ -2932,11 +3968,23 @@ function undo() {
    §7 權限、工具狀態與互動鎖定
    ============================================================ */
 function isCoach() { return state.mode === 'coach'; }
+/* US-142：繪製權限只看「草稿 session」（state.editing），與身分（state.mode）脫鉤
+   ─ canEdit()：現在是不是在編輯器裡（按了「＋ 新增」或「✏️ 微調後發布」）
+   ─ isCoach()：批核、退回、改別人的戰術等特權，仍然只有教練身分有
+   教練模式登入後預設 state.editing=false → 與球員看到 100% 相同的瀏覽畫面（US-142） */
+function canEdit() { return !!state.editing; }
+
+/* 需要繪製權限時的統一提示：走免密碼路線（右上角「＋ 新增」→ 建立新戰術），
+   不要動不動就跳教練密碼框（US-134 / US-137） */
+function needDrawMode() {
+  toast('需要繪製模式：按右上角「＋ 新增」建立／繼續畫一套戰術', 'warn');
+}
 function isLineTool(tool) { return LINE_TOOLS.indexOf(tool) !== -1; }
 
 function applyMode() {
   if (!canvas) return;
   document.body.dataset.mode = state.mode;
+  document.body.dataset.edit = state.editing ? '1' : '0';
 
   /* 清掉中斷的繪線預覽（例如在畫布外放開滑鼠） */
   if (state.draw) {
@@ -2945,10 +3993,10 @@ function applyMode() {
     state.draw = null;
   }
 
-  if (!isCoach() && state.tool !== 'select') state.tool = 'select';
-  const drawMode = isCoach() && isLineTool(state.tool);
-  const removeMode = isCoach() && state.tool === 'eraser';
-  const selectMode = isCoach() && state.tool === 'select';
+  if (!canEdit() && state.tool !== 'select') state.tool = 'select';
+  const drawMode = canEdit() && isLineTool(state.tool);
+  const removeMode = canEdit() && state.tool === 'eraser';
+  const selectMode = canEdit() && state.tool === 'select';
 
   canvas.selection = selectMode;
   canvas.skipTargetFind = !(selectMode || removeMode);
@@ -2988,7 +4036,7 @@ function applyMode() {
   updateHint();
   updateRosterPanelState();
   updatePlaybookFoot();
-  syncTacticNameField();
+  syncEditUI();
 }
 
 function setHint(text, isError) {
@@ -3000,23 +4048,30 @@ function setHint(text, isError) {
 
 function updateHint() {
   if (state.playing) {
-    setHint('播放中：按「■ 停止播放」即可停止' + (isCoach() ? '並回到編輯。' : '。'));
+    setHint('播放中：按「■ 停止播放」即可停止' + (canEdit() ? '並回到編輯。' : '。'));
     return;
   }
-  if (!isCoach()) {
+  if (!canEdit()) {
     setHint('');
     return;
   }
   if (isLineTool(state.tool)) {
-    setHint('繪製「' + LINE_LABELS[state.tool] + '」：在球場上按住拖曳，放開完成 · Esc 結束繪製。');
+    setHint(state.tool === 'screen'
+      ? '繪製「' + LINE_LABELS[state.tool] + '」：在球場上按住拖曳，放開完成（掩護只是標記，不會移動球員）· Esc 結束繪製。'
+      : '繪製「' + LINE_LABELS[state.tool] + '」：' +
+        (state.tool === 'pass'
+          ? '從持球者拖到隊友身上放開 → 球會直接傳過去（下一步同步持球）'
+          : '從球員身上起筆、拖到目標位置放開 → 該球員直接跑到箭咀終點') +
+        ' · Esc 結束繪製。');
     return;
   }
   if (state.tool === 'eraser') { setHint('橡皮模式：點擊球員或線條即可刪除。'); return; }
-  setHint('教練模式：拖曳球員＝自動記錄移動（持球者會帶球運球）· 拖曳籃球到隊友身上＝傳球 · 點擊線條後按 Del 刪除。');
+  setHint((isCoach() ? '教練編輯：' : '繪製模式：') +
+    '拖曳球員＝記錄移動（持球者會帶球運球）· 拖曳籃球到隊友身上＝傳球 · 或按 ✏️ 用走位畫筆畫路線。');
 }
 
 function setTool(tool) {
-  if (!isCoach()) return;
+  if (!canEdit()) return;
   if (state.playing || state.exporting) return;
   state.tool = tool || 'select';
   applyMode();
@@ -3026,9 +4081,11 @@ function setPlaying(playing) {
   state.playing = playing;
   if (!playing) state.stopRequested = false;
   const disable = playing || state.exporting;
-  ['#btnGif', '#btnGifSheet', '#btnAddStep', '#btnDupStep', '#btnDupStepSheet',
-    '#btnDelStep', '#btnDelStepSheet', '#btnPrev', '#btnNext',
-    '#btnSaveTactic', '#btnUndo'].forEach(function (sel) {
+  ['#btnGif', '#btnGifSheet', '#btnGifBook', '#btnAddStep', '#btnDupStep', '#btnDupStepSheet',
+    '#btnDelStep', '#btnDelStepSheet', '#btnPrev', '#btnNext', '#btnShare',
+    '#ekAdd', '#ekRoster', '#ekDefense', '#ekDraw', '#ekSave',
+    '#btnPending', '#rvApprove', '#rvEdit', '#rvReject',
+    '#btnUndo'].forEach(function (sel) {
     const el = $(sel);
     if (el) el.disabled = disable;
   });
@@ -3036,22 +4093,26 @@ function setPlaying(playing) {
   if (playBtn) {
     playBtn.disabled = state.exporting;
     playBtn.innerHTML = playing
-      ? '<span class="ico">■</span><span class="lbl-long">停止播放</span><span class="lbl-short">暫停</span>'
-      : '<span class="ico">▶</span><span class="lbl-long">播放動畫</span><span class="lbl-short">播放</span>';
+      ? '<span class="ico ico-full">■</span><span class="ico ico-short">⏸</span><span class="lbl-long">停止播放</span><span class="lbl-short">暫停</span>'
+      : '<span class="ico ico-full">▶</span><span class="ico ico-short">▶</span><span class="lbl-long">播放動畫</span><span class="lbl-short">播放</span>';
   }
-  if (!playing) renderStepUI();
+  /* 播放狀態會影響活動卡片右側指示燈（is-live 脈動），一律重繪以同步 */
+  renderStepUI();
   updateHint();
+  syncEditUI();
 }
 
 function setExporting(exporting) {
   state.exporting = exporting;
   const disable = exporting || state.playing;
-  ['#btnPlay', '#btnGif', '#btnGifSheet', '#btnAddStep', '#btnDupStep',
+  ['#btnPlay', '#btnGif', '#btnGifSheet', '#btnGifBook', '#btnAddStep', '#btnDupStep',
     '#btnDupStepSheet', '#btnDelStep', '#btnDelStepSheet', '#btnPrev',
-    '#btnNext', '#btnSaveTactic', '#btnUndo'].forEach(function (sel) {
+    '#btnNext', '#btnShare', '#ekAdd', '#ekRoster', '#ekDefense', '#ekDraw', '#ekSave',
+    '#btnPending', '#rvApprove', '#rvEdit', '#rvReject', '#btnUndo'].forEach(function (sel) {
     const el = $(sel);
     if (el) el.disabled = disable;
   });
+  syncEditUI();
 }
 /* ============================================================
    §8 畫布互動：繪線 / 橡皮 / 新增節點
@@ -3071,14 +4132,14 @@ function bindCanvasEvents() {
 /* 教練拖曳球員後立即寫回目前步驟（自訂防守、自由擺位都靠這裡記錄）
    §8.4：收尾時同時補上自動軌跡線／傳球判定，所以拖曳本身就是記錄動作 */
 function onNodeModified(opt) {
-  if (!canvas || !isCoach() || state.playing || state.exporting || state.tweening) return;
+  if (!canvas || !canEdit() || state.playing || state.exporting || state.tweening) return;
   const target = opt && opt.target;
   if (!target || !target.nodeId || target.kind === 'line' || target.kind === 'ghost') return;
   finalizeNodeDrag(target);
 }
 
 function onCanvasDown(opt) {
-  if (!canvas || !isCoach() || state.playing || state.exporting) return;
+  if (!canvas || !canEdit() || state.playing || state.exporting) return;
   const pointer = canvas.getPointer(opt.e);
   beginNodeDrag(state.tool === 'select' ? opt.target : null, opt.e);
 
@@ -3136,8 +4197,15 @@ function onCanvasUp(opt) {
     toast('線條太短，請拖長一點', 'warn');
     return;
   }
+  /* US-141：畫筆即 keyframe —— 跑位／運球線把球員送到終點、傳球線把球送到隊友手上。
+     §8.5 接手時線已自己畫好（自動軌跡線）；掩護線或沒對到節點 → 維持原本的純線條。 */
+  if (commitStrokeToStep(type, start, pointer)) {
+    canvas.requestRenderAll();
+    return;
+  }
   canvas.add(buildLineObj(type, start, pointer));
   canvas.requestRenderAll();
+  saveCurrentFrame();                            // 手畫線也要寫回步驟，避免中途重整掉線
 }
 
 /* ============================================================
@@ -3169,7 +4237,7 @@ function nodeLabelOf(obj) {
 /* mouse:down 時記下起點；沒有 nodeDrag 也能靠步驟快照補救（見 finalizeNodeDrag） */
 function beginNodeDrag(target, evt) {
   state.nodeDrag = null;
-  if (!canvas || !isCoach() || state.playing || state.exporting) return;
+  if (!canvas || !canEdit() || state.playing || state.exporting) return;
   if (!target || !target.nodeId || target.kind === 'line' || target.kind === 'ghost') return;
   const ball = findNode('ball');
   const isBall = target.kind === 'ball';
@@ -3195,7 +4263,7 @@ function beginNodeDrag(target, evt) {
 
 /* 拖曳中：持球者帶著球跑、拖球時亮起可傳球對象 */
 function onNodeMoving(opt) {
-  if (!canvas || !isCoach() || state.playing || state.exporting || state.tweening) return;
+  if (!canvas || !canEdit() || state.playing || state.exporting || state.tweening) return;
   const drag = state.nodeDrag;
   const target = opt && opt.target;
   if (!drag || !target || drag.nodeId !== target.nodeId) return;
@@ -3272,14 +4340,15 @@ function placeBallInHand(ball, player) {
   return ball;
 }
 
-/* 自動軌跡線：放在球場之上、球員之下（moveTo 1），所以不會擋住手指抓人 */
-function makeAutoLine(type, from, to) {
+/* 自動軌跡線：放在球場之上、球員之下（moveTo 1），所以不會擋住手指抓人
+   minLen：最短長度門檻（拖曳用 DRAG_LINE_MIN，走位畫筆用 PEN_LINE_MIN） */
+function makeAutoLine(type, from, to, minLen) {
   if (!canvas || !from || !to) return null;
   if (![from.x, from.y, to.x, to.y].every(function (v) { return typeof v === 'number' && isFinite(v); })) return null;
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const len = Math.hypot(dx, dy);
-  if (len < DRAG_LINE_MIN) return null;
+  if (len < (minLen || DRAG_LINE_MIN)) return null;
   const ux = dx / len;
   const uy = dy / len;
   /* 兩端各縮一點，避免線壓在球員圓圈上；短距離時自動縮小留白 */
@@ -3292,6 +4361,98 @@ function makeAutoLine(type, from, to) {
   canvas.moveTo(line, 1);
   canvas.requestRenderAll();
   return line;
+}
+
+/* ============================================================
+   §8.5 走位畫筆 → 步驟 Keyframe 聯動（US-141）
+   · 畫「跑位線／運球線」＝ 從起筆那位球員直接跑到箭咀終點（寫回目前步驟）
+   · 畫「傳球虛線」＝ 球飛到終點那位隊友手上（並同步下一步持球）
+   · 畫「掩護擋拆」＝ 只留線條標記，不動任何站位
+   寫入的都是步驟 keyframe（left/top），播放交給 §10 既有補間，
+   所以畫布上的箭咀＝球員／籃球真正的運動路徑。
+   ============================================================ */
+const PEN_SNAP = 62;         // 起筆離節點多近＝「從這位開始」
+const PEN_PASS_SNAP = 78;    // 傳球線終點離隊友多近＝「傳給誰」
+const PEN_LINE_MIN = 22;     // 畫筆線條最短長度（比拖曳的 DRAG_LINE_MIN 寬鬆）
+
+/* 找離 pt 最近的節點（kinds 可限定 offense / defense） */
+function nearestNodeOf(pt, radius, kinds) {
+  if (!canvas || !pt) return null;
+  let best = null;
+  let bestD = radius;
+  canvas.getObjects().forEach(function (obj) {
+    if (!obj || !obj.nodeId || obj.kind === 'line' || obj.kind === 'ghost') return;
+    if (kinds && kinds.indexOf(obj.kind) === -1) return;
+    if (typeof obj.left !== 'number' || typeof obj.top !== 'number') return;
+    const d = Math.hypot(obj.left - pt.x, obj.top - pt.y);
+    if (d < bestD) { bestD = d; best = obj; }
+  });
+  return best;
+}
+
+/* 一支畫筆手勢 → 直接改寫目前步驟的 keyframe；回傳 true 表示已接手（線也畫好了） */
+function commitStrokeToStep(type, start, end) {
+  if (!canvas || !canEdit() || state.playing || state.exporting || state.tweening) return false;
+  if (!start || !end) return false;
+  if (type === 'screen') return false;          // 掩護只是一條標記線，不動站位
+  if (type === 'pass') return commitPassStroke(start, end);
+  return commitMoveStroke(type, start, end);
+}
+
+/* 跑位線／運球線：起筆那位球員移到箭咀終點（持球者會帶球） */
+function commitMoveStroke(type, start, end) {
+  const src = nearestNodeOf(start, PEN_SNAP, ['offense', 'defense']);
+  if (!src) return false;                       // 沒從人身上起筆 → 退回純線條（不誤移球員）
+  const from = { x: src.left, y: src.top };
+  const to = clampPoint(end);
+  if (Math.hypot(to.x - from.x, to.y - from.y) < 8) return false;   // 幾乎沒位移：留成純線條
+
+  const ball = findNode('ball');
+  const held = !!ball && typeof ball.left === 'number' &&
+    Math.hypot(ball.left - from.x, ball.top - from.y) < GLOW_REACH;
+
+  src.set({ left: to.x, top: to.y });
+  src.setCoords();
+  if (held) {
+    ball.set({ left: to.x + BALL_IN_HAND.dx, top: to.y + BALL_IN_HAND.dy });
+    ball.setCoords();
+  }
+
+  const lineType = held ? 'dribble' : (src.kind === 'defense' ? 'def' : type);
+  makeAutoLine(lineType, from, to, PEN_LINE_MIN);
+  canvas.requestRenderAll();
+  saveCurrentFrame();                            // 畫完就寫回步驟（不再只是畫面上的塗鴉）
+  toast(nodeLabelOf(src) + ' 已跑到箭咀終點（寫入步驟 ' + (state.currentFrame + 1) + '）', 'success');
+  return true;
+}
+
+/* 傳球虛線：球移到終點那位隊友手上，並把下一步的球一起搬過去 */
+function commitPassStroke(start, end) {
+  const ball = findNode('ball');
+  if (!ball) return false;
+  const passer = getBallHandler() || nearestNodeOf(start, PEN_SNAP, ['offense']);
+  const receiver = nearestOffense(end, PEN_PASS_SNAP);
+  const from = { x: ball.left, y: ball.top };
+
+  if (!receiver) {                               // 傳到空位：球落在箭咀終點，暫時無人持球
+    const to = clampPoint(end);
+    ball.set({ left: to.x, top: to.y });
+    ball.setCoords();
+    makeAutoLine('pass', from, to, PEN_LINE_MIN);
+    canvas.requestRenderAll();
+    saveCurrentFrame();
+    toast('球已移到箭咀終點（附近沒有隊友，目前無人持球）', 'warn');
+    return true;
+  }
+  if (passer && receiver.nodeId === passer.nodeId) return false;   // 傳給自己：只留線條
+
+  placeBallInHand(ball, receiver);
+  makeAutoLine('pass', from, { x: receiver.left, y: receiver.top }, PEN_LINE_MIN);
+  const synced = syncBallToNextFrame(receiver.nodeId, passer ? passer.nodeId : null);
+  canvas.requestRenderAll();
+  saveCurrentFrame();
+  toast('傳給 ' + nodeLabelOf(receiver) + (synced ? '（下一步已同步持球）' : ''), 'success');
+  return true;
 }
 
 /* 目前步驟已存的節點座標（沒有 nodeDrag 時的起點後備） */
@@ -3387,7 +4548,7 @@ function finalizeNodeDrag(target) {
 
 /* ── 新增 / 移除節點 ── */
 function addNode(toolId) {
-  if (!isCoach() || state.playing || state.exporting) return;
+  if (!canEdit() || state.playing || state.exporting) return;
   const existing = findNode(toolId);
   if (existing) {
     toast('此球員已在場上，已為你選取', 'warn');
@@ -3434,7 +4595,7 @@ function rosterSpawnSpot() {
 }
 
 function addRosterPlayer(no) {
-  if (!isCoach()) { requestCoachMode(); return; }
+  if (!canEdit()) { needDrawMode(); return; }
   if (state.playing || state.exporting) return;
   const entry = rosterByNo(no);
   if (!entry) return;
@@ -3581,7 +4742,7 @@ function defensePresetSpots(key) {
 }
 
 async function applyDefensePreset(key) {
-  if (!isCoach() || state.playing || state.exporting || state.tweening) return;
+  if (!canEdit() || state.playing || state.exporting || state.tweening) return;
   const preset = DEFENSE_PRESETS[key];
   if (!preset) return;
   /* 自訂防守：不套座標，改成自由拖曳（缺的防守員自動補上） */
@@ -3607,6 +4768,8 @@ async function applyDefensePreset(key) {
 
   pushUndo();
   state.customDefense = false;
+  /* US-139：記住最近一次套用的陣型 → 存檔時寫進 meta.defense（對話框不再選陣型） */
+  state.tacticDefense = key;
   state.tweening = true;
   markDefensePreset(key);
   canvas.discardActiveObject();
@@ -3636,7 +4799,7 @@ async function applyDefensePreset(key) {
 
 /* ── 自訂防守：五位防守員自由擺位，放開滑鼠即存入目前步驟 ── */
 function enableCustomDefense() {
-  if (!isCoach() || state.playing || state.exporting || state.tweening) return;
+  if (!canEdit() || state.playing || state.exporting || state.tweening) return;
   pushUndo();
 
   const added = [];
@@ -3662,7 +4825,7 @@ function enableCustomDefense() {
 
 /* ── 清除 / 重設 ── */
 function clearDrawings() {
-  if (!isCoach()) return;
+  if (!canEdit()) return;
   const lines = findByKind('line');
   if (!lines.length) { toast('目前沒有線條可清除', 'warn'); return; }
   pushUndo();
@@ -3673,7 +4836,7 @@ function clearDrawings() {
 }
 
 async function resetBoard() {
-  if (!isCoach()) return;
+  if (!canEdit()) return;
   const ok = await confirmDialog('重設球場', '所有步驟與線條都會被清除，回到預設 5 對 5 陣型。此動作無法復原。', '重設');
   if (!ok) return;
   state.undo = [];
@@ -3690,22 +4853,76 @@ async function resetBoard() {
   toast('球場已重設', 'success');
 }
 
-/* ── 新增戰術：清空畫布 → 回預設 2-1-2（含預設進攻球員）→ 步驟 1 → 名稱輸入框 ── */
+/* ── 新增戰術（US-137）：右上角「＋ 新增」先開「建立新戰術」對話框
+   名稱 / 提議球員 / 防守陣型 → 按「開始繪製」才清畫布、套陣型、進入步驟 1 ── */
 async function newTactic() {
-  if (!isCoach()) { requestCoachMode(); return; }
   if (state.playing || state.exporting) {
     toast('播放／匯出中，請先停止再新增戰術', 'warn');
     return;
   }
-  const lines = findByKind('line').length;
-  /* 有未存檔的自訂內容時先確認，避免誤觸把正在畫的戰術清掉 */
-  if (state.frames.length > 1 || lines) {
-    const ok = await confirmDialog('新增戰術',
-      '目前畫布上的 ' + state.frames.length + ' 個步驟與 ' + lines +
-      ' 條線條都會被清空，回到預設 2-1-2 陣型。此動作無法復原。',
-      '清空並新增');
-    if (!ok) return;
+  openCreateDialog();
+}
+
+/* US-138：作者下拉＝「🏀 教練 (Coach)」置頂 + 18 位球員（建立框／儲存框共用同一份） */
+function appendAuthorOptions(sel) {
+  if (!sel || sel.options.length) return;
+  const coachOpt = document.createElement('option');
+  coachOpt.value = AUTHOR_COACH;
+  coachOpt.textContent = '🏀 教練 (Coach)';
+  sel.appendChild(coachOpt);
+  ROSTER.forEach(function (player) {
+    const opt = document.createElement('option');
+    opt.value = String(player.no);
+    opt.textContent = '#' + player.no + ' ' + player.name + ' · ' + player.pos;
+    sel.appendChild(opt);
+  });
+}
+
+/* 建立新戰術對話框：作者名單只建立一次（US-139：防守陣型改由畫布下方的 🛡 切換） */
+function fillCreateOptions() {
+  const person = $('#createPerson');
+  if (person && !person.options.length) {
+    appendAuthorOptions(person);
   }
+}
+
+function openCreateDialog() {
+  fillCreateOptions();
+  /* US-138：身分自動連結 → 教練模式預設「🏀 教練」，球員模式預設上次選的球員 */
+  const person = $('#createPerson');
+  if (person) person.value = defaultAuthorValue();
+  const nameEl = $('#createName');
+  if (nameEl) {
+    nameEl.value = nextTacticName();
+    nameEl.classList.remove('is-invalid');
+  }
+  const err = $('#createError');
+  if (err) err.textContent = '';
+  const desc = $('#createDesc');
+  if (desc) {
+    desc.textContent = isCoach()
+      ? '教練建立：填好名稱與作者（預設 🏀 教練），按「開始繪製」進入步驟 1；防守陣型進畫布後用底部的「🛡 防守陣型」切換，完成後按「🚀 發布」直接進官方手冊。'
+      : '填好名稱與作者，按「開始繪製」進入步驟 1；防守陣型進畫布後用底部的「🛡 防守陣型」切換，完成後按「📤 提交審核」送給教練批核。';
+  }
+  openModal('createModal');
+  setTimeout(function () {
+    if (!nameEl) return;
+    nameEl.focus();
+    nameEl.select();
+  }, 40);
+}
+
+/* 真正開始畫：清畫布 → 預設站位 → 步驟 1 → 繪製模式
+   US-138：「開始繪製」本身就是確認動作 → 只清畫布，不再跳第二次「目前步驟會被清空」確認框
+   US-139：對話框只剩名稱＋作者 → 一律從預設 2-1-2 開場，防守陣型進畫布後用 🛡 切換 */
+async function startDrawingFlow(name, personNo) {
+  const clean = String(name || '').trim();
+  const coachAuthor = String(personNo) === AUTHOR_COACH;
+  const entry = coachAuthor ? null : rosterByNo(personNo);
+  const key = '212';
+
+  /* 進編輯前先快照 → 右上角「✕ 退出」可原樣還原（含剛被清掉的畫布） */
+  snapshotBeforeEdit();
   state.undo = [];
   state.draw = null;
   clearBoardObjects();
@@ -3713,17 +4930,47 @@ async function newTactic() {
   state.frames = [{ id: uid(), name: '步驟 1', objects: serializeCanvas() }];
   state.currentFrame = 0;
   state.tacticId = null;
-  state.tacticName = '';
+  state.tacticName = clean;
   state.tacticSource = null;
+  state.tacticStatus = null;
+  state.approveOnSave = false;
+  state.tacticDefense = key;
+  state.customDefense = false;
+  state.tacticAuthor = coachAuthor
+    ? { coach: true }
+    : (entry ? { no: entry.no, name: entry.name, pos: entry.pos } : null);
+  state.editing = true;          /* ← 繪製模式：免密碼、免帳號 */
   state.tool = 'select';
+  state.toolPanel = 'step';
+  /* US-138：把作者（含「教練」）記住 → 下次開啟對話框自動帶入同一個身分 */
+  try {
+    window.localStorage.setItem(LS_SAVE_PERSON, coachAuthor ? AUTHOR_COACH : String(entry ? entry.no : ''));
+  } catch (err) { /* noop */ }
   applyMode();
   renderLibrary();
   $$('#pbList .pb-item').forEach(function (row) { row.classList.remove('is-active'); });
   renderStepUI();
-  syncTacticNameField(true);
   canvas.requestRenderAll();
-  focusTacticNameField();
-  toast('已建立新戰術 · 請輸入名稱後開始畫線', 'success');
+  closePlaybookDrawer();
+  openSidebar(false);
+  toast('已建立「' + clean + '」· 拖曳球員或選工具畫線 · 完成後按「' +
+    (coachAuthor ? '🚀 發布' : '📤 提交審核') + '」', 'success');
+  return true;
+}
+
+async function submitCreateForm(event) {
+  if (event) event.preventDefault();
+  const nameEl = $('#createName');
+  const errorEl = $('#createError');
+  const name = String((nameEl && nameEl.value) || '').trim();
+  if (!name) {
+    if (errorEl) errorEl.textContent = '請輸入戰術名稱。';
+    if (nameEl) { nameEl.classList.add('is-invalid'); nameEl.focus(); }
+    return;
+  }
+  const person = $('#createPerson');
+  closeModal('createModal');
+  await startDrawingFlow(name, person && person.value);
 }
 
 /* ============================================================
@@ -3734,14 +4981,30 @@ function renderStepUI() {
   if (!list) return;
   list.innerHTML = '';
   state.frames.forEach(function (frame, index) {
+    const active = index === state.currentFrame;
     const chip = document.createElement('button');
     chip.type = 'button';
-    chip.className = 'step-chip' + (index === state.currentFrame ? ' is-active' : '');
+    chip.className = 'step-chip' + (active ? ' is-active' : '') +
+      (active && state.playing ? ' is-live' : '');
     chip.setAttribute('role', 'tab');
-    chip.setAttribute('aria-selected', index === state.currentFrame ? 'true' : 'false');
-    chip.title = isCoach() ? '點擊切換 · 雙擊重新命名' : '點擊查看此步驟';
+    chip.setAttribute('aria-selected', active ? 'true' : 'false');
+    if (active) chip.setAttribute('aria-current', 'step');
+    chip.title = canEdit() ? '點擊切換 · 雙擊重新命名' : '點擊查看此步驟';
+    const name = frame.name || ('步驟 ' + (index + 1));
+    const cue = frame.cue ? String(frame.cue) : '';
+    const desc = frame.desc ? String(frame.desc) : '';
+    /* 手機長卡片：左徽章 / 中＝標題＋機會標籤＋跑位說明 / 右＝切換箭頭（選中時為播放指示）
+       桌機由 .step-body,.step-head{display:contents} 與 .step-desc,.step-cue,.step-hint{display:none}
+       保持原本「編號＋名稱」的膠囊外觀，不產生任何額外盒模型 */
     chip.innerHTML = '<span class="step-idx">' + (index + 1) + '</span>' +
-      '<span class="step-name">' + escapeHtml(frame.name || ('步驟 ' + (index + 1))) + '</span>';
+      '<span class="step-body">' +
+        '<span class="step-head">' +
+          '<span class="step-name">' + escapeHtml(name) + '</span>' +
+          (cue ? '<span class="step-cue">' + escapeHtml(cue) + '</span>' : '') +
+        '</span>' +
+        (desc ? '<span class="step-desc">' + escapeHtml(desc) + '</span>' : '') +
+      '</span>' +
+      '<span class="step-hint" aria-hidden="true"></span>';
     chip.addEventListener('click', function () {
       if (state.playing || state.exporting) return;
       if (index === state.currentFrame) return;
@@ -3763,42 +5026,36 @@ function renderStepUI() {
   if (next) next.disabled = state.playing || state.exporting || state.currentFrame >= state.frames.length - 1;
 
   renderCueTag();
-  renderMobileStepInfo();
 
-  /* 手機底部列：把當前步驟膠囊捲回可視範圍中央 */
+  /* 把當前步驟卡片捲回可視範圍（手機為縱向清單，桌機為橫向膠囊列） */
   const activeChip = list.querySelector('.step-chip.is-active');
-  if (activeChip && activeChip.scrollIntoView && !state.playing && !state.exporting) {
+  const listOverflows = list.scrollHeight - list.clientHeight > 1;
+  const followActive = !state.exporting && (!state.playing || listOverflows);
+  if (activeChip && activeChip.scrollIntoView && followActive) {
     try {
-      activeChip.scrollIntoView({ block: 'nearest', inline: 'center' });
+      activeChip.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     } catch (err) {
       activeChip.scrollIntoView();
     }
   }
+  syncStepbarDense();
+  syncStepsScrollFade();
+  /* US-139：面板上的「步驟 N／名稱／走位說明」永遠跟著目前步驟走 */
+  syncStepInfo();
+  /* US-140：加/刪/複製步驟後，「共 N 步」與 4 鍵標籤跟著更新 */
+  syncToolbar();
 }
 
-/* ── 手機：當前步驟說明卡（唯讀，取代原本重複的步驟縮圖／解說卡） ── */
-function renderMobileStepInfo() {
-  const box = $('#stepInfo');
-  if (!box) return;
-  const frame = state.frames[state.currentFrame];
-  if (!frame) {
-    box.hidden = true;
-    return;
-  }
-  box.hidden = false;
-  const idxEl = $('#stepInfoIdx');
-  const nameEl = $('#stepInfoName');
-  const descEl = $('#stepInfoDesc');
-  const cueEl = $('#stepInfoCue');
-  if (idxEl) idxEl.textContent = (state.currentFrame + 1) + '/' + state.frames.length;
-  if (nameEl) nameEl.textContent = frame.name || ('步驟 ' + (state.currentFrame + 1));
-  if (descEl) descEl.textContent = frame.desc || '';
-  if (cueEl) {
-    const cue = frame.cue ? String(frame.cue) : '';
-    cueEl.textContent = cue;
-    cueEl.hidden = !cue;
-  }
-  updateSheetLimit();
+/* US-133：矮螢幕自動切「單行密集模式」——依步驟清單實高決定（不靠 media query），
+   375×667 這種高度不必滑動就能看到 4 張卡片，390×844 仍維持完整兩行說明 */
+function syncStepbarDense() {
+  const list = $('#stepList');
+  if (!list) return;
+  const DENSE_MIN = 4 * 56 + 3 * 6;      /* 4 張最小 56px 卡片 + 3 個 6px 間距 */
+  const dense = list.clientHeight > 0 &&
+    list.clientHeight < DENSE_MIN &&
+    state.frames.length >= 3;
+  list.classList.toggle('is-dense', dense);
 }
 
 /* ── 機會標籤：把目前步驟的 cue 大字顯示在球場右上 ── */
@@ -3834,8 +5091,18 @@ function cloneObjects(objects) {
 }
 
 function addStep() {
-  if (!isCoach() || state.playing || state.exporting) return;
+  if (!canEdit() || state.playing || state.exporting) return;
   saveCurrentFrame();
+  /* US-141：新步驟一律回到「拖曳模式」。畫筆（線條工具）會讓畫布 skipTargetFind，
+     不放下畫筆的話，使用者在剛新增的步驟會覺得「球員拖不動」。 */
+  const hadPen = isLineTool(state.tool);
+  if (hadPen) {
+    state.tool = 'select';
+    if (state.toolPanel === 'draw') {
+      state.toolPanel = 'step';
+      syncToolPanel();
+    }
+  }
   /* 拖曳自動長出的軌跡線＝「上一動怎麼走到這裡」，新步驟重新記錄；
      教練手畫的線（切入/傳球/擋拆）則保留，方便連續動作沿用 */
   const objects = cloneObjects(serializeCanvas()).filter(function (obj) { return !obj.autoLine; });
@@ -3849,11 +5116,12 @@ function addStep() {
     if (!item.name || /^步驟 \d+$/.test(item.name)) item.name = '步驟 ' + (index + 1);
   });
   renderFrame(state.currentFrame + 1);
-  toast('已新增步驟 ' + (state.currentFrame + 1), 'success');
+  if (hadPen) applyMode();                       // 同步游標／可拖曳狀態（畫筆已放下）
+  toast('已新增步驟 ' + (state.currentFrame + 1) + '：直接拖動球員／籃球到新位置，箭咀會自動出現', 'success');
 }
 
 function duplicateStep() {
-  if (!isCoach() || state.playing || state.exporting) return;
+  if (!canEdit() || state.playing || state.exporting) return;
   saveCurrentFrame();
   const source = state.frames[state.currentFrame];
   if (!source) return;
@@ -3868,24 +5136,26 @@ function duplicateStep() {
 }
 
 function deleteStep() {
-  if (!isCoach() || state.playing || state.exporting) return;
+  if (!canEdit() || state.playing || state.exporting) return;
   if (state.frames.length <= 1) { toast('至少要保留一個步驟', 'warn'); return; }
   const removed = state.frames.splice(state.currentFrame, 1);
   renderFrame(Math.min(state.currentFrame, state.frames.length - 1));
   toast('已刪除「' + ((removed[0] && removed[0].name) || '步驟') + '」', 'success');
 }
 
+/* US-139：雙擊步驟卡片＝把焦點帶到面板上的名稱輸入框（不再跳 window.prompt） */
 function renameStep(index) {
-  if (!isCoach()) return;
+  if (!canEdit()) return;
   const frame = state.frames[index];
   if (!frame) return;
-  const next = window.prompt('步驟名稱', frame.name || ('步驟 ' + (index + 1)));
-  if (next == null) return;
-  const trimmed = String(next).trim();
-  if (!trimmed) return;
-  frame.name = trimmed.slice(0, 24);
-  renderStepUI();
-  toast('已重新命名', 'success');
+  if (index !== state.currentFrame) goToFrame(index);
+  state.toolPanel = 'step';
+  syncToolPanel();
+  syncStepInfo();
+  const input = $('#tpStepName');
+  if (!input) return;
+  input.focus();
+  input.select();
 }
 
 function prevStep() {
@@ -4088,14 +5358,59 @@ function fadeOutTrails(trails) {
   });
 }
 
-function tweenToFrame(fromIndex, toIndex) {
+/* US-141：播放時先把「目標步驟」的箭咀鋪到畫面上（isPreview，不入庫）。
+   補間期間球員／籃球就是沿著這些箭咀走，畫布與動作 100% 對得上。
+   任何異常（fabric 版本、資料壞掉）都回空陣列 → 完全退回原本的淡出路徑。 */
+function previewStepLines(frame) {
+  return new Promise(function (resolve) {
+    if (!canvas || !frame || !Array.isArray(frame.objects)) { resolve([]); return; }
+    const specs = cloneObjects(frame.objects).filter(function (obj) {
+      return obj && obj.kind === 'line';
+    });
+    if (!specs.length || typeof fabric === 'undefined' || !fabric.util ||
+      typeof fabric.util.enlivenObjects !== 'function') { resolve([]); return; }
+    try {
+      fabric.util.enlivenObjects(specs, function (objs) {
+        const lines = [];
+        (objs || []).forEach(function (obj) {
+          if (!obj || !canvas) return;
+          obj.set({ opacity: 0, selectable: false, evented: false, hoverCursor: 'default' });
+          obj.isPreview = true;
+          obj.lockMovementX = true;
+          obj.lockMovementY = true;
+          canvas.add(obj);
+          canvas.moveTo(obj, 1);          // 球場之上、球員之下
+          lines.push(obj);
+        });
+        canvas.requestRenderAll();
+        resolve(lines);
+      });
+    } catch (err) {
+      console.warn('[preview]', err);
+      resolve([]);
+    }
+  });
+}
+
+/* 收掉補間用的箭咀預覽（只動 isPreview 的線，不碰真正的線） */
+function removePreviewLines(lines) {
+  if (!canvas || !lines || !lines.length) return;
+  lines.forEach(function (obj) {
+    if (obj && canvas.getObjects().indexOf(obj) !== -1) canvas.remove(obj);
+  });
+  canvas.requestRenderAll();
+}
+
+async function tweenToFrame(fromIndex, toIndex) {
   const fromMap = nodeMapFromCanvas();
   const toMap = nodeMapFromFrame(state.frames[toIndex]);
-  const lines = canvas.getObjects().filter(function (obj) { return obj.kind === 'line'; });
+  const lines = canvas.getObjects().filter(function (obj) { return obj.kind === 'line' && !obj.isPreview; });
   const baseOpacity = lines.map(function (obj) {
     return typeof obj.opacity === 'number' ? obj.opacity : 1;
   });
   const trails = startTrails(fromMap, toMap);
+  /* 目標步驟的箭咀＝「這一動怎麼走」：先鋪上，再隨補間淡入 */
+  const previews = await previewStepLines(state.frames[toIndex]);
 
   const anim = animateValue(PLAYBACK_DURATION, function (eased) {
     applyLerp(fromMap, toMap, eased);
@@ -4103,6 +5418,9 @@ function tweenToFrame(fromIndex, toIndex) {
     lines.forEach(function (obj, index) {
       obj.set('opacity', baseOpacity[index] * (1 - fade));
     });
+    if (previews.length) {
+      previews.forEach(function (obj) { obj.set('opacity', Math.min(1, eased * 2.2)); });
+    }
     if (trails.length) {
       const trailFade = Math.min(1, eased * 2.4);
       trails.forEach(function (seg) {
@@ -4112,7 +5430,10 @@ function tweenToFrame(fromIndex, toIndex) {
     canvas.requestRenderAll();
   });
 
-  anim.then(function () { fadeOutTrails(trails); });
+  anim.then(function () {
+    fadeOutTrails(trails);
+    removePreviewLines(previews);
+  });
   return anim;
 }
 
@@ -4127,7 +5448,6 @@ function updateLoopBtn() {
 function toggleLoop() {
   state.loop = !state.loop;
   updateLoopBtn();
-  toast(state.loop ? '循環播放：開' : '循環播放：關');
 }
 
 /* 停止播放並等到「真的停下」（載入新戰術前先收掉舊動畫） */
@@ -4139,24 +5459,15 @@ function stopPlayback() {
   });
 }
 
-/* 載入戰術後自動播放（預設循環）；尊重系統「減少動態」偏好 */
+/* 載入戰術後自動播放（預設循環）；尊重系統「減少動態」偏好
+   注意：這裡刻意不跳提示 → 只保留「已載入…」那一則，避免連發蓋畫面 */
 function autoPlayLoaded(label) {
   if (!state.frames.length) return;
-  if (state.frames.length < 2) {
-    toast('已載入「' + label + '」· 只有一個步驟，' +
-      (isCoach() ? '按「＋」可新增下一步' : '請切換教練模式補上後續步驟'), 'warn');
-    return;
-  }
-  if (prefersReducedMotion()) {
-    toast('已載入「' + label + '」（系統偏好減少動態，未自動播放）');
-    return;
-  }
+  if (state.frames.length < 2) return;
+  if (prefersReducedMotion()) return;
   state.loop = true;
   updateLoopBtn();
   renderStepUI();
-  toast(isCoach()
-    ? '自動播放中（∞ 循環）· 按「■ 停止播放」可停'
-    : '球員模式 · 即點即播（∞）· 點左側任一戰術即可重播');
   playAnimation();
 }
 
@@ -4183,11 +5494,7 @@ async function playAnimation() {
       if (state.loop && !state.stopRequested) await sleep(LOOP_GAP);
     } while (state.loop && !state.stopRequested);
 
-    if (state.stopRequested) {
-      toast('已停止播放', 'warn');
-    } else {
-      toast('播放完成 · 共 ' + state.frames.length + ' 個步驟', 'success');
-    }
+    /* 停止／播放完成都不跳提示：按鈕狀態與球場畫面已足夠 */
   } catch (err) {
     console.error('[playback]', err);
     toast('播放時發生錯誤', 'error');
@@ -4200,18 +5507,20 @@ async function playAnimation() {
   }
 }
 /* ============================================================
-   §11 GIF 匯出（gifshot）
+   §11 GIF 匯出（gifshot）— 匯出檔案與「分享」共用同一套擷取流程
    ============================================================ */
-async function exportGif() {
-  if (state.playing || state.exporting) return;
-  if (typeof gifshot === 'undefined') {
-    toast('gifshot 套件未載入，請檢查網路後重新整理', 'error');
-    setHint('GIF 匯出需要 gifshot CDN（jsDelivr）。目前無法載入，請確認網路後重新整理。', true);
-    return;
-  }
+function gifshotReady() {
+  if (typeof gifshot !== 'undefined') return true;
+  toast('gifshot 套件未載入，請檢查網路後重新整理', 'error');
+  setHint('GIF 匯出需要 gifshot CDN（jsDelivr）。目前無法載入，請確認網路後重新整理。', true);
+  return false;
+}
+
+/* 產生 GIF 並回傳 dataUrl（不下載）：exportGif 與 shareTactic 都走這裡 */
+async function captureGif() {
   saveCurrentFrame();
   const frames = state.frames;
-  if (!frames.length) { toast('目前沒有可匯出的步驟', 'warn'); return; }
+  if (!frames.length) throw new Error('目前沒有可匯出的步驟');
 
   const restoreIndex = state.currentFrame;
   const outW = Math.round(BASE_W * GIF_SCALE);
@@ -4265,15 +5574,73 @@ async function exportGif() {
       });
     });
 
-    downloadDataUrl(result.image, tacticFileName('gif'));
-    toast('GIF 已生成（' + tacticFileName('gif') + '）· ' + images.length + ' 影格', 'success');
-  } catch (err) {
-    console.error('[gif]', err);
-    toast('GIF 匯出失敗：' + (err && err.message ? err.message : '未知錯誤'), 'error');
+    return { dataUrl: result.image, filename: tacticFileName('gif'), frames: images.length };
   } finally {
     hideLoader();
     setExporting(false);
     await renderFrame(restoreIndex);
+  }
+}
+
+async function exportGif() {
+  if (state.playing || state.exporting) return;
+  if (!gifshotReady()) return;
+  try {
+    const out = await captureGif();
+    downloadDataUrl(out.dataUrl, out.filename);
+    toast('GIF 已生成（' + out.filename + '）· ' + out.frames + ' 影格', 'success');
+  } catch (err) {
+    console.error('[gif]', err);
+    toast('GIF 匯出失敗：' + (err && err.message ? err.message : '未知錯誤'), 'error');
+  }
+}
+
+/* 「💬 分享」：優先用手機原生分享（WhatsApp／IG 可直接收到 GIF），
+   桌機或瀏覽器不支援時 → 下載 GIF + 開 WhatsApp 對話，附上文案。 */
+async function shareTactic() {
+  if (state.playing || state.exporting) return;
+  if (!gifshotReady()) return;
+
+  let out;
+  try {
+    out = await captureGif();
+  } catch (err) {
+    console.error('[share]', err);
+    toast('分享前產生 GIF 失敗：' + (err && err.message ? err.message : '未知錯誤'), 'error');
+    return;
+  }
+
+  const name = state.tacticName || 'Monday Beer 戰術';
+  const text = '🏀 ' + name + '\n' + state.frames.length +
+    ' 個步驟｜MONDAY BEER & BASKETBALL 戰術板';
+
+  const canShareFiles = (function () {
+    try {
+      return !!(navigator.canShare && navigator.share && navigator.canShare({
+        files: [new File([new Blob([''])], 'probe.gif', { type: 'image/gif' })]
+      }));
+    } catch (err) { return false; }
+  })();
+
+  if (canShareFiles) {
+    try {
+      const blob = await (await fetch(out.dataUrl)).blob();
+      const file = new File([blob], out.filename, { type: 'image/gif' });
+      await navigator.share({ files: [file], title: name, text: text });
+      toast('已開啟分享', 'success');
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;   /* 使用者自己取消 */
+      console.warn('[share]', err);
+    }
+  }
+
+  downloadDataUrl(out.dataUrl, out.filename);
+  const wa = window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  if (wa) {
+    toast('GIF 已下載 · 在 WhatsApp 對話把 GIF 附上即可', 'success');
+  } else {
+    toast('GIF 已下載，請手動附到 WhatsApp', 'success');
   }
 }
 
@@ -4315,27 +5682,122 @@ function nextTacticName() {
   return '新戰術 ' + (max + 1);
 }
 
-async function openSaveDialog() {
-  if (!isCoach() || state.exporting) return;
-  saveCurrentFrame();
-  /* 手冊頂部已輸入名稱 → 直接存；空白才跳命名框 */
-  const field = $('#pbNameInput');
-  const typed = String((field && field.value) || state.tacticName || '').trim();
-  if (typed) { await saveTacticNamed(typed); return; }
-  const target = supabaseReady() ? 'Supabase 雲端' : '本機儲存';
-  const name = await promptText({
-    title: '儲存戰術',
-    desc: '將目前 ' + state.frames.length + ' 個步驟存到' + target + '，儲存後會出現在左側戰術手冊。',
-    label: '戰術名稱',
-    okText: '儲存',
-    value: state.tacticName || nextTacticName(),
-    placeholder: '例：Horns 45 擋拆'
-  });
-  if (name === null) return;
-  await saveTacticNamed(name);
+/* ══════════ 儲存對話框（US-134 免帳號提案制：球員提案 / 教練發布） ══════════ */
+function fillSavePersonOptions() {
+  /* US-138：與建立框共用同一份作者清單（🏀 教練置頂 + 18 位球員） */
+  appendAuthorOptions($('#savePerson'));
 }
 
-async function saveTacticNamed(name) {
+function setSaveRole(role) {
+  const next = role === 'coach' ? 'coach' : 'player';
+  state.saveRole = next;
+  $$('#saveModal .role-btn').forEach(function (btn) {
+    const on = btn.dataset.role === next;
+    btn.classList.toggle('is-active', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  /* US-138：身分與作者互鎖 → 選「我是教練」＝作者是教練；改回球員就帶回上次的球員 */
+  const personSel = $('#savePerson');
+  if (personSel) {
+    if (next === 'coach') {
+      personSel.value = AUTHOR_COACH;
+    } else if (personSel.value === AUTHOR_COACH) {
+      personSel.value = lastPlayerAuthorValue();
+    }
+  }
+  const playerWrap = $('#savePlayerWrap');
+  const coachWrap = $('#saveCoachWrap');
+  if (playerWrap) playerWrap.hidden = next !== 'player';
+  if (coachWrap) coachWrap.hidden = next !== 'coach';
+  const desc = $('#saveDesc');
+  if (desc) {
+    desc.textContent = next === 'coach'
+      ? '教練發布：暗號正確就直接放進官方手冊（已批核）。'
+      : '球員提案：儲存後標記「未批核」，等教練批核才進官方手冊。';
+  }
+  const ok = $('#saveOk');
+  if (ok) ok.textContent = next === 'coach' ? '發布' : '提交提案';
+}
+
+function openSaveDialog() {
+  if (state.exporting) return;
+  saveCurrentFrame();
+  fillSavePersonOptions();
+  /* US-137：名稱在「建立新戰術」對話框就填好了 → 直接帶入，沒有才給預設名 */
+  const typed = String(state.tacticName || '').trim();
+  $('#saveName').value = typed || nextTacticName();
+  /* US-138：作者（含 🏀 教練）自動帶進儲存對話框，儲存身分也跟著作者走 */
+  const author = state.tacticAuthor;
+  const personSel = $('#savePerson');
+  if (personSel) {
+    if (author && author.coach) {
+      personSel.value = AUTHOR_COACH;
+    } else if (author && ROSTER.some(function (player) { return player.no === author.no; })) {
+      personSel.value = String(author.no);
+    } else {
+      personSel.value = defaultAuthorValue();
+    }
+  }
+  $('#saveCode').value = '';
+  $('#saveError').textContent = '';
+  $('#saveName').classList.remove('is-invalid');
+  $('#saveCode').classList.remove('is-invalid');
+  setSaveRole(personSel && personSel.value === AUTHOR_COACH ? 'coach' : 'player');
+  openModal('saveModal');
+  setTimeout(function () {
+    const input = $('#saveName');
+    if (!input) return;
+    input.focus();
+    input.select();
+  }, 40);
+}
+
+async function submitSaveForm(event) {
+  if (event) event.preventDefault();
+  /* US-138：作者下拉選了「🏀 教練 (Coach)」就等於選了教練身分（兩者互鎖，這裡再保險一次） */
+  const personField = $('#savePerson');
+  const role = (state.saveRole === 'coach' || (personField && personField.value === AUTHOR_COACH))
+    ? 'coach' : 'player';
+  const errorEl = $('#saveError');
+  const name = String($('#saveName').value || '').trim();
+  if (!name) {
+    errorEl.textContent = '請輸入戰術名稱。';
+    $('#saveName').classList.add('is-invalid');
+    $('#saveName').focus();
+    return;
+  }
+
+  let publish;
+  if (role === 'coach') {
+    const code = String($('#saveCode').value || '').trim();
+    /* 已在教練模式 → 免暗號；否則比對批核暗號或教練密碼 */
+    if (!isCoach() && code !== COACH_APPROVE_CODE && code !== COACH_PASSWORD) {
+      errorEl.textContent = '教練暗號不正確，請再試一次。';
+      $('#saveCode').classList.add('is-invalid');
+      $('#saveCode').select();
+      return;
+    }
+    publish = { status: 'approved', authorLabel: '教練', author: { coach: true } };
+  } else {
+    const select = $('#savePerson');
+    const entry = rosterByNo(select && select.value);
+    try {
+      window.localStorage.setItem(LS_SAVE_PERSON, String(entry ? entry.no : ''));
+    } catch (err) { /* noop */ }
+    state.tacticAuthor = entry ? { no: entry.no, name: entry.name, pos: entry.pos } : null;
+    publish = {
+      status: 'pending',
+      authorLabel: entry ? ('#' + entry.no + ' ' + entry.name) : '球員',
+      author: entry ? { no: entry.no, name: entry.name, pos: entry.pos } : null
+    };
+  }
+
+  errorEl.textContent = '';
+  closeModal('saveModal');
+  await saveTacticNamed(name, publish);
+}
+
+async function saveTacticNamed(name, publish) {
   const clean = String(name || '').trim();
   if (!clean) {
     toast('請輸入戰術名稱', 'warn');
@@ -4343,10 +5805,13 @@ async function saveTacticNamed(name) {
   }
   saveCurrentFrame();
 
+  const info = publish || {};
   const targetIsCloud = supabaseReady();
   const reuseId = targetIsCloud
     ? (state.tacticSource === 'supabase' ? state.tacticId : null)
     : (state.tacticSource === 'local' ? state.tacticId : null);
+  const status = state.approveOnSave ? 'approved' : (info.status || 'approved');
+  const now = new Date().toISOString();
 
   const payload = {
     id: reuseId,
@@ -4357,7 +5822,17 @@ async function saveTacticNamed(name) {
     meta: {
       app: 'MONDAY BEER & BASKETBALL 戰術板',
       steps: state.frames.length,
-      savedAt: new Date().toISOString()
+      savedAt: now,
+      /* US-137：建戰術時選的防守陣型（key + 中文標籤），純 meta → 不需 migration */
+      defense: {
+        key: state.tacticDefense || '212',
+        label: (DEFENSE_PRESETS[state.tacticDefense] || DEFENSE_PRESETS['212']).label
+      },
+      /* US-134：批核狀態／提案人放在 meta，Supabase 不需 migration */
+      status: status,
+      authorLabel: info.authorLabel || (status === 'approved' ? '教練' : ''),
+      author: info.author || state.tacticAuthor || null,
+      approvedAt: status === 'approved' ? now : null
     }
   };
 
@@ -4367,13 +5842,24 @@ async function saveTacticNamed(name) {
     state.tacticId = result.record.id;
     state.tacticName = result.record.name;
     state.tacticSource = result.source;
-    syncTacticNameField(true);
+    state.tacticStatus = status;
+    state.approveOnSave = false;
     if (result.fallback) {
       toast('雲端儲存失敗，已改存本機', 'warn');
+    } else if (status === 'pending') {
+      toast('已提交提案「' + clean + '」· 等教練批核', 'success');
     } else {
-      toast('已儲存到' + (result.source === 'supabase' ? ' Supabase 雲端' : '本機儲存'), 'success');
+      toast('已發布「' + clean + '」到' + (result.source === 'supabase' ? ' Supabase 雲端' : '本機儲存'), 'success');
+    }
+    /* 教練用暗號發布 → 這次瀏覽直接取得教練權限，才能繼續批核其他提案 */
+    if (status === 'approved' && !isCoach() && info.author && info.author.coach) {
+      enterCoachMode(true);
     }
     updateStorePill();
+    /* US-139：存檔成功＝這次編輯已落地 → 清掉「進編輯前」的快照，
+       之後按「✕ 退出」只離開編輯模式，不會把畫面倒回存檔前 */
+    state.returnTo = null;
+    syncEditUI();
     await renderPlaybook();
   } catch (err) {
     console.error('[save]', err);
@@ -4381,6 +5867,462 @@ async function saveTacticNamed(name) {
   } finally {
     hideLoader();
   }
+}
+
+/* ══════════ US-139 / US-142：模式 UI 同步中樞
+   1) 右上角「＋ 新增」⇄「✕ 退出」
+   2) 底部「播放 4 鍵」⇄「編輯 4 鍵」
+   3) 中間動態面板（步驟資訊／球員陣容／防守陣型）
+   4) 右上角「🔔 待批 (N)」徽章 ＋ 右下批核浮條（教練） ══════════ */
+function syncEditUI() {
+  syncTopAction();
+  syncToolbar();
+  syncToolPanel();
+  updatePendingBadge();
+  syncReviewBar();
+}
+
+/* 右上角按鈕：繪製中＝「✕ 退出」（放棄未提交的內容 → 回到進編輯前的畫面） */
+function syncTopAction() {
+  const btn = $('#btnNewTactic');
+  if (!btn) return;
+  const editing = !!state.editing;
+  btn.classList.toggle('is-exit', editing);
+  const ico = btn.querySelector('.ntb-ico');
+  const short = btn.querySelector('.ntb-short');
+  const long = btn.querySelector('.ntb-long');
+  if (ico) ico.textContent = editing ? '✕' : '＋';
+  if (short) short.textContent = editing ? '退出' : '新增';
+  if (long) long.textContent = editing ? '退出' : '新增戰術';
+  const label = editing
+    ? '退出編輯：放棄目前編輯，回到播放模式'
+    : '新增戰術：清空畫布，重新開始一套新戰術';
+  btn.title = label;
+  btn.setAttribute('aria-label', label);
+  btn.dataset.action = editing ? 'exit' : 'new';
+}
+
+/* 底部工具列：播放 4 鍵 ⇄ 編輯 4 鍵（狀態只用 body[data-keys] 表達，顯示交給 CSS） */
+function syncToolbar() {
+  const keys = (canEdit() && !state.playing && !state.exporting) ? 'edit' : 'play';
+  if (document.body.dataset.keys !== keys) document.body.dataset.keys = keys;
+  const saveBtn = $('#ekSave');
+  if (saveBtn) {
+    /* US-138：作者＝教練（或按了 ✏️ 修改後批核）→ 直接發布 */
+    const publishing = isCoachAuthor() || !!state.approveOnSave;
+    const label = publishing ? '🚀 正式發布' : '📤 提交審核';
+    if (saveBtn.textContent !== label) saveBtn.textContent = label;
+    saveBtn.classList.toggle('is-publish', publishing);
+    saveBtn.title = publishing ? '正式發布到官方手冊（作者＝教練）' : '提交給教練批核（未批核）';
+  }
+  /* US-140：「＋ 加步驟」條移到球場下方，右側補上目前步數（frameCounter 在繪製中會隱藏） */
+  const addBtn = $('#ekAdd');
+  if (addBtn) addBtn.title = '新增一個步驟（目前 ' + state.frames.length + ' 步）';
+  const addCount = $('#saCount');
+  if (addCount) {
+    const text = '共 ' + state.frames.length + ' 步';
+    if (addCount.textContent !== text) addCount.textContent = text;
+  }
+}
+
+/* 中間面板視圖：'step'（預設）｜'roster'｜'defense'｜'draw'（US-140 走位畫筆） */
+function syncToolPanel() {
+  if (['roster', 'defense', 'draw'].indexOf(state.toolPanel) === -1) state.toolPanel = 'step';
+  document.body.dataset.panel = state.toolPanel;
+  [['#tpStep', 'step'], ['#tpRoster', 'roster'], ['#tpDefense', 'defense'], ['#tpDraw', 'draw']]
+    .forEach(function (pair) {
+      const el = $(pair[0]);
+      if (el) el.hidden = pair[1] !== state.toolPanel;
+    });
+  [['#ekRoster', 'roster'], ['#ekDefense', 'defense'], ['#ekDraw', 'draw']].forEach(function (pair) {
+    const btn = $(pair[0]);
+    if (!btn) return;
+    /* ✏️ 走位畫筆：只要正拿著線條工具（含從側欄選的）也一起亮，避免兩個入口狀態打架 */
+    const on = pair[1] === 'draw'
+      ? (state.toolPanel === 'draw' || isLineTool(state.tool))
+      : state.toolPanel === pair[1];
+    btn.classList.toggle('is-on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  if (state.toolPanel === 'roster') buildRosterPanel();
+  if (state.toolPanel === 'defense') {
+    markDefensePreset(state.customDefense ? 'custom' : (state.tacticDefense || '212'));
+  }
+  syncStepInfo();
+}
+
+/* 面板按鈕：再按同一顆就回到「步驟資訊」 */
+function setToolPanel(view) {
+  const next = (view === 'roster' || view === 'defense' || view === 'draw') ? view : 'step';
+  state.toolPanel = state.toolPanel === next ? 'step' : next;
+  syncToolPanel();
+}
+
+/* US-140：✏️ 走位畫筆 —— 開面板並預設「跑位線」；再按一次收回步驟資訊並放下畫筆 */
+function toggleDrawPanel() {
+  const entering = state.toolPanel !== 'draw';
+  /* 先改 state.toolPanel 再 setTool()：setTool → applyMode → syncEditUI → syncToolPanel 才不會遞迴 */
+  state.toolPanel = entering ? 'draw' : 'step';
+  if (entering) {
+    if (!isLineTool(state.tool)) setTool('cut');
+  } else if (isLineTool(state.tool) || state.tool === 'eraser') {
+    setTool('select');
+  }
+  syncToolPanel();
+}
+
+/* 面板上的「步驟 N／名稱／走位說明」：永遠跟著目前步驟；正在打字時不打斷 */
+function syncStepInfo() {
+  const frame = state.frames[state.currentFrame];
+  const idx = $('#tpIndex');
+  if (idx) idx.textContent = '步驟 ' + (state.currentFrame + 1);
+  const nameEl = $('#tpStepName');
+  if (nameEl && document.activeElement !== nameEl) {
+    nameEl.value = frame ? String(frame.name || '') : '';
+    nameEl.placeholder = '步驟 ' + (state.currentFrame + 1) + ' 名稱';
+  }
+  const descEl = $('#tpStepDesc');
+  if (descEl && document.activeElement !== descEl) {
+    descEl.value = frame && frame.desc ? String(frame.desc) : '';
+  }
+  /* US-142：批核入口已搬到右上角 🔔 待批審核中心（面板不再出現「待批核提案」列）；
+     瀏覽狀態下面板隱藏，但仍把輸入框設為 readOnly 以免 tab 誤入編輯。 */
+  const ro = !canEdit();
+  if (nameEl) nameEl.readOnly = ro;
+  if (descEl) descEl.readOnly = ro;
+  const busy = state.playing || state.exporting;
+  const previewBtn = $('#tpPreview');
+  if (previewBtn) previewBtn.disabled = busy;
+  ['#ekAdd', '#ekRoster', '#ekDefense', '#ekDraw', '#ekSave'].forEach(function (sel) {
+    const el = $(sel);
+    if (el) el.disabled = busy;
+  });
+}
+
+/* 只換目前卡片的文字（打字時用，避免整份清單重繪） */
+function refreshStepChipLabel() {
+  const list = $('#stepList');
+  const frame = state.frames[state.currentFrame];
+  const chip = list && list.children[state.currentFrame];
+  if (!frame || !chip) return;
+  const nameEl = chip.querySelector('.step-name');
+  if (nameEl) nameEl.textContent = frame.name || ('步驟 ' + (state.currentFrame + 1));
+  let descEl = chip.querySelector('.step-desc');
+  const desc = frame.desc ? String(frame.desc) : '';
+  if (!desc) {
+    if (descEl) descEl.remove();
+    return;
+  }
+  if (!descEl) {
+    const body = chip.querySelector('.step-body');
+    if (!body) return;
+    descEl = document.createElement('span');
+    descEl.className = 'step-desc';
+    body.appendChild(descEl);
+  }
+  descEl.textContent = desc;
+}
+
+/* 面板輸入：即時寫回目前步驟（名稱 ≤24 字、走位說明 ≤80 字） */
+function commitStepName() {
+  const el = $('#tpStepName');
+  const frame = state.frames[state.currentFrame];
+  if (!el || !frame) return;
+  const value = String(el.value || '').replace(/\s+/g, ' ').trim().slice(0, 24);
+  if (value === (frame.name || '')) return;
+  if (value) frame.name = value;
+  else delete frame.name;
+  refreshStepChipLabel();
+}
+
+function commitStepDesc() {
+  const el = $('#tpStepDesc');
+  const frame = state.frames[state.currentFrame];
+  if (!el || !frame) return;
+  const value = String(el.value || '').trim().slice(0, 80);
+  if (value === (frame.desc || '')) return;
+  if (value) frame.desc = value;
+  else delete frame.desc;
+  refreshStepChipLabel();
+}
+
+/* 進編輯前的快照：退出時原樣還原（frames／名稱／id／批核狀態皆回到進編輯前） */
+function snapshotBeforeEdit() {
+  state.returnTo = {
+    frames: cloneObjects(state.frames),
+    currentFrame: state.currentFrame,
+    tacticId: state.tacticId,
+    tacticName: state.tacticName,
+    tacticSource: state.tacticSource,
+    tacticStatus: state.tacticStatus,
+    tacticAuthor: state.tacticAuthor ? Object.assign({}, state.tacticAuthor) : null,
+    tacticDefense: state.tacticDefense,
+    customDefense: !!state.customDefense
+  };
+}
+
+/* 右上角「✕ 退出」：放棄這次編輯（含剛建立的空戰術）→ 回到進編輯前的畫面 */
+async function exitEditMode() {
+  if (state.playing || state.exporting) {
+    toast('播放／匯出中，請先停止再退出編輯', 'warn');
+    return;
+  }
+  const snap = state.returnTo;
+  state.editing = false;
+  state.approveOnSave = false;
+  state.tool = 'select';
+  state.toolPanel = 'step';
+  state.draw = null;
+  state.undo = [];
+  if (snap && snap.frames && snap.frames.length) {
+    state.frames = snap.frames;
+    state.currentFrame = clamp(snap.currentFrame || 0, 0, state.frames.length - 1);
+    state.tacticId = snap.tacticId;
+    state.tacticName = snap.tacticName;
+    state.tacticSource = snap.tacticSource;
+    state.tacticStatus = snap.tacticStatus;
+    state.tacticAuthor = snap.tacticAuthor;
+    state.tacticDefense = snap.tacticDefense || '212';
+    state.customDefense = !!snap.customDefense;
+    state.returnTo = null;
+    applyMode();
+    await renderFrame(state.currentFrame);
+    renderLibrary();
+    updateStorePill();
+    await renderPlaybook();
+  } else {
+    state.returnTo = null;
+    applyMode();
+    renderStepUI();
+  }
+  closePlaybookDrawer();
+  openSidebar(false);
+  toast('已退出編輯 · 未提交的內容已放棄');
+}
+
+/* 右上角單一入口：繪製中＝✕ 退出；唯讀＝＋ 新增戰術 */
+function topAction() {
+  if (state.editing) { exitEditMode(); return; }
+  newTactic();
+}
+
+/* US-138／US-139：底部「📤 提交審核 / 🚀 發布」→ 依「作者」直接寫入，完全不開儲存對話框
+   ─ 作者＝球員 → status 'pending'（等教練批核）
+   ─ 作者＝教練（或按了 ✏️ 修改後批核）→ status 'approved'（直接發布）
+   名稱在「建立新戰術」對話框已填好；真的沒有名稱時才退回舊的儲存對話框。 */
+async function quickSubmitTactic() {
+  if (state.exporting || state.playing) return;
+  saveCurrentFrame();
+  const clean = String(state.tacticName || '').trim();
+  if (!clean) { openSaveDialog(); return; }
+  const publishing = isCoachAuthor() || !!state.approveOnSave;
+  const author = state.tacticAuthor;
+  await saveTacticNamed(clean, {
+    status: publishing ? 'approved' : 'pending',
+    authorLabel: publishing
+      ? '教練'
+      : (author && author.no != null ? ('#' + author.no + ' ' + author.name) : '球員'),
+    author: publishing ? { coach: true } : author
+  });
+}
+
+/* ════════════════════════════════════════════════════════════
+   US-142 待批審核中心（教練專屬）：🔔 徽章 → 待審核 Bottom Sheet → 右下批核浮條
+   資料全部取自 state.playbookItems（renderPlaybook 的 store.list() 已填滿）→ 不額外發請求
+   ════════════════════════════════════════════════════════════ */
+
+/* 待批清單：新提交的排前面 */
+function pendingItems() {
+  return (state.playbookItems || [])
+    .filter(function (item) { return item.status === 'pending'; })
+    .sort(function (a, b) {
+      return String(b.updated_at || '').localeCompare(String(a.updated_at || ''));
+    });
+}
+
+/* 頂部「🔔 待批 (N)」：只有教練身分且有待批時出現；播放／匯出中禁用 */
+function updatePendingBadge() {
+  const btn = $('#btnPending');
+  const badge = $('#pendBadge');
+  const n = pendingItems().length;
+  if (btn) {
+    btn.hidden = !(isCoach() && n > 0);
+    btn.disabled = state.playing || state.exporting;
+    btn.setAttribute('aria-label', '待批審核：' + n + ' 套');
+    btn.title = '待批審核中心：' + n + ' 套提案等待批核';
+  }
+  if (badge) badge.textContent = n > 99 ? '99+' : String(n);
+  const count = $('#pendCount');
+  if (count) count.textContent = n > 0 ? '(' + n + ')' : '';
+}
+
+/* 提交人文字：'#23 Kenny' / '教練' / '未署名（匿名提案）' */
+function pendingAuthorLabel(item) {
+  const label = item && item.authorLabel ? String(item.authorLabel).trim() : '';
+  return label || '未署名（匿名提案）';
+}
+
+function renderPendingList() {
+  const list = $('#pendList');
+  const empty = $('#pendEmpty');
+  if (!list) return;
+  const items = pendingItems();
+  list.innerHTML = '';
+  if (empty) empty.hidden = items.length > 0;
+  items.forEach(function (item) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'pend-item' + (state.tacticId === item.id ? ' is-current' : '');
+    row.setAttribute('role', 'listitem');
+    row.dataset.id = item.id;
+    row.title = '載入並批核「' + (item.name || '未命名戰術') + '」';
+
+    const nameRow = document.createElement('span');
+    nameRow.className = 'pend-item-name';
+    const name = document.createElement('b');
+    name.textContent = item.name || '未命名戰術';
+    const tag = document.createElement('span');
+    tag.className = 'pend-item-tag';
+    tag.textContent = '未批核';
+    nameRow.appendChild(name);
+    nameRow.appendChild(tag);
+
+    const meta = document.createElement('span');
+    meta.className = 'pend-item-meta';
+    meta.appendChild(document.createTextNode('提議：' + pendingAuthorLabel(item)));
+    meta.appendChild(document.createTextNode(' · '));
+    meta.appendChild(document.createTextNode('提交：' + (formatTime(item.updated_at) || '—')));
+    const src = document.createElement('span');
+    src.className = 'tag';
+    src.textContent = item.source === 'cloud' ? 'CLOUD' : 'LOCAL';
+    meta.appendChild(src);
+
+    row.appendChild(nameRow);
+    row.appendChild(meta);
+    row.addEventListener('click', function () { selectPendingItem(item); });
+    list.appendChild(row);
+  });
+}
+
+
+function openPendingSheet() {
+  if (!isCoach()) { requestCoachMode(); return; }
+  const sheet = $('#pendingSheet');
+  if (!sheet) return;
+  updatePendingBadge();
+  renderPendingList();
+  sheet.hidden = false;
+  const btn = $('#btnPending');
+  if (btn) btn.setAttribute('aria-expanded', 'true');
+  syncSheetScrim();
+  /* 先移除 hidden、下一格再加 is-open，才有滑入動畫 */
+  window.requestAnimationFrame(function () { sheet.classList.add('is-open'); });
+  const first = sheet.querySelector('.pend-item') || $('#pendClose');
+  if (first) window.setTimeout(function () { first.focus(); }, 80);
+}
+
+function closePendingSheet() {
+  const sheet = $('#pendingSheet');
+  const btn = $('#btnPending');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+  if (!sheet || sheet.hidden) { syncSheetScrim(); return; }
+  sheet.classList.remove('is-open');
+  window.setTimeout(function () {
+    if (!sheet.classList.contains('is-open')) sheet.hidden = true;
+    syncSheetScrim();
+  }, 240);
+  syncSheetScrim();
+}
+
+/* 點清單一列 → 關閉 sheet、載入該提案（loadTactic 會自動播一次）、浮出右下批核條 */
+async function selectPendingItem(item) {
+  if (!item) return;
+  closePendingSheet();
+  state.reviewDismissed = false;
+  await loadTactic(item);
+  syncEditUI();
+}
+
+/* 右下批核浮條：教練 + 瀏覽狀態 + 目前載入的是待批提案 → 顯示 */
+function syncReviewBar() {
+  const bar = $('#reviewBar');
+  if (!bar) return;
+  const show = isCoach() && !state.editing && !!state.tacticId &&
+    state.tacticStatus === 'pending' && !state.reviewDismissed;
+  bar.hidden = !show;
+  document.body.classList.toggle('has-review', show);
+  if (!show) return;
+  const item = pendingItems().filter(function (it) { return it.id === state.tacticId; })[0];
+  const nameEl = $('#rvName');
+  const metaEl = $('#rvMeta');
+  if (nameEl) nameEl.textContent = state.tacticName || (item && item.name) || '未命名戰術';
+  if (metaEl) {
+    const parts = [];
+    if (item) parts.push('提議：' + pendingAuthorLabel(item));
+    if (item) parts.push('提交：' + (formatTime(item.updated_at) || '—'));
+    metaEl.textContent = parts.join(' · ');
+  }
+  ['#rvApprove', '#rvEdit', '#rvReject'].forEach(function (sel) {
+    const el = $(sel);
+    if (el) el.disabled = state.playing || state.exporting;
+  });
+}
+
+/* 教練退回：刪掉提案（沿用 removeTactic 的確認框與清除邏輯） */
+function rejectPending(item) {
+  if (!isCoach()) { requestCoachMode(); return; }
+  if (!item || !item.id) return;
+  closePendingSheet();
+  removeTactic(item, {
+    title: '退回提案',
+    desc: '確定退回「' + (item.name || '未命名戰術') + '」？此提案會被刪除，提案人需要重新提交。',
+    okText: '退回刪除'
+  });
+}
+
+/* 教練一口批准：item 可省略（＝目前載入的戰術）→ 直接改 meta.status = approved（不進編輯） */
+async function approveTactic(item) {
+  if (!isCoach()) { requestCoachMode(); return; }
+  const rec = item && item.id
+    ? item
+    : (state.tacticId
+      ? { id: state.tacticId, source: state.tacticSource, name: state.tacticName }
+      : null);
+  if (!rec || !rec.id) return;
+  if (state.playing || state.exporting) return;
+  const label = rec.name || state.tacticName || '未命名戰術';
+  showLoader('批核中…', 45);
+  try {
+    await store.setStatus(rec.id, rec.source, 'approved');
+    if (state.tacticId === rec.id) {
+      state.tacticStatus = 'approved';
+      state.approveOnSave = false;
+    }
+    closePendingSheet();
+    syncEditUI();
+    if (typeof closePlaybookDrawer === 'function') closePlaybookDrawer();
+    await renderPlaybook();
+    syncEditUI();
+    toast('已批准「' + label + '」· 已進官方手冊', 'success');
+  } catch (err) {
+    console.error('[approve]', err);
+    toast('批核失敗：' + (err && err.message ? err.message : '未知錯誤'), 'error');
+  } finally {
+    hideLoader();
+  }
+}
+
+/* 修改後批核：先解鎖編輯，改了再按「🚀 發布」→ 儲存時自動改成已批核 */
+function approveAfterEdit() {
+  if (!isCoach()) { requestCoachMode(); return; }
+  if (!state.tacticId) return;
+  snapshotBeforeEdit();          /* US-139：按「✕ 退出」可回到批核前的樣子 */
+  state.approveOnSave = true;
+  state.editing = true;
+  state.toolPanel = 'step';
+  applyMode();
+  syncEditUI();
+  toast('已進入編輯 · 改完按「🚀 發布」就完成批核', 'warn');
 }
 
 /* ── 經典戰術庫：一鍵載入（沿用 §12 的影格流程） ── */
@@ -4413,9 +6355,16 @@ async function loadLibraryTactic(key) {
     state.tacticId = 'lib:' + tactic.key;
     state.tacticName = tactic.name;
     state.tacticSource = 'library';
+    state.tacticStatus = 'approved';
+    state.approveOnSave = false;
+    state.editing = false;
+    state.returnTo = null;             /* US-139：換了戰術 → 舊的編輯快照作廢 */
+    state.toolPanel = 'step';
     state.undo = [];
     state.tool = 'select';
     applyMode();
+    state.tacticDefense = '212';       /* US-137：經典戰術庫固定首選 2-1-2 起手 */
+    state.tacticAuthor = null;
     await renderFrame(0);
     renderLibrary();
     renderPlaybook();
@@ -4461,26 +6410,80 @@ function renderLibrary() {
     });
     host.dataset.rendered = '1';
   });
+  syncSubActive();
 }
 
-/* ── 手冊頂部「戰術名稱」小輸入框：與 state.tacticName 雙向同步 ── */
-function syncTacticNameField(force) {
-  const input = $('#pbNameInput');
-  if (!input) return;
-  if (!force && document.activeElement === input) return;
-  input.value = state.tacticName || '';
+/* ── 手機手冊第二層：點分類 → 整層切到子頁面清單（取代原地展開 Accordion） ── */
+function categoryByKey(key) {
+  for (let i = 0; i < LIB_CATEGORIES.length; i++) {
+    if (LIB_CATEGORIES[i].key === key) return LIB_CATEGORIES[i];
+  }
+  return null;
 }
 
-/* 新增戰術後把焦點帶到名稱輸入框（手機先確保手冊抽屜是開的） */
-function focusTacticNameField() {
-  const input = $('#pbNameInput');
-  if (!input) return;
-  if (window.innerWidth <= 1100 && typeof openPlaybookDrawer === 'function') openPlaybookDrawer(true);
+function renderPlaybookCategoryList(key) {
+  const host = $('#pbSubList');
+  if (!host) return;
+  const items = TACTIC_LIBRARY.filter(function (item) { return item.cat === key; });
+  const countEl = $('#pbSubCount');
+  if (countEl) countEl.textContent = items.length;
+  host.dataset.cat = key;
+  host.innerHTML = '';
+  if (!items.length) {
+    const empty = document.createElement('div');
+    empty.className = 'pb-sub-empty';
+    empty.textContent = '這個分類還沒有戰術。';
+    host.appendChild(empty);
+    return;
+  }
+  items.forEach(function (item) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pb-lib' + (state.tacticId === 'lib:' + item.key ? ' is-active' : '');
+    btn.dataset.key = item.key;
+    btn.title = item.name + ' — ' + item.desc;
+    btn.innerHTML = '<span class="pb-lib-name">' + escapeHtml(item.name) + '</span>' +
+      '<span class="pb-lib-meta"><b>' + escapeHtml(item.tag) + '</b>' + item.steps.length + ' 步</span>';
+    btn.addEventListener('click', function () { loadLibraryTactic(item.key); });
+    host.appendChild(btn);
+  });
+}
+
+/* 目前載入的戰術若在此分類，子頁面清單同步高亮 */
+function syncSubActive() {
+  const host = $('#pbSubList');
+  if (!host || !host.dataset.cat) return;
+  $$('.pb-lib', host).forEach(function (btn) {
+    btn.classList.toggle('is-active', state.tacticId === 'lib:' + btn.dataset.key);
+  });
+}
+
+function openPlaybookCategory(key) {
+  const cat = categoryByKey(key);
+  if (!cat) return;
+  const titleEl = $('#pbSubTitle');
+  const enEl = $('#pbSubEn');
+  if (titleEl) titleEl.textContent = cat.label;
+  if (enEl) enEl.textContent = cat.en || '';
+  renderPlaybookCategoryList(key);
+  const sub = $('#pbSubView');
+  const pb = $('#playbook');
+  if (sub) sub.hidden = false;
+  if (pb) {
+    void pb.offsetWidth;            // 先讓子頁面完成佈局，滑入動畫才會播
+    pb.classList.add('is-sub');
+  }
+}
+
+function closePlaybookCategory(immediate) {
+  const pb = $('#playbook');
+  const sub = $('#pbSubView');
+  if (!pb || !sub) return;
+  pb.classList.remove('is-sub');
+  if (immediate) { sub.hidden = true; return; }
   setTimeout(function () {
-    input.focus();
-    input.select();
-    if (input.scrollIntoView) input.scrollIntoView({ block: 'nearest' });
-  }, 60);
+    if (!pb.classList.contains('is-sub')) sub.hidden = true;
+  }, 260);
 }
 
 /* ── 左側戰術手冊：點名稱載入、✎ 改名、🗑 刪除 ── */
@@ -4503,30 +6506,41 @@ async function renderPlaybook() {
     console.warn('[playbook]', err);
   }
   state.playbookItems = items;
+  /* US-142：清單一抓到就同步右上角 🔔 待批 (N) 與右下批核浮條（不額外發請求） */
+  updatePendingBadge();
+  /* 已批核的排前面、未批核提案沉到最後（US-134）；同組內依更新時間新→舊 */
+  items.sort(function (a, b) {
+    const pa = a.status === 'pending' ? 1 : 0;
+    const pb = b.status === 'pending' ? 1 : 0;
+    if (pa !== pb) return pa - pb;
+    return String(b.updated_at || '').localeCompare(String(a.updated_at || ''));
+  });
   const mineCount = $('#pbMineCount');
   if (mineCount) mineCount.textContent = items.length;
   updatePlaybookFoot();
-  syncTacticNameField();
 
   list.innerHTML = '';
   if (!items.length) {
     const empty = document.createElement('div');
     empty.className = 'pb-empty';
     empty.textContent = isCoach()
-      ? '尚無儲存的戰術，按上方「➕ 新增戰術」建立第一套。'
-      : '教練尚未發布戰術。';
+      ? '尚無儲存的戰術，按右上角「＋ 新增」建立第一套。'
+      : '尚無戰術 · 按右上角「＋ 新增」畫一套，送出後等教練批核。';
     list.appendChild(empty);
     return;
   }
 
   items.forEach(function (item) {
     const label = item.name || '未命名戰術';
+    const isPending = item.status === 'pending';
     const row = document.createElement('div');
-    row.className = 'pb-item' + (state.tacticId && item.id === state.tacticId ? ' is-active' : '');
+    row.className = 'pb-item' +
+      (state.tacticId && item.id === state.tacticId ? ' is-active' : '') +
+      (isPending ? ' is-pending' : '');
     row.dataset.id = item.id;
     row.dataset.source = item.source;
     row.dataset.name = label;
-    row.title = label;
+    row.title = label + (isPending ? '（未批核）' : '');
     row.addEventListener('click', function () { loadTactic(item); });
 
     const main = document.createElement('button');
@@ -4538,9 +6552,21 @@ async function renderPlaybook() {
       loadTactic(item);
     });
 
+    /* 名稱 + 未批核標記（球員提案，等教練批核） */
+    const nameRow = document.createElement('span');
+    nameRow.className = 'pb-name-row';
     const nameEl = document.createElement('span');
     nameEl.className = 'pb-name';
     nameEl.textContent = label;
+    nameRow.appendChild(nameEl);
+    if (isPending) {
+      const pendingTag = document.createElement('span');
+      pendingTag.className = 'pb-pending-tag';
+      /* US-142：未批核提案直接在標記上寫出提議人「未批核 · #34 Kenny 提議」 */
+      pendingTag.textContent = '未批核' + (item.authorLabel ? ' · ' + item.authorLabel + ' 提議' : '');
+      pendingTag.title = item.authorLabel ? '由 ' + item.authorLabel + ' 提交 · 等待教練批核' : '等待教練批核';
+      nameRow.appendChild(pendingTag);
+    }
 
     const metaEl = document.createElement('span');
     metaEl.className = 'pb-meta';
@@ -4550,9 +6576,16 @@ async function renderPlaybook() {
     const timeEl = document.createElement('span');
     timeEl.textContent = formatTime(item.updated_at) || '—';
     metaEl.appendChild(tag);
+    /* US-142：未批核時提議人已寫在「未批核 · … 提議」標記上，meta 不再重複 by */
+    if (item.authorLabel && !isPending) {
+      const authorEl = document.createElement('span');
+      authorEl.className = 'pb-author';
+      authorEl.textContent = 'by ' + item.authorLabel;
+      metaEl.appendChild(authorEl);
+    }
     metaEl.appendChild(timeEl);
 
-    main.appendChild(nameEl);
+    main.appendChild(nameRow);
     main.appendChild(metaEl);
 
     const actions = document.createElement('span');
@@ -4644,8 +6677,19 @@ async function loadTactic(item) {
     state.tacticId = record.id;
     state.tacticName = record.name || '';
     state.tacticSource = item.source;
+    /* US-134：載入時同步批核狀態（舊紀錄沒有 meta.status → 視為已批核） */
+    state.tacticStatus = (record.meta && record.meta.status) || item.status || 'approved';
+    /* US-137：載入時同步防守陣型與提議球員（舊紀錄沒有 meta.defense → 首選 2-1-2） */
+    state.tacticDefense = (record.meta && record.meta.defense && record.meta.defense.key) || '212';
+    state.tacticAuthor = (record.meta && record.meta.author) || null;
+    state.approveOnSave = false;
+    state.editing = false;
+    state.reviewDismissed = false;   /* US-142：換了戰術 → 批核浮條重新顯示 */
+    state.returnTo = null;       /* US-139：換了戰術 → 舊的編輯快照作廢 */
+    state.toolPanel = 'step';
     state.undo = [];
     await renderFrame(0);
+    applyMode();                 /* 重新套用繪製權限 + 刷新播放／編輯 4 鍵（US-139） */
     loadedName = record.name || '未命名戰術';
     toast('已載入「' + loadedName + '」', 'success');
     renderPlaybook();
@@ -4659,8 +6703,15 @@ async function loadTactic(item) {
   if (loadedName) autoPlayLoaded(loadedName);
 }
 
-async function removeTactic(item) {
-  const ok = await confirmDialog('刪除戰術', '確定要刪除「' + (item.name || '未命名戰術') + '」嗎？此動作無法復原。', '刪除');
+/* US-142：opts 可自訂確認框文字（教練從待批清單「退回」時沿用同一條刪除路徑） */
+async function removeTactic(item, opts) {
+  const o = opts || {};
+  const name = item.name || '未命名戰術';
+  const ok = await confirmDialog(
+    o.title || '刪除戰術',
+    o.desc || ('確定要刪除「' + name + '」嗎？此動作無法復原。'),
+    o.okText || '刪除'
+  );
   if (!ok) return;
   try {
     await store.remove(item.id, item.source);
@@ -4668,9 +6719,13 @@ async function removeTactic(item) {
       state.tacticId = null;
       state.tacticName = '';
       state.tacticSource = null;
+      state.tacticStatus = null;
+      state.tacticAuthor = null;
+      state.approveOnSave = false;
     }
-    toast('已刪除', 'success');
+    toast(o.doneText || '已刪除', 'success');
     await renderPlaybook();
+    syncEditUI();
   } catch (err) {
     console.error('[remove]', err);
     toast('刪除失敗：' + (err && err.message ? err.message : '未知錯誤'), 'error');
@@ -4686,7 +6741,8 @@ function isMobileSheet() {
   return window.matchMedia('(max-width: 767px)').matches;
 }
 
-/* 依球場（含步驟說明卡）下緣動態換算抽屜高度上限 → 抽屜永遠不會蓋到球場 */
+/* 依球場下緣動態換算「教練工具」抽屜高度上限 → 工具抽屜維持不蓋球場
+   （戰術手冊已改為固定 78dvh，不再受此限制） */
 function updateSheetLimit() {
   const root = document.documentElement;
   if (!isMobileSheet()) {
@@ -4695,21 +6751,20 @@ function updateSheetLimit() {
   }
   const board = document.querySelector('.board-wrap');
   if (!board) return;
-  let bottom = board.getBoundingClientRect().bottom;
-  const info = document.querySelector('.mobile-stepinfo');
-  if (info && !info.hidden && info.offsetParent) {
-    const rect = info.getBoundingClientRect();
-    if (rect.height > 0) bottom = Math.max(bottom, rect.bottom);
-  }
+  const bottom = board.getBoundingClientRect().bottom;
   const avail = Math.round(window.innerHeight - bottom - 12);
-  const max = Math.max(220, Math.min(560, avail));
+  /* 下限 150px：矮視窗（例如 1280×720 筆電、手機橫向）仍可操作，抽屜內容自身可捲動 */
+  const max = Math.max(150, Math.min(560, avail));
   root.style.setProperty('--sheet-max', max + 'px');
 }
 
 function syncSheetScrim() {
   const scrim = $('#pbScrim');
-  const open = !!document.querySelector('.playbook.is-open, .sidebar.is-open');
+  const pend = $('#pendingSheet');
+  const pendOpen = !!pend && !pend.hidden;
+  const open = !!document.querySelector('.playbook.is-open, .sidebar.is-open, .pend-sheet.is-open') || pendOpen;
   if (scrim) scrim.hidden = !open;
+  /* 待審核 sheet 是滿版彈窗：背景鎖捲動（手冊／工具抽屜不鎖，維持原行為） */
   document.body.classList.toggle('sheet-open', open);
   if (open) updateSheetLimit();
 }
@@ -4718,8 +6773,13 @@ function openPlaybookDrawer(open) {
   const pb = $('#playbook');
   if (!pb) return;
   pb.classList.toggle('is-open', !!open);
+  if (!open) closePlaybookCategory(true);   // 關閉時回到分類頁，下次打開從第一層開始
   const toggle = $('#pbToggle');
-  if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle.classList.toggle('is-open', !!open);   // 手機底部「📖 戰術」鍵高亮
+    toggle.setAttribute('aria-label', open ? '關閉戰術手冊' : '開啟戰術手冊');
+  }
   if (open) {
     const sidebar = $('#sidebar');
     if (sidebar && sidebar.classList.contains('is-open')) {
@@ -4819,20 +6879,27 @@ function setSideCollapsed(collapsed, silent, persist) {
   if (persist !== false) {
     try { window.localStorage.setItem(SIDE_KEY, next ? '1' : '0'); } catch (err) { /* noop */ }
   }
-  if (!silent) toast(next ? '工具列已收起 · 點右側 ‹ 展開' : '工具列已展開');
+  /* 工具列收合不再跳提示（按鈕 aria 與畫面已同步），避免蓋住球場 */
 }
 
 function enterCoachMode(silent) {
   state.mode = 'coach';
+  /* US-142：教練登入後＝瀏覽狀態（與球員 100% 相同的畫面），要動手才按「＋ 新增」／「✏️ 微調後發布」 */
+  state.editing = false;
+  state.approveOnSave = false;
+  state.tool = 'select';
+  state.toolPanel = 'step';
+  state.draw = null;
+  state.reviewDismissed = false;
   try { window.sessionStorage.setItem(SESSION_KEY, '1'); } catch (err) { /* noop */ }
   applyMode();
   renderStepUI();
   renderPlaybook();
   setSideCollapsed(readSideCollapsed(), true);
-  /* 手機：教練模式不自動彈出抽屜（避免一解鎖就蓋住球場） */
-  if (!isMobileSheet()) openSidebar(true);
+  /* US-142：不再自動彈出教練工具抽屜（教練預設就是瀏覽，面板屬於編輯器） */
+  openSidebar(false);
   hideSplash();
-  if (!silent) toast('教練模式已解鎖', 'success');
+  if (!silent) toast('教練模式已解鎖 · 按「＋ 新增」開始畫，或按右上角 🔔 批核提案', 'success');
 }
 
 function exitCoachMode() {
@@ -4840,6 +6907,12 @@ function exitCoachMode() {
   saveCurrentFrame();
   state.mode = 'player';
   state.tool = 'select';
+  state.editing = false;          /* 離開教練模式 → 回到唯讀（要再畫請按「＋ 新增戰術」） */
+  state.approveOnSave = false;
+  state.reviewDismissed = false;
+  state.returnTo = null;          /* US-139：換身分 → 舊的編輯快照作廢 */
+  state.toolPanel = 'step';
+  closePendingSheet();
   try { window.sessionStorage.removeItem(SESSION_KEY); } catch (err) { /* noop */ }
   applyMode();
   renderStepUI();
@@ -4880,7 +6953,7 @@ function enterPlayerMode() {
   } else {
     applyMode();
     renderStepUI();
-    toast('球員模式 · 點左側任一戰術即可播放', 'success');
+    toast('球員模式 · 選一個戰術即可播放', 'success');
   }
 }
 
@@ -4932,7 +7005,7 @@ function submitPassword(event) {
 }
 
 function deleteSelection() {
-  if (!isCoach()) return;
+  if (!canEdit()) return;
   const active = canvas.getActiveObjects();
   if (!active.length) { toast('請先選取要刪除的物件', 'warn'); return; }
   pushUndo();
@@ -4955,7 +7028,8 @@ function handleKeydown(event) {
     if (textEl && !textEl.hidden) { settleText(null); return; }
     if (inField) { event.target.blur(); return; }
     closeAllModals();
-    if (isCoach()) setTool('select');
+    closePendingSheet();
+    if (canEdit()) setTool('select');
     openSidebar(false);
     closePlaybookDrawer();
     return;
@@ -4968,11 +7042,11 @@ function handleKeydown(event) {
   }
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
     event.preventDefault();
-    if (isCoach()) undo();
+    if (canEdit()) undo();
     return;
   }
   if (event.key.toLowerCase() === 'l') { toggleLoop(); return; }
-  if (!isCoach()) return;
+  if (!canEdit()) return;
 
   if (event.key === 'Delete' || event.key === 'Backspace') {
     event.preventDefault();
@@ -5003,8 +7077,9 @@ function bindUI() {
   if (enterPlayerBtn) enterPlayerBtn.addEventListener('click', enterPlayerMode);
   const enterCoachBtn = $('#enterCoach');
   if (enterCoachBtn) enterCoachBtn.addEventListener('click', enterCoachFromSplash);
-  const homeBtn = $('#btnHome');
-  if (homeBtn) homeBtn.addEventListener('click', backToSplash);
+  /* US-137：左上隊徽／隊名＝回首頁（手冊抽屜的「⎋ 切換身分」已移除） */
+  const brandHome = $('#brandHome');
+  if (brandHome) brandHome.addEventListener('click', backToSplash);
 
   /* 名單位置篩選 */
   $$('.pos-chip').forEach(function (chip) {
@@ -5025,7 +7100,7 @@ function bindUI() {
   /* 節點按鈕 */
   $$('.node[data-tool]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      if (!isCoach()) { requestCoachMode(); return; }
+      if (!canEdit()) { needDrawMode(); return; }
       addNode(btn.dataset.tool);
     });
   });
@@ -5033,7 +7108,7 @@ function bindUI() {
   /* 線條工具 */
   $$('.tool[data-tool]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      if (!isCoach()) { requestCoachMode(); return; }
+      if (!canEdit()) { needDrawMode(); return; }
       setTool(btn.dataset.tool);
     });
   });
@@ -5053,32 +7128,79 @@ function bindUI() {
   bind('#btnGifSheet', exportGif);
   bind('#btnDupStepSheet', duplicateStep);
   bind('#btnDelStepSheet', deleteStep);
-  bind('#btnSaveTactic', openSaveDialog);
   bind('#btnLoop', toggleLoop);
+
+  /* ── US-139：右上角「＋ 新增」⇄「✕ 退出」、編輯 4 鍵、動態工具面板 ── */
+  bind('#btnNewTactic', topAction);          /* 唯讀＝建立新戰術；繪製中＝放棄並退出 */
+  /* ── US-142：待批審核中心（教練） ── */
+  bind('#btnPending', openPendingSheet);     /* 右上角 🔔 待批 (N) */
+  bind('#pendClose', closePendingSheet);
+  bind('#rvApprove', function () { approveTactic(); }); /* 浮條：✅ 批准發布 */
+  bind('#rvEdit', approveAfterEdit);         /* 浮條：✏️ 微調後發布 */
+  bind('#rvClose', function () {             /* 浮條：✕ 收起（換戰術／重載即恢復） */
+    state.reviewDismissed = true;
+    syncReviewBar();
+  });
+  bind('#rvReject', function () {            /* 浮條：🗑 退回（刪除提案） */
+    const rec = state.tacticId
+      ? { id: state.tacticId, source: state.tacticSource, name: state.tacticName }
+      : null;
+    if (rec) rejectPending(rec);
+  });
+  bind('#btnShare', shareTactic);            /* 播放 4 鍵：分享 GIF */
+  bind('#btnGifBook', exportGif);            /* 手冊抽屜：儲存 GIF 到裝置 */
+  bind('#ekAdd', addStep);                   /* US-140：球場下方的「＋ 加步驟」輕量條 */
+  bind('#ekRoster', function () { setToolPanel('roster'); });   /* 👥 球員陣容 */
+  bind('#ekDefense', function () { setToolPanel('defense'); }); /* 🛡 防守陣型 */
+  bind('#ekDraw', toggleDrawPanel);          /* ✏️ 走位畫筆（跑位線／傳球虛線／掩護擋拆） */
+  bind('#ekSave', quickSubmitTactic);        /* 📤 提交審核／🚀 正式發布（直接寫入） */
+  bind('#tpPreview', playAnimation);         /* 面板 ▶ 預覽（＝播放動畫，停止即回編輯） */
+  bind('#tpTools', function () { openSidebar(true); }); /* 面板 ⚙ 教練工具（線條／動作） */
+  /* 面板上直接改「步驟名稱／走位說明」（取代舊的 window.prompt） */
+  const stepNameEl = $('#tpStepName');
+  if (stepNameEl) {
+    stepNameEl.addEventListener('input', commitStepName);
+    stepNameEl.addEventListener('change', function () { commitStepName(); renderStepUI(); });
+    stepNameEl.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') { event.preventDefault(); stepNameEl.blur(); }
+    });
+  }
+  const stepDescEl = $('#tpStepDesc');
+  if (stepDescEl) {
+    stepDescEl.addEventListener('input', commitStepDesc);
+    stepDescEl.addEventListener('change', function () { commitStepDesc(); renderStepUI(); });
+    stepDescEl.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') { event.preventDefault(); stepDescEl.blur(); }
+    });
+  }
   $$('#defGrid .def-btn').forEach(function (btn) {
     btn.addEventListener('click', function () { applyDefensePreset(btn.dataset.preset); });
   });
-  bind('#pbRefresh', function () { renderPlaybook(); });
   bind('#pbToggle', function () {
     const pb = $('#playbook');
     openPlaybookDrawer(!(pb && pb.classList.contains('is-open')));
   });
+  /* 手機：分類列＝入口 → 切到第二層子頁面（桌機仍使用原本的 Accordion 展開） */
+  $$('.pb-cat > summary').forEach(function (summary) {
+    summary.addEventListener('click', function (event) {
+      const details = summary.parentElement;
+      const key = details && details.dataset ? details.dataset.cat : '';
+      if (!key || !isMobileSheet()) return;
+      event.preventDefault();
+      details.open = false;
+      openPlaybookCategory(key);
+    });
+  });
+  bind('#pbSubBack', function () { closePlaybookCategory(); });
   bind('#pbClose', function () { openPlaybookDrawer(false); });
   bind('#pbScrim', function () {
     openPlaybookDrawer(false);
     openSidebar(false);
+    closePendingSheet();
     syncSheetScrim();
   });
-  bind('#pbNewTactic', newTactic);
-  const nameField = $('#pbNameInput');
-  if (nameField) {
-    nameField.addEventListener('input', function () { state.tacticName = nameField.value; });
-    nameField.addEventListener('keydown', function (event) {
-      if (event.key === 'Enter') { event.preventDefault(); nameField.blur(); }
-    });
-  }
   bind('#btnSaveStep', function () {
-    if (!isCoach()) { requestCoachMode(); return; }
+    if (!canEdit()) { needDrawMode(); return; }
     saveCurrentFrame();
     toast('已將目前畫面存為「' + (state.frames[state.currentFrame] || {}).name + '」的內容', 'success');
   });
@@ -5111,6 +7233,20 @@ function bindUI() {
   });
 
   /* 表單 */
+  const saveFormEl = $('#saveForm');
+  if (saveFormEl) saveFormEl.addEventListener('submit', submitSaveForm);
+  const createFormEl = $('#createForm');
+  if (createFormEl) createFormEl.addEventListener('submit', submitCreateForm);
+  /* US-138：儲存對話框的作者 ↔ 身分互鎖（選 🏀 教練＝直接發布；選球員＝提交提案） */
+  const savePersonEl = $('#savePerson');
+  if (savePersonEl) {
+    savePersonEl.addEventListener('change', function () {
+      setSaveRole(savePersonEl.value === AUTHOR_COACH ? 'coach' : 'player');
+    });
+  }
+  $$('#saveModal .role-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { setSaveRole(btn.dataset.role); });
+  });
   const pwForm = $('#pwForm');
   if (pwForm) pwForm.addEventListener('submit', submitPassword);
   const textForm = $('#textForm');
@@ -5172,11 +7308,120 @@ function seedDemo() {
   const step2 = serializeCanvas();
 
   state.frames = [
-    { id: uid(), name: '起始陣型', objects: step1 },
-    { id: uid(), name: '擋拆切入', objects: step2 }
+    {
+      id: uid(), name: '起始陣型', cue: '半場落位',
+      desc: '控衛弧頂持球，4 號上提左肘、5 號沉右肘，2、3 號分站兩側 45 度拉開空間。',
+      objects: step1
+    },
+    {
+      id: uid(), name: '擋拆切入', cue: '擋拆空檔',
+      desc: '4 號上擋後順下，1 號借掩護往右切入；弱邊 2 號沉底角等分球、5 號卡低位補位。',
+      objects: step2
+    }
   ];
   state.currentFrame = 0;
   loadObjects(step1, function () { renderStepUI(); });
+}
+
+/* 清單下方還有卡片時加淡出遮罩（桌機為橫向膠囊列，不加） */
+function syncStepsScrollFade() {
+  const list = $('#stepList');
+  if (!list) return;
+  const more = list.scrollHeight - list.scrollTop - list.clientHeight > 1;
+  list.classList.toggle('is-scrollable', more);
+}
+
+/* 把底部控制卡高度寫進 CSS 變數，讓 toast／浮層永遠貼在卡片上方 */
+function initStepbarMetrics() {
+  const bar = $('.stepbar');
+  const list = $('#stepList');
+  const root = document.documentElement;
+  const sync = function () {
+    const h = bar ? Math.round(bar.getBoundingClientRect().height) : 0;
+    root.style.setProperty('--stepbar-h', h + 'px');
+    syncStepbarDense();
+    syncStepsScrollFade();
+  };
+  sync();
+  if (window.ResizeObserver && bar) {
+    new ResizeObserver(sync).observe(bar);
+  } else {
+    window.addEventListener('resize', sync);
+  }
+  window.addEventListener('resize', syncStepbarDense);
+  window.addEventListener('orientationchange', syncStepbarDense);
+  if (list) list.addEventListener('scroll', syncStepsScrollFade, { passive: true });
+}
+
+/* ============================================================
+   §13.5 PWA：iOS「加入主畫面」引導
+   ─ iPhone／iPad 的 Safari 不會顯示 Chrome 那種安裝橫幅，入口藏在分享選單
+     → 這裡做一次性教學；按 ✕ 後 7 天內不再打擾（mbab:pwa-tip-dismissed-until）。
+   ─ 已經用 standalone（從主畫面開啟）就完全不必提示。
+   ============================================================ */
+const LS_PWA_TIP_UNTIL = 'mbab:pwa-tip-dismissed-until';
+const PWA_TIP_MUTE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function isIosDevice() {
+  const ua = String(window.navigator.userAgent || '').toLowerCase();
+  if (/(iphone|ipod|ipad)/.test(ua)) return true;
+  /* iPadOS 13+ 的 Safari 回報成 Macintosh（但有多點觸控）→ 一併視為 iOS */
+  return /macintosh/.test(ua) && Number(window.navigator.maxTouchPoints || 0) > 1;
+}
+
+function isStandaloneApp() {
+  if (window.navigator.standalone === true) return true;
+  return !!(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+}
+
+function pwaTipMutedUntil() {
+  try { return parseInt(window.localStorage.getItem(LS_PWA_TIP_UNTIL) || '0', 10) || 0; }
+  catch (err) { return 0; }
+}
+
+function showPwaTip() {
+  const el = $('#pwaTip');
+  if (!el || !el.hidden) return;
+  el.hidden = false;
+  document.body.classList.add('has-pwa-tip');
+  void el.offsetWidth;      /* 先讓瀏覽器算過初始 transform，滑入動畫才會播 */
+  el.classList.add('is-open');
+}
+
+function hidePwaTip() {
+  const el = $('#pwaTip');
+  if (!el) return;
+  el.classList.remove('is-open');
+  document.body.classList.remove('has-pwa-tip');
+  setTimeout(function () {
+    if (!el.classList.contains('is-open')) el.hidden = true;
+  }, 320);
+}
+
+function initPwaTip() {
+  const el = $('#pwaTip');
+  const close = $('#pwaTipClose');
+  if (!el || !close) return;
+
+  /* ✕ 一律綁定（收起＋記住 7 天）；「要不要自動彈出」才是平台條件，
+     這樣在桌機／Android 上手動開啟提示也能正常關閉。 */
+  close.addEventListener('click', function () {
+    hidePwaTip();
+    try {
+      window.localStorage.setItem(LS_PWA_TIP_UNTIL, String(Date.now() + PWA_TIP_MUTE_MS));
+    } catch (err) { /* 私密模式：這次關掉就好 */ }
+  });
+
+  if (!isIosDevice() || isStandaloneApp()) return;
+  const until = pwaTipMutedUntil();
+  if (until && Date.now() < until) return;
+
+  /* 歡迎畫面（身分選擇）還開著時先別擋在中間，等進站後再提示 */
+  const waitEnter = function () {
+    if (isSplashOpen()) { setTimeout(waitEnter, 600); return; }
+    showPwaTip();
+  };
+  setTimeout(waitEnter, 1500);
 }
 
 function boot() {
@@ -5193,16 +7438,24 @@ function boot() {
   }
 
   state.tacticSource = null;
+  /* 一次性清掉早期測試留下的自訂戰術（見 §3 purgeTestTacticsOnce） */
+  const purgedCount = purgeTestTacticsOnce();
   initCanvas();
   bindUI();
   ensureCourt();
   seedDemo();
   applyMode();
   renderStepUI();
+  initStepbarMetrics();
   renderLibrary();
   startGlow();
   updateStorePill();
   renderPlaybook();
+  initPwaTip();
+
+  if (purgedCount > 0) {
+    toast('已清除 ' + purgedCount + ' 套測試戰術 · 手冊只留 7 套經典戰術', 'success');
+  }
 
   setTimeout(function () {
     if (!supabaseReady()) {
@@ -5214,13 +7467,96 @@ function boot() {
   }, 700);
 }
 
-if (document.readyState === 'loading') {
+/* ============================================================
+   §14 手機框預覽（桌面視窗預設以 390 × 844 手機視角呈現）
+   ─ 判定在 <head> 的 inline script（避免版面閃動），這裡只負責外殼行為。
+   ============================================================ */
+
+/* 是否為「手機框外殼」那一份文件（<html class="phone-frame">） */
+function isPhoneFrameHost() {
+  return document.documentElement.classList.contains('phone-frame');
+}
+
+/* 外殼：載入框內那份真實手機版，並提供「桌面視窗」離開鈕 */
+function initPhoneFrame() {
+  const shell = $('#phoneShell');
+  const view = $('#phoneView');
+  if (!shell || !view) return;
+  shell.hidden = false;
+  if (!view.getAttribute('src')) {
+    /* 同一份 index.html，加上 ?phone=1：框內 innerWidth 真的只有 390 */
+    view.src = location.pathname + '?phone=1' + (location.hash || '');
+  }
+  view.addEventListener('load', syncPhoneSizeLabel);
+  window.addEventListener('resize', syncPhoneSizeLabel);
+  syncPhoneSizeLabel();
+  const exit = $('#phoneExit');
+  if (exit) {
+    exit.addEventListener('click', function () {
+      location.href = location.pathname + '?full=1';
+    });
+  }
+}
+
+/* 說明列顯示「框內真實的」手機尺寸（視窗矮的時候會少於 844，照實顯示） */
+function syncPhoneSizeLabel() {
+  const view = $('#phoneView');
+  const size = $('#psSize');
+  if (!view || !size) return;
+  const rect = view.getBoundingClientRect();
+  if (rect.width < 80 || rect.height < 80) return;
+  size.textContent = Math.round(rect.width) + ' × ' + Math.round(rect.height);
+}
+
+/* 視窗寬度跨過 768px 時自動切換視角（桌機縮小 → 真機全螢幕；反之亦然） */
+let viewportGuardTimer = null;
+function initViewportGuard() {
+  if (window.self !== window.top) return;
+  window.addEventListener('resize', function () {
+    clearTimeout(viewportGuardTimer);
+    viewportGuardTimer = setTimeout(function () {
+      const wants = window.innerWidth >= 768 && !/[?&]full=1(&|$)/.test(location.search);
+      if (wants !== isPhoneFrameHost()) location.reload();
+    }, 280);
+  });
+}
+
+initViewportGuard();
+
+if (isPhoneFrameHost()) {
+  /* 桌面外殼不初始化 App 本體：少一份 canvas，也避免兩份狀態不同步 */
+  initPhoneFrame();
+} else if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', boot);
 } else {
   boot();
 }
 
 </script>
+
+<!-- ══════════ iOS「加入主畫面」引導（PWA）══════════
+     只在 iOS Safari、且尚未以 standalone 開啟時出現（邏輯見 initPwaTip）。
+     用 .pwa-tip 自己的樣式（專案沒有 Tailwind），以 ./ 相對路徑不影響打包。 -->
+<div class="pwa-tip" id="pwaTip" hidden>
+  <div class="pwa-tip-card">
+    <div class="pwa-tip-head">
+      <span class="pwa-tip-title">
+        <span class="pwa-tip-ico" aria-hidden="true">📲</span>安裝為原生 App 體驗
+      </span>
+      <button type="button" class="pwa-tip-close" id="pwaTipClose"
+              title="關閉提示（7 天內不再顯示）" aria-label="關閉安裝提示">✕</button>
+    </div>
+    <p class="pwa-tip-text">
+      點擊下方 Safari 的分享圖示
+      <svg class="pwa-tip-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+      </svg>
+      ，然後選擇<strong>「加入主畫面」</strong>，即可享受全螢幕無網址列的順暢操作！
+    </p>
+    <span class="pwa-tip-arrow" aria-hidden="true"></span>
+  </div>
+</div>
 
 </body>
 </html>
