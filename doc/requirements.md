@@ -99,6 +99,8 @@
 
 **As a** 球員，**I want** 打開網站先看到一個歡迎首頁、選「我是球員」就直接進站看戰術，**so that** 我不用先搞清楚那些教練工具在哪裡，也不會誤觸把戰術改壞。
 
+> **（US-133 更新）** 球員進站後預設仍是唯讀，但已可主動按「＋ 新增戰術」進入繪製模式自己畫一套（提案制，見 US-133／US-134），不再被要求輸入教練密碼。
+
 ### US-123 教練身分先過密碼
 
 **As a** 教練，**I want** 在首頁選「我是教練」時才跳密碼框，**so that** 只有我拿得到編輯工具，隊友點進來永遠是唯讀。
@@ -131,7 +133,46 @@
 
 **As a** 球員／教練，**I want** 手機打開就是「球場滿版 → 單一步驟控制列 → 教練工具從底部滑出」的乾淨版面，**so that** 我不會在同一頁看到兩套步驟控制、也不會被抽屜蓋住球場，站場邊單手操作時一眼就知道下一步要按哪裡。
 
-**狀態：已實作（2026-11-06）** — ≤767px 重排為 Header 44px → 球場 100vw（忠實比例、不裁切、無圓角）→ 唯讀步驟資訊卡 → 底部動作列；教練工具與戰術手冊改為 Bottom Sheet（把手、下滑關閉、動態限高，永不加蓋球場）；`.mobile-dock`（步驟縮圖＋解說卡＋防守快捷 chip）與 `#lockBadge` 整組移除。桌面（>1100px）與平板（768–1100px）版面完全未動，見 FR-189～FR-198。
+**狀態：已實作（2026-11-06，US-131 再優化）** — ≤767px 重排為 Header 44px → 球場 100vw（忠實比例、不裁切、無圓角）→ **球場正下方一張白底控制卡**（步驟說明＋兩欄步驟鈕＋播放列＋工具／滿版儲存，卡片一路延伸到螢幕底）；戰術手冊改為 **78dvh 大抽屜＋分類→子頁面兩層導覽**，教練工具維持依球場下緣限高的 Bottom Sheet（把手、下滑關閉）；提示訊息一次一則、1.5 秒淡出。`.mobile-dock`（步驟縮圖＋解說卡＋防守快捷 chip）與 `#lockBadge` 整組移除。桌面（>1100px）與平板（768–1100px）版面完全未動，見 FR-189～FR-198、FR-207～FR-214。**（US-132 再調整：手機步驟區改為單欄長卡片、`#stepInfo` 移除，見 FR-215～FR-221）**
+
+### US-130 在電腦上也用「手機視角」檢查／示範
+
+**As a** 教練，**I want** 在電腦瀏覽器打開時，預設就看到裝在手機框裡的手機版介面（而不是大螢幕三欄版面），**so that** 我可以直接對照球員手機上看到的畫面來講解與驗收，也不必每次都開 DevTools 切裝置模擬。
+
+**狀態：已實作（2026-11-06）** — 桌面（≥768px 且以滑鼠／觸控板為主）預設把整個 App 裝進 390×844 的裝置框：深色底 `#1e293b`、圓角邊框、陰影，框內以同源 iframe 載入同一份 `index.html?phone=1`（因此框內是**真實**的 390px viewport，`dvh`、媒體查詢、`matchMedia` 全部按手機判定）；真機（<768px、iPad 等觸控裝置）與 `?full=1` 完全解除外框、維持 100vw×100vh 全螢幕 App 模式。見 FR-200～FR-206。
+
+### US-131 手機底部只有一張卡片、手冊直接看清單
+
+**As a** 站場邊的教練，**I want** 手機下方的步驟說明與按鈕合成一張白卡、戰術手冊一打開就看得到完整清單（分類點進去再選戰術），提示訊息只跳一則就自己消失，**so that** 我不會看到球場與按鈕之間那條灰縫、也不用在小抽屜裡擠著找戰術，更不會被連續跳出的提示字擋住畫面。
+
+**狀態：已實作（2026-11-06）** — ① `#stepInfo` 從 `.board-panel` 移入 `.stepbar`，`.stage` 移除灰底漸層、`.stepbar` 改白底圓角卡片並長到螢幕底（量測間隙 0px）；② 手冊 `.playbook` 固定 78dvh、新增 `.pb-views`／`#pbSubView` 兩層（分類列 `›` → 子頁面 `‹ 返回分類`），桌機 Accordion 不動；③ `toast()` 改單節點＋1500ms，並刪掉 7 則會遮畫面的噪音提示。見 FR-207～FR-214、NFR-126、C-116、AC-155～AC-160。
+**後續調整（US-132）**：`#stepInfo` 資訊列已整組移除，步驟區改為單欄長卡片（名稱＋說明＋機會標籤都在卡片上），見 FR-215～FR-221。
+
+
+### US-132 手機步驟改成一張張「可讀的長卡片」
+
+**As a** 站場邊的球員／教練，**I want** 手機下方的每個步驟都是一整條卡片，上面就寫著步驟名稱與這一步的跑位說明，而不是兩欄只能塞四個字的方塊鈕，**so that** 我不用先點下去才知道那一步要幹嘛，也不會在同一個畫面看到「上方說明欄＋下方按鈕」兩套重複的步驟資訊。
+
+**狀態：已實作（2026-11-06）** — ① 手機 `.steps` 由「兩欄 chip 格」改為**單欄縱向長卡片清單**：每張卡＝`①`編號徽章＋步驟名稱＋機會標籤＋跑位說明（12px、最多 2 行）＋右側 `›` 指示；② 選取中的卡片改為**磚紅品牌漸層底＋白字**，播放中右側指示改為 `●` 脈動；③ 卡片 `:active{transform:scale(.98)}` 提供按壓回饋，卡片有空間時自動長高填滿（單張上限 118px）、空間不足時清單自己捲動並在底部做 20px 淡出；④ 重複的 `#stepInfo` 資訊列整組移除（`renderMobileStepInfo()` 一併刪除）；⑤ toaster 由 `--stepbar-h` 動態貼齊卡片上緣。桌面（>1100px）與平板（768–1100px）以 `display:contents`／`display:none` 完全保持原膠囊外觀。見 FR-215～FR-221、NFR-127、C-117、AC-161～AC-166。
+
+
+### US-133 球員不必有教練帳號，也能自己畫一套戰術
+
+**As a** 隊上的球員，**I want** 不用先拿到教練密碼就能開一套新戰術、拖曳隊友、畫跑位線並存檔，**so that** 練球時想到的走法可以當場記下來交給教練，而不是回家用紙筆重畫一遍。
+
+**狀態：已實作（2026-11-06）** — ① 權限拆成兩把：`canEdit()`（能不能在球場上動手＝教練模式或「繪製模式」）與 `isCoach()`（批核、改別人的東西等特權），狀態放在 `state.editing`＋`body[data-edit]`；② 右上角「＋ 新增戰術」對所有身分開放，按下去直接進入繪製模式（免密碼、免帳號），手機還會自動收起手冊把球場露出來；③ 唯讀狀態下點節點鈕／線條工具／「儲存此步驟」改成一句「需要繪製模式…」的提示（`needDrawMode()`），**不會再跳教練密碼框**；④ 手機控制卡多一列輕量列「＋ 加步驟／💾 儲存」，繪製中才出現，不佔掉底部 4 鍵。見 FR-222～FR-226、NFR-128、C-118、AC-167～AC-169。
+
+### US-134 球員的改動變成「提案」，教練批核才進官方手冊
+
+**As a** 教練，**I want** 球員自己改的版本先標成「未批核提案」，等我按一下「✅ 批准」（或改完再批核）才進官方手冊，**so that** 手冊裡的戰術永遠是我認可的版本，而球員想到的變化也不會被擋在門外。
+
+**狀態：已實作（2026-11-06）** — ① 儲存對話框可切換「🏃 我是球員／📋 我是教練」：球員選名單上的自己（提案人記成 `#0 陳生`）→ 存成「未批核」；教練輸入暗號（預設 `1234`；已在教練模式免輸入）→ 直接「已批核」；② 批核狀態放在 `meta.status`（`pending`／`approved`）＋`meta.authorLabel`／`approvedAt`，Supabase **不需 migration**，舊紀錄沒有這個欄位一律視為已批核；③ 手冊清單未批核的提案會標「未批核」＋提案人，並沉到清單最後；④ 球員對既有戰術按「✏️ 修改提案」時會**先脫離原本那筆紀錄**（`tacticId = null`、名稱自動加「 提案」），存檔是新增一筆，**絕對不會蓋掉教練的正式版本**；⑤ 教練看到未批核時，手機輕量列換成「✅ 批准」（一鍵改狀態）與「✏️ 修改後批核」（改完按儲存就變已批核、原紀錄原地更新、不新增重複紀錄）。見 FR-227～FR-233、NFR-129、C-119、AC-170～AC-174。
+
+### US-135 一鍵把戰術分享到群組
+
+**As a** 球員／教練，**I want** 按一下「💬 分享」就把整套戰術（含所有步驟的 GIF）丟進 WhatsApp 群組，**so that** 隊友不用開網站也看得到跑位，我不用先存檔、開相簿、再一張一張找圖。
+
+**狀態：已實作（2026-11-06）** — ① GIF 擷取抽成 `captureGif()`，`⬇ 導出 GIF` 與 `💬 分享` 共用同一份結果（不重複擷取與編碼）；② 手機支援 `navigator.share({ files })` 時直接叫出系統分享面板（WhatsApp／IG 可收到真正的 GIF 檔），使用者取消不算錯誤；③ 桌機或不支援時退回「下載 GIF ＋ 開 `wa.me` 對話」並帶好「🏀 戰術名稱／N 個步驟｜MONDAY BEER & BASKETBALL 戰術板」文案；④ 手機底部第 4 鍵＝`💬 分享`，`⬇ 儲存 GIF` 移到手冊抽屜底部（底部只留 4 顆均分鍵）。見 FR-234～FR-235、NFR-130、C-120、AC-175～AC-176。
 
 ---
 
@@ -173,7 +214,7 @@
 
 | ID | 類型 | 需求 |
 | --- | --- | --- |
-| FR-113 | Functional | 雙模式：球員模式（唯讀，可切換步驟／播放）與教練模式（全功能），教練模式以密碼 `coach888` 解鎖，解鎖狀態存於 sessionStorage |
+| FR-113 | Functional | 雙模式：球員模式（唯讀，可切換步驟／播放）與教練模式（全功能），教練模式以密碼 `coach888` 解鎖，解鎖狀態存於 sessionStorage；**【US-133 更新】球員不再完全唯讀**——可按「＋ 新增戰術」或「✏️ 修改提案」進入繪製模式（見 FR-222／FR-223／FR-230） |
 | FR-114 | Functional | 鍵盤快捷鍵：`1`–`5` 加入進攻、`Shift+1`–`5` 加入防守、`B` 籃球、`V` 選取、`C/P/D/S` 線條、`E` 橡皮、`Del` 刪除、`Ctrl+Z` 復原、`Space` 播放／停止、`L` 循環播放、`Esc` 取消工具 |
 | FR-115 | Functional | 首次開啟預載兩步示範戰術（起始陣型 → 擋拆切入），讓播放／匯出功能立即可試 |
 
@@ -256,7 +297,7 @@
 | --- | --- | --- |
 | FR-164 | Functional | **（已撤銷：整張卡片已自原始碼刪除，改由 FR-177 取代）** 原條文：≤1100px 不顯示右側「快捷鍵 SHORTCUTS」卡片（`.panel-tips{display:none}`，不刪 DOM） |
 | FR-165 | Functional | 左側戰術手冊頂部（`.pb-head` 與 `.pb-scroll` 之間）新增教練專用區塊 `.pb-new-row.coach-only`：`#pbNewTactic`（`➕ 新增戰術` ＋ `NEW TACTIC`）、`#pbNameInput`（`.pb-name-input`，`maxlength=60`、`placeholder`「請輸入戰術名稱」、`enterkeyhint="done"`、`autocomplete="off"`）、提示行 `.pb-name-hint`；`coach-only` 沿用既有 `body[data-mode="player"] .coach-only{display:none !important}` 規則，球員模式整區隱藏 |
-| FR-166 | Functional | `newTactic()` 流程：先守門 `isCoach()`（非教練改走 `requestCoachMode()` 要密碼）、播放／匯出中擋下並提示；`state.frames.length > 1` 或畫布上有自訂線條時先 `confirmDialog('新增戰術', …, '清空並新增')`（無未存內容則一鍵直接新增）；確認後清 `state.undo`、`clearBoardObjects()` → `addFormation()`（5 攻 5 守 1 球、防守預設 2-1-2）→ `state.frames` 重設成單一步驟「步驟 1」→ `tacticId = null`、`tacticName = ''`、`tacticSource = null` → `applyMode()`／`renderLibrary()`（清掉經典戰術的 `is-active`）／清 `#pbList .pb-item.is-active`／`renderStepUI()` → `focusTacticNameField()` |
+| FR-166 | Functional | `newTactic()` 流程：**【US-133 更新】任何身分都可新增**（原本的 `isCoach()` 守門與 `requestCoachMode()` 密碼框已移除，改為直接進入「繪製模式」`state.editing = true`，見 FR-223）、播放／匯出中擋下並提示；`state.frames.length > 1` 或畫布上有自訂線條時先 `confirmDialog('新增戰術', …, '清空並新增')`（無未存內容則一鍵直接新增）；確認後清 `state.undo`、`clearBoardObjects()` → `addFormation()`（5 攻 5 守 1 球、防守預設 2-1-2）→ `state.frames` 重設成單一步驟「步驟 1」→ `tacticId = null`、`tacticName = ''`、`tacticSource = null` → `applyMode()`／`renderLibrary()`（清掉經典戰術的 `is-active`）／清 `#pbList .pb-item.is-active`／`renderStepUI()` → `focusTacticNameField()` |
 | FR-167 | Functional | 名稱輸入框與 `state.tacticName` 雙向同步：`syncTacticNameField(force)` 在 `applyMode()`、`renderPlaybook()`、存檔成功後把 `state.tacticName` 寫回輸入框（`document.activeElement` 就是輸入框且非 `force` 時不覆寫，避免打一半被蓋掉）；`input` 事件即時寫入 `state.tacticName`；`Enter` 只 `blur()`（不存檔、不穿透球場快捷鍵）；「💾 儲存戰術」若輸入框已有名稱則直接 `saveTacticNamed(name)`（不跳命名彈窗），空白才走原本的 `promptText()` |
 | FR-168 | Functional | 身分切換時重繪手冊：`enterCoachMode()` 與 `exitCoachMode()` 在 `renderStepUI()` 後呼叫 `renderPlaybook()`，讓「我的戰術」空清單文案立刻換成教練版（`尚無儲存的戰術，按上方「➕ 新增戰術」建立第一套。`）或球員版（`教練尚未發布戰術。`），不會停在切換前的文案 |
 
@@ -283,6 +324,35 @@
 | FR-178 | Functional | 手機防誤觸：`.board-holder .canvas-container` 與其 `canvas` 皆加 `touch-action:none`（＋`user-select:none`、`-webkit-touch-callout:none`、`-webkit-tap-highlight-color:transparent`），單手拖曳球員時頁面不會跟著滾動；拖曳門檻依輸入裝置分流——滑鼠 `DRAG_EPS` 6px、觸控 `DRAG_EPS_TOUCH` 10px（`beginNodeDrag(target, evt)` 由 `evt.type` 判定，`dragEpsOf(drag)` 取門檻），`onNodeMoving()` 與 `finalizeNodeDrag()` 共用，避免指尖抖動被當成拖曳而污染 undo 堆疊 |
 | NFR-121 | Non-Functional | 刪卡只減 DOM 與 CSS，**不新增任何 JS 分支或監聽器**；`touch-action` 為純 CSS 宣告，不影響桌機滑鼠事件與既有 fabric 事件流（`allowTouchScrolling:false` 仍保留）；傳球判定改為 `nearestOffense()` 先做 `obj.containsPoint()` 真 hit-test、再退回 `PASS_SNAP`(54px) 距離後備，維持原本 O(物件數) 成本 |
 | C-111 | Constraint | 鍵盤快捷鍵仍然可用（`1`–`5`／`Shift`+`1`–`5`／`V`／`C`／`P`／`D`／`S`／`Del`／`Ctrl+Z`／`Space`／`L`／`Esc`），只是不再於 UI 上列出；移除卡片不得連帶移除 `§13 身分切換與鍵盤快捷鍵` 的 JS |
+
+### US-133（球員免帳號繪製模式）對應需求
+
+| ID | 類型 | 需求 |
+| --- | --- | --- |
+| FR-222 | Functional | 權限拆成兩個判斷：`canEdit()`＝`state.mode === 'coach' || !!state.editing`（能不能在球場上動手）、`isCoach()`＝`state.mode === 'coach'`（批核／改他人戰術等特權）；`applyMode()` 同步寫 `document.body.dataset.mode` 與 `dataset.edit`（`'1'`／`'0'`），CSS 以 `body[data-edit="1"]` 決定繪製相關控制項（含 `.sidebar`）是否露出來 |
+| FR-223 | Functional | 右上角「＋ 新增戰術」（`#btnNewTactic`）對**所有身分**開放，綁 `newTactic()`：播放／匯出中先擋下；畫布有多個步驟或自訂線條先 `confirmDialog('新增戰術', …, '清空並新增')`；確認後清空畫布 → 預設 2-1-2 → 重設單一步驟「步驟 1」→ `tacticId/tacticName/tacticSource/tacticStatus` 全部清空 → **`state.editing = true`**；桌機（>1100px）把游標帶到名稱輸入框，手機（≤1100px）不搶焦點、自動收起手冊並提示「繪製模式：拖曳球員或選工具畫線 · 完成後按「💾 儲存」」 |
+| FR-224 | Functional | 唯讀狀態的統一提示 `needDrawMode()`：「需要繪製模式：按右上角「＋ 新增戰術」，或在手冊按「✏️ 修改提案」」，掛在 `[data-tool]` 節點鈕、線條工具鈕、`#btnSaveStep` 與 `handleKeydown()` 的繪製／刪除路徑，**不再呼叫 `requestCoachMode()`**（球員不會再被要求輸入教練密碼）；手冊抽屜的 `#pbTools`（🛠 工具）另給「唯讀模式：要改戰術請按右上角「＋ 新增戰術」自己畫一套」 |
+| FR-225 | Functional | ~~步驟列上方輕量列 `#editRow`（`＋ 加步驟`／`💾 儲存`／`✅ 批准`／`✏️ 修改後批核`，桌機 `display:none`、≤767px 才進版面，`grid-area:edit`）：`syncEditRow()` 決定顯示——`show = canEdit() && !state.playing && !state.exporting`；`approving = isCoach() && state.tacticStatus === 'pending' && !!state.tacticId && !state.approveOnSave` 成立時把「加步驟／儲存」換成「批准／修改後批核」（並加 `.is-approve`）~~ → **已由 US-139 取代**：`#editRow` 整塊刪除，改為底部「編輯 4 鍵」＋中間動態工具面板（FR-260～FR-264） | Superseded by US-139 |
+| FR-226 | Functional | ~~手機版面收斂：底部控制卡固定「均分 4 鍵」＝`▶`／`∞`／`☰ 戰術`／`💬 分享`（`.stepbar` 的 `grid-template-areas` 為 `edit` / `steps` / `play loop book share`）；加步驟、儲存、批核全收進 `#editRow`，`⬇ 儲存 GIF` 移到手冊抽屜底部 `.pb-mobile-actions`~~ → **已由 US-139 取代**：`grid-template-areas` 改為 `panel` / `steps` / `keys`，手機繪製中＝面板＋`＋ 加步驟`／`👥 球員陣容`／`🛡 防守陣型`／`📤 提交審核·🚀 發布`（FR-260／FR-262） | Superseded by US-139 |
+
+### US-134（提案／批核流程）對應需求
+
+| ID | 類型 | 需求 |
+| --- | --- | --- |
+| FR-227 | Functional | 儲存對話框 `#saveModal` 改為「名稱 → 角色切換 → 對應欄位」：名稱預填 `#pbNameInput`／`state.tacticName`，沒有才用 `nextTacticName()`；`.role-seg` 兩顆 `.role-btn[data-role="player"\|"coach"]`（`🏃 我是球員`／`📋 我是教練`）由 `setSaveRole(role)` 切換——`state.saveRole`、`.is-active`、`aria-pressed`，球員顯示 `#savePlayerWrap`（名單下拉 `#savePerson`，選項 `#背號 姓名`）＋文案「球員提案：儲存後標記「未批核」…」，教練顯示 `#saveCoachWrap`（暗號 `#saveCode`，placeholder「預設 1234」）＋文案「教練發布：暗號正確就直接放進官方手冊（已批核）。」，`#saveOk` 文字在 `提交提案`／`發布` 之間切換；`openSaveDialog()` 預設角色＝目前身分（`isCoach() ? 'coach' : 'player'`）並清空暗號與錯誤訊息 |
+| FR-228 | Functional | 送出（`submitSaveForm()`）時寫入中繼資料：球員 → `meta.status = 'pending'`、`meta.authorLabel = '#{no} {name}'`（名單取不到時退 `球員`）、`meta.author = { no, name, pos }`，並記住最後一次選擇（`LS_SAVE_PERSON`）；教練 → `meta.status = 'approved'`、`meta.authorLabel = '教練'`、`meta.author = { coach: true }`；暗號比對 `COACH_APPROVE_CODE`（`'1234'`）或 `COACH_PASSWORD`，**錯誤時彈窗不關、`#saveError` 顯示「教練暗號不正確，請再試一次。」且不寫入**；`saveTacticNamed()` 會讓 `state.approveOnSave` 優先覆寫成 `approved`，並在「非教練但用暗號發布」時 `enterCoachMode(true)`（自動取得教練權限才能繼續批核） |
+| FR-229 | Functional | 手冊清單依批核狀態顯示：未批核的列加「未批核」膠囊（`.pb-pending-tag`）、名稱轉磚紅、第二行顯示「by `#0 陳生`」，並**排序沉到已批核之後**（同群組內仍依更新時間新→舊）；`tactics` 讀取時若 `meta.status` 缺欄位一律視為 `approved`（相容舊資料與 Supabase 既有列） |
+| FR-230 | Functional | `startProposalEdit()`（手冊抽屜 `#pbPropose`＝「✏️ 修改提案」）：播放／匯出中先擋下並提示；**球員**把目前戰術**脫離原本紀錄**——來源為 `local`／`supabase` 時 `state.tacticId = null`、`state.tacticSource = null`，名稱去掉結尾「 提案」再加回「 提案」（避免重複疊字），`state.tacticStatus = null`；來源為 `library`（經典戰術）只改名不建 id；最後 `saveCurrentFrame()`、`state.editing = true`、`state.tool = 'select'`、`syncTacticNameField(true)`、`syncEditRow()`、收起手冊並提示「已進入繪製模式 · 改完按「💾 儲存」送出提案」；**教練**按同一顆只是原地進入編輯（不脫離 id），提示「已進入編輯 · 改完按「💾 儲存」」 |
+| FR-231 | Functional | 教練批核兩條路徑：`approveTactic()`＝「✅ 批准」，直接 `store.setStatus(id, 'approved')` 並更新 `state.tacticStatus`；`approveAfterEdit()`＝「✏️ 修改後批核」，設 `state.approveOnSave = true` 後走既有儲存流程（可先改內容再存），存檔時 `status = 'approved'`、`tacticId` 不變（原地更新、不產生重複列），存檔後自動清除旗標 |
+| FR-232 | Functional | `store.setStatus(id, status)` 雙路實作：本機（localStorage）改寫該筆的 `meta` 後整份回寫；雲端（Supabase）只 `update({ meta })` 該列（送 patch 前先讀回現有 `meta` 以免蓋掉其他鍵）；兩者皆同步更新記憶體中的清單 |
+| FR-233 | Functional | 讀取／離開繪製狀態時一律關閉繪製：`loadTactic()`、`loadLibraryTactic()`、`exitCoachMode()`、`applyMode()` 都重設 `state.editing = false`、`approveOnSave = false` 並 `syncEditRow()`；切換到教練模式（`enterCoachMode()`）不自動進入繪製模式，需要時再按「＋ 新增戰術」 |
+
+### US-135（一鍵分享）對應需求
+
+| ID | 類型 | 需求 |
+| --- | --- | --- |
+| FR-234 | Functional | `captureGif()` 抽出共用擷取流程：`saveCurrentFrame()` → `setExporting(true)` ＋ loader → 逐步驟 `renderFrame(i)` 後 `canvas.toDataURL()`（每步停 2 格＋`GIF_SAMPLES` 格補間）→ `gifshot.createGIF()` 編碼（帶 `progressCallback` 更新 loader）→ 回傳 `{ dataUrl, filename, frames }`；**`finally` 一律收尾**（`hideLoader()`、`setExporting(false)`、`renderFrame(restoreIndex)` 還原原始步驟）。`exportGif()`（`⬇ 導出 GIF`／`#btnGif`／`#btnGifSheet`／`#btnGifBook`）與 `shareTactic()` 都呼叫它，不各自實作擷取 |
+| FR-235 | Functional | `shareTactic()`（`#btnShare`，手機底部第 4 鍵）順序：播放／匯出中或 `gifshot` 未就緒先 return → `captureGif()`（失敗只 toast「分享前產生 GIF 失敗…」）→ 以 `navigator.canShare({ files:[probe.gif] })` 偵測，成立則 `new File([blob], out.filename, {type:'image/gif'})` ＋ `navigator.share({ files, title, text })`（`AbortError`＝使用者取消，靜默返回）→ 失敗或不支援則退回 `downloadDataUrl()` 下載 GIF ＋ `window.open('https://wa.me/?text=…')`；文案＝「🏀 {戰術名稱}／{N} 個步驟｜MONDAY BEER & BASKETBALL 戰術板」 |
 
 ### 非功能需求 / 限制
 
@@ -315,7 +385,13 @@
 | NFR-118 | Non-Functional | 名單渲染成本不變：`buildRosterPanel()` 為 18 筆的一次性 DOM 重建（無監聽器洩漏，每顆按鈕只有 1 個 click listener），位置篩選只重跑這 18 筆的排序＋過濾（O(n log n)，n=18），切換 chips 實測 < 16ms 完成 |
 | C-108 | Constraint | 名單位置（`pos`）為教練依球隊現況人工填寫的靜態資料，不由比賽數據推導；篩選只影響右側名單面板顯示，不改變場上球員、不自動換人 |
 | NFR-119 | Non-Functional | 手機精簡一律用純 CSS 媒體查詢（`@media (max-width:1100px)`、`@media (max-width:720px)` 內 `.pb-name-input{font-size:16px}`），不加 JS 分支，桌機說明與無障礙結構完整保留；`16px` 字級避免 iOS 聚焦輸入框時自動放大畫面；`newTactic()` 只重設本機 fabric 物件（11 個）與 state，無額外網路請求**（原 `.panel-tips{display:none}` 一段已隨 FR-177 失效，其餘仍有效）** |
-| C-109 | Constraint | 「➕ 新增戰術」只重設畫布與狀態，**不會自動存檔**（仍需按「💾 儲存戰術」才寫入清單／Supabase）；未命名就存檔時沿用既有「新戰術 N」預設命名，`maxlength=60` 與既有命名彈窗一致 |
+| C-109 | Constraint | 「➕ 新增戰術」只重設畫布與狀態，**不會自動存檔**（仍需按「💾 儲存戰術」才寫入清單／Supabase）；未命名就存檔時沿用既有「新戰術 N」預設命名，`maxlength=60` 與既有命名彈窗一致；（US-133 起對所有身分開放，不再限教練） |
+| NFR-128 | Non-Functional | 繪製權限只由 `canEdit()` 一個來源決定，`applyMode()` 一次寫入 `body[data-edit]`，其餘顯示／隱藏全部交給 CSS（不含 JS 逐元素判斷、不新增事件監聽器）；手機新增的 `#editRow`／`.pb-tools-row`／`.pb-mobile-actions`／`.new-tactic-btn` 在桌機一律 `display:none`，確保 1440×900 桌機零回歸 |
+| NFR-129 | Non-Functional | 批核狀態只寫在既有 `meta` JSONB（`status`／`author`／`authorLabel`／`approvedAt`），**不需 Supabase migration**；讀取時缺欄位視為 `approved`，舊紀錄與離線資料完整相容；未批核的排序只在 `renderLibrary()` 一次 sort 完成（O(n log n)、無額外請求） |
+| NFR-130 | Non-Functional | 分享與匯出共用同一份擷取結果，整段流程包在 `try/finally`：不論成功、失敗或使用者取消，`state.exporting` 都會歸零、loader 關閉、畫面回到原本步驟（實測 `#gif` 規格 14 項斷言全過） |
+| C-118 | Constraint | 「繪製模式」是前端便利性設計，**不是**權限控管：進入繪製模式不需要任何憑證，任何人仍可按下；真正的保護只有「提案不會覆寫官方紀錄」與「批核需要教練暗號」 |
+| C-119 | Constraint | 教練暗號沿用前端比對（`COACH_APPROVE_CODE = '1234'` 或 `COACH_PASSWORD`），與 C-102 同級，非資安等級；未串接 Supabase Auth |
+| C-120 | Constraint | 提案為「另存一筆」，不做 diff／merge、不改資料表結構；提案也不會自動推送到教練已開著的頁面（教練需重新整理手冊或按 `↻` 才看到新提案） |
 
 ### 驗收標準
 
@@ -351,7 +427,7 @@
 | AC-128 | 右側面板順序為「球員名單 → 防守陣型 → 戰術線條 → 動作 → 防守與球」，`#defBallPanel` 是 `<details>`、預設 `open === false`（收合高度 38px、展開 226px、內容含 6 顆節點鈕），且為側欄最後一個面板**（原順序含「快捷鍵」，已由 AC-143 取代）** |
 | AC-129 | 名單 18 人按背號升冪（`0,1,5,6,7,8,9,10,11,12,14,21,31,34,35,50,87,99`）且每人顯示位置；`#posChips` 4 顆 chips，點 `PG/SG` 只剩 `0,1,5,6,8,9,12`、點 `PF/C` 只剩 `10,14,21,31,34,35,50,87,99`、點「全部」回復 18 人，`state.rosterFilter` 同步 |
 | AC-130 | **（已撤銷：卡片已於本輪整塊刪除，改由 AC-143 驗收）** 原條文：≤1100px 時 `.panel-tips` 為 `display:none`，>1100px 為可見 |
-| AC-131 | 左側手冊 `.pb-head` 下方可見「➕ 新增戰術」按鈕與「戰術名稱」輸入框（`placeholder === '請輸入戰術名稱'`），提示行不溢出容器（`scrollWidth === clientWidth`）；球員模式下整個 `.pb-new-row` 不進版面（`display:none`、`offsetParent === null`） |
+| AC-131 | 左側手冊 `.pb-head` 下方可見「➕ 新增戰術」按鈕與「戰術名稱」輸入框（`placeholder === '請輸入戰術名稱'`），提示行不溢出容器（`scrollWidth === clientWidth`）；球員模式下整個 `.pb-new-row` 不進版面（`display:none`、`offsetParent === null`）；**【US-133 更新】球員不必再借用這顆按鈕**——手機／桌機右上角的「＋ 新增戰術」（`#btnNewTactic`）對所有身分開放，手冊內那顆仍為教練專用（見 AC-167～AC-169） |
 | AC-132 | 教練在有多個步驟／自訂線條時按「➕ 新增戰術」先跳確認框；確認後 `state.frames.length === 1`、`frames[0].name === '步驟 1'`、`state.tacticId === null`、`state.tacticName === ''`、畫布為 5 攻 5 守 1 球、`#defGrid .def-btn.is-on` 為 `212`、線條數 0、名稱輸入框已清空 |
 | AC-133 | 在名稱框輸入 `HARNESS-新增戰術` 後 `state.tacticName` 同步；按「💾 儲存戰術」直接存檔（`#textModal` 保持隱藏）且該名稱立即出現在「我的戰術」清單；名稱空白時仍會跳出命名彈窗 |
 | AC-134 | 教練模式的「我的戰術」為空時顯示「尚無儲存的戰術，按上方「➕ 新增戰術」建立第一套。」（切換身分即重繪，不會停在球員文案「教練尚未發布戰術。」） |
@@ -365,6 +441,16 @@
 | AC-142 | 球被拖到球場外會 clamp 回球場內（實測 -140,1200 → 18,922）並提示「目前無人持球」，不會停留在畫布外 |
 | AC-143 | 原始碼內完全沒有「快捷鍵」卡片：`document.querySelector('.panel-tips') === null`、全頁 `kbd` 元素數為 0、`#sidebar` 文字不含「快捷鍵」與 `SHORTCUTS`；側欄面板順序 `球員名單>防守陣型>戰術線條>動作`、`#defBallPanel` 仍是最後一個面板（桌機／手機尺寸皆成立） |
 | AC-144 | 桌機 1484 與手機 500 寬實測 `.board-holder .canvas-container canvas` 的 `touch-action === 'none'`；`dragEpsOf(null) === 6`、`dragEpsOf({touch:true}) === 10`；以 `{type:'touchstart'}` 起始的拖曳 `state.nodeDrag.touch === true`、`{type:'mousedown'}` 則為 `false`；球心落在隊友圓圈內時 `nearestOffense(pt, 0)` 仍回傳該球員（真 hit-test 生效） |
+| AC-167 | 球員身分點右上角「＋ 新增戰術」→ `state.editing === true`、`canEdit() === true`、`body.dataset.edit === '1'`、`#editRow` 不再 `hidden` 且 `#editRowAdd`／`#editRowSave` 可見、`#btnApprove`／`#btnApproveEdit` 隱藏；**`#pwModal` 全程未開啟**（不需要教練密碼）；390×844／375×667 下 `#playbook` 會自動收起 |
+| AC-168 | 唯讀球員（`state.mode==='player'`、未進繪製模式）點 `[data-tool]` 節點鈕／線條工具／`#btnSaveStep`：只出現「需要繪製模式…」提示（`gate.toolBlocked`／`gate.toolToast`）、`#pwModal` 不開（`gate.noPasswordModal`）、畫布物件數不變（`gate.noNodeAdded`，實測拖曳後仍 12 顆）；手冊抽屜 `#pbTools` 給「唯讀模式…」提示（`gate.toolsToast`） |
+| AC-169 | `#editRow` 三態：唯讀 → 不進版面；繪製中 → 顯示「＋ 加步驟／💾 儲存」；教練看未批核 → 換成「✅ 批准／✏️ 修改後批核」（`approveEdit.shown`）；390×844 與 375×667 下 `.stepbar` 與 `#editRow` 皆 `scrollWidth === clientWidth`（無水平溢出）、底部 4 鍵 `#btnPlay`／`#btnLoop`／`#pbToggle`／`#btnShare` 都在視窗內、球場高度 ≥ 120px |
+| AC-170 | 球員開儲存對話框：`.role-btn[data-role="player"]` 為 `is-active`、`#savePlayerWrap` 可見、`#saveCoachWrap` `hidden`、`#saveOk` 文字「提交提案」（`save.rolePlayer`／`save.playerWrapShown`／`save.coachWrapHidden`／`save.okLabel`／`save.namePrefilled`）；切到教練 → 反過來且 `#saveOk` 變「發布」（`saveCoachWrap`／`coachSave.roleCoach`／`coachSave.playerHidden`／`coachSave.codeShown`／`coachSave.okLabel`） |
+| AC-171 | 球員送出後寫入一筆 `meta.status === 'pending'` 的紀錄（`save.pending`／`save.recordId`），手冊出現「未批核」膠囊與提案人「by #0 陳生」（`list.pendingTag`／`list.authorShown`／`list.hasRecord`）；教練按「✅ 批准」後該筆 `meta.status === 'approved'`、`#btnApprove` 收起、`#editRowAdd` 回來、toast「已批准…」 |
+| AC-172 | 教練身分用暗號儲存：錯的暗號（如 `9999`）→ 彈窗不關、`#saveError` 顯示「教練暗號不正確，請再試一次。」（`coachSave.wrongCodeStays`）；輸入 `1234` → 彈窗關閉、該筆為 `approved`（`coachSave.approved`／`coachSave.modalClosed`）、且自動取得教練權限（`coachSave.autoCoach`） |
+| AC-173 | 球員在既有戰術按「✏️ 修改提案」：`state.tacticId === null`、`state.tacticSource === null`、名稱結尾為「 提案」、`state.editing === true`、`state.tacticStatus === null`（`propose.detached`／`propose.notOfficialId`／`propose.nameSuffix`／`propose.editing`）——存檔後是另一筆紀錄，原本那筆內容不變 |
+| AC-174 | 「✏️ 修改後批核」：按下後 `#btnApproveEdit` 命中、`state.approveOnSave === true`、進入編輯（`approveEdit.on`）；儲存後 `state.tacticStatus === 'approved'`、紀錄 id 與批核前相同（`approveEdit.sameId`／`approveEdit.saved`／`approveEdit.approved`）、清單筆數不增加（`approveEdit.noDuplicate`）、旗標歸零（`approveEdit.cleared`） |
+| AC-175 | 分享（`#gif` 規格，`gifshot` 以 stub 取代編碼）：`captureGif()` 取得影格與 dataUrl（`gif.captureArgs`／`gif.dataUrl`）、檔名沿用戰術名稱（`gif.filename`）、流程結束後 loader 關閉、畫面回原步驟、`state.exporting === false`（`gif.loaderHidden`／`gif.frameRestored`／`gif.exportingCleared`）；不支援原生分享時會下載 GIF 並開啟 `wa.me`（`share.downloaded`／`share.whatsappOpened`／`share.frameRestoredAgain`／`share.noThrow`） |
+| AC-176 | 冒煙測試（`.scratch/smoke/cdp.js`，CDP `Emulation.setDeviceMetricsOverride`）四個規格全綠：`1440x900` PASS=64／`390x844` PASS=71／`375x667` PASS=71／`gif` PASS=14，**FAIL 皆為 0**、`runtime.errors` 皆為 `[none]`；`integrity.js` 檢查無亂碼字樣、CSS 大括號 503/503 平衡、兩段 inline script `node --check` 通過、`dist/index.html` 與 `index.html` SHA256 一致 |
 
 ---
 
@@ -490,7 +576,7 @@
 | FR-192 | 底部動作列（Grid 重排，不複製 DOM） | CSS `.stepbar{display:grid;grid-template-areas:"play steps steps book tools" "acts acts acts save save"}`、球員模式 `"play steps steps book gif"`；隱藏 `#btnPrev`／`#btnNext`／`#frameCounter`／`#btnDupStep`／`#btnDelStep`／`.v-divider`／`.spacer` | US-129 | Complete |
 | FR-193 | `播放／暫停` 長短標籤 | HTML `#btnPlay` 加 `.lbl-long`／`.lbl-short`；§7 `setPlaying()` 同步改寫兩個 span；CSS 桌機顯示長標籤、手機顯示短標籤 | US-129 | Complete |
 | FR-194 | 步驟膠囊自動捲到中央 | §9 `renderStepUI()` 尾端 `activeChip.scrollIntoView({block:'nearest',inline:'center'})`（播放／匯出中不捲動） | US-129 | Complete |
-| FR-195 | 當前步驟唯讀資訊卡 | HTML `#stepInfo`（`#stepInfoIdx`／`#stepInfoName`／`#stepInfoDesc`／`#stepInfoCue`）；§9 `renderMobileStepInfo()`（由 `renderStepUI()` 呼叫）；CSS `.mobile-stepinfo`（桌機 `display:none`） | US-129 | Complete |
+| FR-195 | 當前步驟唯讀資訊卡 | ~~HTML `#stepInfo`；§9 `renderMobileStepInfo()`；CSS `.mobile-stepinfo`~~ **（US-132 已移除：資訊改由選取中的長卡片自己顯示，見 FR-215／FR-216）** | US-129 | Superseded |
 | FR-196 | 教練工具／戰術手冊＝Bottom Sheet | CSS `.playbook,.sidebar{position:fixed;left:0;right:0;top:auto;bottom:0;max-height:var(--sheet-max,46dvh);border-radius:20px 20px 0 0;transform:translateY(calc(100% + 34px))}` ＋ `.is-open{transform:none}` ＋ `::before` 把手；`enterCoachMode()` 手機不自動彈出 | US-129 | Complete |
 | FR-197 | 抽屜永不加蓋球場（動態限高） | §13 `updateSheetLimit()`：量測 `.board-wrap` 與 `.mobile-stepinfo` 下緣 → `documentElement.style.setProperty('--sheet-max', …)`；`resize`／`orientationchange`（延遲 240ms）重算 | US-129 | Complete |
 | FR-198 | 下滑或點背幕關閉抽屜 | §13 `enableSheetDrag()`（把手／標題區 64px 內起拖、`scrollTop>0` 不接管、位移 >min(150px, 30%) 或 340ms 內快滑即關閉）、`syncSheetScrim()`（兩張抽屜共用 `#pbScrim`、互斥開啟）、`.pb-head,.sidebar-head{touch-action:none}`；工具抽屜關閉鈕沿用 `.side-collapse`（手機改顯 `✕`） | US-129 | Complete |
@@ -501,6 +587,59 @@
 | C-112 | 幾何限制：1000×940 畫布在 390px 寬只能是 366px 高（43.4vh），無法同時「100vw ＋ 60–65vh ＋ 不變形」；選擇不裁切，留白交給資訊卡與 Bottom Sheet | `.board-wrap` 的 `1.0638` 比例計算 | US-129 | Accepted |
 | C-113 | 景觀（寬 >767px）沿用平板抽屜規則，不套用手機版 | `@media (max-width:767px)` 邊界 | US-129 | Accepted |
 | AC-143～AC-150 | 驗收 | 見「驗收紀錄（本輪：手機版專業運動 App 版面重構）」 | US-129 | Verified |
+| FR-200 | 桌面預設手機框（≥768px） | `<head>` inline script 判定 → `<html class="phone-frame">`；HTML `#phoneShell > .ps-stage > .ps-device > iframe#phoneView`；CSS `html.phone-frame .phone-shell`（`position:fixed`、深色底 `#1e293b`）、`html.phone-frame body > :not(#phoneShell){display:none}` | US-130 | Complete |
+| FR-201 | 框內是真實手機環境（同源 iframe） | §14 `initPhoneFrame()`：`view.src = location.pathname + '?phone=1'`；框內 `innerWidth` = 390、`100dvh` = 框高、`matchMedia('(max-width:767px)')` 命中、`isMobileSheet()` 為 `true`；外殼本體 `boot()` 不執行（不多開一份 canvas／狀態） | US-130 | Complete |
+| FR-202 | 真機自動解除外框 | head script：`innerWidth < 768`、`(hover:none) and (pointer:coarse)`（手機橫向／iPad）、`?full=1`、已在 iframe 內 → 不加 `phone-frame`；§14 `initViewportGuard()` 於 `resize` 跨過 768px 時 `location.reload()` 自動換視角 | US-130 | Complete |
+| FR-203 | 桌面版逃生門（`?full=1`） | `.ps-bar` 內 `#phoneExit`（`🖥 桌面視窗`）→ `location.pathname + '?full=1'`；瀏覽器上一頁即回到手機框（不寫 localStorage，預設永遠回到手機視角） | US-130 | Complete |
+| FR-204 | 說明列顯示真實尺寸 | §14 `syncPhoneSizeLabel()`：量測 `#phoneView` 的 `getBoundingClientRect()` → 寫入 `#psSize`（load／resize 更新，實測 1440×900 → `390 × 760`） | US-130 | Complete |
+| FR-205 | 提示條不壓底部動作列 | CSS `@media (max-width:767px)`：`.toast-stack{bottom:calc(118px + env(safe-area-inset-bottom,0px))}`、`body[data-mode="player"] …{bottom:calc(76px …)}` | US-130 | Complete |
+| FR-206 | 矮視窗抽屜下限放寬 | §13 `updateSheetLimit()` 下限 `220px → 150px`（1280×720 的筆電、手機橫向仍可操作；內容本身可捲動） | US-130 | Complete |
+| NFR-125 | 桌面／平板零回歸 | 新規則全部掛在 `html.phone-frame` 或 `@media (max-width:767px)` 之下；`?full=1` 與 <768px 完全不套用（實測 1440×900 `?full=1`、375×812、820×1180 皆維持原版面與原 `boot()` 流程） | US-130 | Verified |
+| C-114 | 框尺寸取捨：螢幕寬固定 390，高 `min(844, 100dvh − 140)` | CSS `.ps-stage{--ps-w:min(390px,calc(100vw - 44px))}`、`--ps-h:min(844px,calc(100dvh - 140px))`；1440×900 視窗實測 390×760（不足 844 是為了容納邊框與說明列） | US-130 | Accepted |
+| C-115 | 外框只在「滑鼠／觸控板為主」的裝置啟用 | head script `matchMedia('(hover: none) and (pointer: coarse)')` → 真平板（iPad）直接吃原生版面，不套框 | US-130 | Accepted |
+| AC-151～AC-154 | 驗收 | 見「驗收紀錄（本輪：桌面手機框預覽模式）」 | US-130 | Verified |
+| FR-207 | 手機底部只有一張白底控制卡 | CSS `@media (max-width:767px)`：`.stage{order:2;flex:0 0 auto;background:none}`（灰底漸層移除）＋ `.stepbar{order:3;flex:1 1 auto;display:grid;background:#FFFFFF;border-radius:18px 18px 0 0;box-shadow:0 -10px 26px}`；量測 390×844 `.board-wrap` 下緣 411 = `.stepbar` 上緣 411（間隙 0）、卡片高 433、`stage` `background-image:none` | US-131 | Verified |
+| FR-208 | 步驟說明成為卡片第一列 | 把 `<div class="mobile-stepinfo" id="stepInfo">` 從 `.board-panel` 搬進 `.stepbar` 最前面（`grid-area:info`）；`.si-name` 15px、`.si-desc` 12px／clamp 4、底線分隔；桌機由 `.mobile-stepinfo{display:none}` 隱藏（實測 1440 寬 `offsetParent === null`） | US-131 | Complete |
+| FR-209 | 步驟按鈕組改為兩欄大按鈕、吃滿卡片高度 | ~~`.steps{grid-template-columns:repeat(2,minmax(0,1fr))}`＋`.step-chip{min-height:46px}`~~ **（US-132 改為單欄長卡片，見 FR-216）** | US-131 | Superseded |
+| FR-210 | 播放鍵手機顯示暫停圖示 | `#btnPlay` 內 `<span class="ico ico-full">■／▶</span><span class="ico ico-short">⏸／▶</span>`；`.ico-short{display:none}` 全域、手機 `#btnPlay .ico-short{display:inline}`＋`.ico-full{display:none}`（實測 mobile `short=block`／`full=none`，desktop 相反） | US-131 | Complete |
+| FR-211 | 戰術手冊抽屜放大到 78dvh | CSS `.playbook{height:78dvh;max-height:calc(100dvh - 56px)}`；實測 390×844 → 658px（0.78）、375×667 → 520px（0.78）、360×740 → 577px（0.78）；教練工具 `.sidebar` 仍用 `--sheet-max`（390×844 實測 421px、上緣 423 > 球場下緣 411，不遮球場） | US-131 | Verified |
+| FR-212 | 手冊兩層導覽：分類 → 子頁面 | DOM `.pb-views > .pb-main-view`（原 `.pb-scroll`＋`.pb-foot`）＋ `.pb-sub-view#pbSubView`（`#pbSubBack`／`#pbSubTitle`／`#pbSubEn`／`#pbSubCount`／`#pbSubList`）；§14 `openPlaybookCategory()`／`closePlaybookCategory()`／`renderPlaybookCategoryList()`／`syncSubActive()`；`$$('.pb-cat > summary')` 僅在 `isMobileSheet()` 攔截並 `preventDefault()`（`.pb-cat[data-cat]`），CSS 以 `.playbook.is-sub` 左右滑動切換、`.pb-cat-list{display:none}`；關閉抽屜一律重置回分類頁 | US-131 | Verified |
+| FR-213 | 提示條一次只顯示一則、1.5 秒淡出 | §3 `toast()` 改為模組級 `toastNode`／`toastTimer`：先 `remove()` 舊節點再 append（實測連發兩則 → `#toastStack.children.length === 1`），`TOAST_MS = 1500` 後 200ms 淡出（1.8s 後實測 0 個） | US-131 | Verified |
+| FR-214 | 移除會遮畫面的噪音提示 | `autoPlayLoaded()`（3 則）、`playAnimation()` 的停止／完成 2 則、`toggleLoop()`、「工具列收合」共 7 則提示刪除；保留儲存／雲端／載入／刪除／改名／匯出／錯誤提示（訊息同步縮短） | US-131 | Complete |
+| NFR-126 | 桌面／平板零回歸 | 全部新規則在 `@media (max-width:767px)` 內；1440×900 `?full=1` 實測 `.stepbar` 仍 `display:flex`／高 54、`#stepInfo` 隱藏、`#playbook` `position:static` 232px、`.pb-cat-list` 可展開、`?phone=1` 手機框外殼（390×760）正常 | US-131 | Verified |
+| C-116 | 兩張抽屜抽離「限高」策略 | 手冊改固定 78dvh（可覆蓋球場下半部，由 `#pbScrim` 背幕提示）；`updateSheetLimit()` 只服務教練工具，並移除對 `.mobile-stepinfo` 的依賴（該元素已移入卡片） | US-131 | Accepted |
+| AC-155～AC-160 | 驗收 | 見「驗收紀錄（本輪：手機單一控制卡＋手冊兩層清單＋提示條收斂）」 | US-131 | Verified |
+| FR-215 | 移除重複的當前步驟資訊列 | 刪除 HTML `<div class="mobile-stepinfo" id="stepInfo">`（`#stepInfoIdx`／`#stepInfoName`／`#stepInfoDesc`／`#stepInfoCue`）、§9 `renderMobileStepInfo()` 與 `renderStepUI()` 內的呼叫、CSS `.mobile-stepinfo` 整段（47 行）與 `.brand-short,…,sheet-only` 清單中的 `.mobile-stepinfo`；全檔已無 `stepInfo` 字樣（實測 `!document.querySelector('#stepInfo')`） | US-132 | Verified |
+| FR-216 | 步驟清單＝單欄縱向長卡片 | CSS `@media (max-width:767px)`：`.steps{display:flex;flex-direction:column;gap:10px;overflow-y:auto;justify-content:safe center}`、`.step-chip{flex:1 1 auto;align-items:center;gap:10px;width:100%;min-height:78px;max-height:118px;padding:9px 12px;border-radius:14px;background:#fff;border:1px solid #F1F5F9;overflow:hidden}` | US-132 | Verified |
+| FR-217 | 卡片內容＝徽章＋名稱＋機會標籤＋跑位說明＋右側指示 | §9 `renderStepUI()` 產生 `.step-idx`（28×28 圓角徽章）＋`.step-body > .step-head(.step-name 14px/800 ＋ .step-cue)`＋`.step-desc`（12px/500、`-webkit-line-clamp:2`）＋`.step-hint`（`::before{content:"›"}`）；`aria-selected`／`aria-current="step"` 同步（實測 390×844 名稱 `雙肘落位／球進左肘／底角分球／內傳內放籃`、說明 25–39 字、機會標籤 4 組皆正確帶入） | US-132 | Verified |
+| FR-218 | 選取中卡片品牌高亮＋播放指示＋按壓回饋 | `.step-chip.is-active{background:linear-gradient(180deg,#C25239,#A83E28);border-color:var(--brick);box-shadow:0 8px 20px rgba(180,70,47,.26)}`＋白字（`.step-name/.step-desc/.step-cue` 覆寫）、`.step-idx` 轉白底磚紅字、`.step-hint::before{content:"●";font-size:8px}`、播放中 `.is-active.is-live` 套 `stepPulse`（1.1s 縮放＋淡出）；所有卡片 `:active{transform:scale(.98)}`；`setPlaying()` 改為一律重繪以同步 `is-live`（實測播放中 `liveChip=true`、`::before` 為 `"●"`） | US-132 | Verified |
+| FR-219 | 有空間就長高、不夠就自己捲動（＋底部淡出） | 卡片 `flex:1 1 auto;max-height:118px`＋`.steps{justify-content:safe center}`（不溢出時整組垂直居中、溢出時退回起點不裁切）；`syncStepsScrollFade()`（`renderStepUI()`／`ResizeObserver`／`scroll` 觸發）在「下面還有卡片」時加 `.steps.is-scrollable`，以 20px 漸層 `mask-image` 淡出底部；`renderStepUI()` 的 `scrollIntoView` 改 `block:'nearest'`，且播放中也跟隨（僅縱向溢出時） | US-132 | Verified |
+| FR-220 | Toast 貼齊控制卡上緣 | §13 `initStepbarMetrics()`：`ResizeObserver` 監看 `.stepbar` → 把高度寫進 `--stepbar-h`；手機 `.toast-stack{bottom:calc(var(--stepbar-h,101px) + 12px)}`（原本固定 96px，會壓在卡片上）；實測 390×844 `--stepbar-h=433px`、提示條下緣與卡片上緣間距 **12px** | US-132 | Verified |
+| FR-221 | 矮螢幕卡片收斂 | `@media (max-width:767px) and (max-height:760px)`：`.step-chip{min-height:66px;padding:7px 11px;gap:9px}`、`.step-idx{26×26}`、`.step-desc{-webkit-line-clamp:1}`（375×667 與 360×740 實測卡片 66px，360×740 清單僅需再捲 11px） | US-132 | Verified |
+| NFR-127 | 桌面／平板零回歸（同一份 DOM） | 新增的包裝層桌機用 `.step-body,.step-head{display:contents}`、`.step-desc,.step-cue,.step-hint{display:none}` 完全透明；1440×900 `?full=1` 實測 `.stepbar` 仍 `display:flex`／54px、`.step-chip` 33px 高／100px 寬／`padding:6px 11px`／12.5px 字、`.step-desc` 與 `.step-hint` 為 `display:none`、頁面無水平捲動（`docScrollWidth 1440 = innerWidth`） | US-132 | Verified |
+| C-117 | 幾何限制：手機直向「球場 100vw ＋ 卡片說明」不可能全部同時看到 | 390×844 球員清單可視 358px（4 步剛好 82.1px／張、不需捲動）；教練模式只剩 314px（4×78＋gap＝342，需捲 28px）；375×667 僅 196px、360×740 僅 283px → 這兩個尺寸的步驟清單一定會捲動（已用底部淡出＋自動跟隨當前步驟處理），屬可接受取捨 | US-132 | Accepted |
+| AC-161～AC-166 | 驗收 | 見「驗收紀錄（本輪：手機步驟長卡片）」 | US-132 | Verified |
+| FR-222 | 繪製權限與教練特權分離 | §13 `canEdit()`／`isCoach()`／`applyMode()`（`body[data-mode]`＋`body[data-edit]`） | US-133 | Verified |
+| FR-223 | 「＋ 新增戰術」免密碼 | §9 `newTactic()`（`state.editing = true`、`focusTacticNameField()`、手機收起手冊）、HTML `.new-tactic-btn` | US-133 | Verified |
+| FR-224 | 唯讀統一提示、不再跳密碼框 | §9 `needDrawMode()` 掛在 `[data-tool]`／工具鈕／`#btnSaveStep`／`handleKeydown()`；`#pbTools` 另給「唯讀模式…」提示 | US-133 | Verified |
+| FR-225 | ~~步驟列上方輕量列~~（已由 US-139 的編輯 4 鍵＋工具面板取代） | ~~CSS `#editRow`、§9 `syncEditRow()`~~ → `#editKeys`／`syncToolbar()` | US-133 → US-139 | Superseded |
+| FR-226 | ~~手機底部 4 鍵＋手冊工具列~~（已由 US-139 的 `panel`／`steps`／`keys` 版面取代） | ~~CSS `.stepbar` `grid-template-areas`~~ → `.stepbar` `panel/steps/keys`、`#playKeys`／`#editKeys` | US-133 → US-139 | Superseded |
+| FR-227 | 儲存對話框角色切換 | HTML `#saveModal`（`.role-seg`／`#savePerson`／`#saveCode`／`#saveOk`）、§12 `setSaveRole()`／`openSaveDialog()` | US-134 | Verified |
+| FR-228 | 提案／發布寫入 `meta` | §12 `submitSaveForm()`、`saveTacticNamed()`（`meta.status`／`authorLabel`／`author`／`approvedAt`、`enterCoachMode(true)`） | US-134 | Verified |
+| FR-229 | 手冊未批核標記與排序 | §14 `renderPlaybook()`（`.pb-pending-tag`、`by #0 陳生`、已批核優先） | US-134 | Verified |
+| FR-230 | 「✏️ 修改提案」另存新紀錄 | §9 `startProposalEdit()`（`tacticId = null`、名稱加「 提案」、`tacticStatus = null`） | US-134 | Verified |
+| FR-231 | 批准／修改後批核 | §9 `approveTactic()`／`approveAfterEdit()`（`state.approveOnSave`） | US-134 | Verified |
+| FR-232 | 批核狀態雙路寫入 | §3 `store.setStatus()`（本機 `localSetStatus`／雲端 `sbSetStatus`，只改 `meta`） | US-134 | Verified |
+| FR-233 | 載入／離開時關閉繪製 | §9 `loadTactic()`／`loadLibraryTactic()`、§13 `applyMode()`／`exitCoachMode()` | US-134 | Verified |
+| FR-234 | GIF 擷取共用 | §12 `captureGif()`（`exportGif()`／`shareTactic()` 共用，`try/finally` 收尾） | US-135 | Verified |
+| FR-235 | 一鍵分享到 WhatsApp | §12 `shareTactic()`、HTML `#btnShare`（原生分享 → 下載 GIF ＋ `wa.me`） | US-135 | Verified |
+| NFR-128 | 單一守門來源、桌機零回歸 | 只有 `applyMode()` 寫 `body[data-edit]`；新元素桌機 `display:none` | US-133 | Verified |
+| NFR-129 | 批核狀態不需 migration | `meta` JSONB 擴充欄位；缺欄位視為 `approved` | US-134 | Verified |
+| NFR-130 | 分享／匯出共用擷取、必定收尾 | §12 `captureGif()` 的 `try/finally`（loader／`state.exporting`／畫面還原） | US-135 | Verified |
+| C-118 | 繪製模式非權限控管 | 前端便利性設計；真正保護＝提案不覆寫＋批核暗號 | US-133 | Accepted |
+| C-119 | 暗號為前端比對 | §1 `COACH_APPROVE_CODE`／`COACH_PASSWORD` | US-134 | Accepted |
+| C-120 | 提案不做 diff／不主動推送 | `saveTacticNamed()` 另存一筆；教練需重整或按 `↻` | US-134 | Accepted |
+| AC-167～AC-176 | 驗收 | 見下方「驗收紀錄（本輪：免帳號繪製＋提案批核＋一鍵分享）」 | US-133～135 | Verified |
 | AC-143～AC-144 | 驗收 | 見下方「驗收紀錄（本輪：移除快捷鍵卡 + 手機防誤觸）」 | 全部 | Verified |
 
 ---
@@ -871,6 +1010,53 @@ US-128 完成：快捷鍵說明卡自原始碼整塊移除（含死 CSS），桌
 
 ---
 
+## ✅ 驗收紀錄（本輪：桌面手機框預覽模式）
+
+**日期**：2026-11-06 ｜ **方式**：`npm run build` ＋ `scripts/serve-dist.mjs`（`http://localhost:4173/`）＋ headless Chrome 以 CDP（`tmp_frame.mjs`）在 1440×900、1280×720、375×812（`mobile:true`）三種 viewport 實際載入並截圖；框內操作（進球員模式、開手冊抽屜、解鎖教練、開工具抽屜）皆以 `iframe.contentDocument` 真實點擊觸發。
+
+### 一、實測結果
+
+| 量測 | 1440×900（預設） | 1280×720（矮視窗） | 1440×900 `?full=1` | 375×812（真機） |
+| --- | --- | --- | --- | --- |
+| `<html>` class | `phone-frame` | `phone-frame` | （無） | （無） |
+| `#phoneShell` | `display:flex`（`hidden=false`） | `display:flex` | `display:none` | `display:none` |
+| `.app`（外殼本體） | `display:none`（未 `boot()`） | `display:none` | `display:flex` | `display:flex` |
+| 框內 viewport | **390 × 760** | 390 × 580 | — | 375 × 812（全螢幕） |
+| 框內 `.board-wrap` | 390 × 367（比例 1.0638） | 390 × 367 | — | 375 × 353 |
+| 框內 `.topbar` / `.mobile-stepinfo` | 44 / 54 | 44 / 54 | — | 44 / 54 |
+| 框內 `.stepbar` | 59（球員）／101（教練） | 59 | — | 59 |
+| 抽屜頂端 vs 資訊卡下緣 | **485 vs 473 → 不重疊** | 430 vs 473（矮視窗下限 150，僅壓到資訊卡、球場仍完整） | — | 同手機版 |
+| 水平溢出 | 無 | 無 | 無 | 無 |
+| `#psSize` 顯示 | `390 × 760`（實測值，非寫死） | `390 × 580` | — | — |
+
+### 二、行為驗收
+
+| ID | 檢查 | 結果 |
+| --- | --- | --- |
+| AC-151 | 桌面 1440×900 開啟 `/` → 深色底（`body` 背景 `rgb(30,41,59)`）＋ 390 寬圓角手機框，框內顯示手機版（Header 44px、球場 100vw、單一底部列）；外殼文件本身 `.app` 為 `display:none` 且未建立 canvas | PASS |
+| AC-152 | 框內點「我是球員」→ 正常進站（`body[data-mode=player]`）；點 `☰` 開手冊、`🛠` 開教練工具皆為 Bottom Sheet、球場未被遮住；框內輸入 `coach888` 可解鎖教練模式（底部列變兩排、`.stepbar` 101px） | PASS |
+| AC-153 | 1440×900 開 `/?full=1` → 無外框、`html` 無 `phone-frame`、`.app` 為 `display:flex`、桌機首頁與三欄版面完全照舊；框下「🖥 桌面視窗」按鈕導向同一網址 | PASS |
+| AC-154 | 375×812（`mobile:true`）開 `/` → 完全沒有外框、`#phoneShell` 為 `display:none`，版面即真機全螢幕；縮放視窗跨過 768px 會自動 reload 換視角（`initViewportGuard()`） | PASS |
+
+### 三、截圖（`.scratch/`）
+
+- `frame-1440-idle.png`：桌面 1440×900 首頁，App 裝在手機框內（深色底＋圓角邊框＋陰影＋下方說明列 `手機版預覽 390 × 760`）。
+- `frame-1440-player.png`：框內球員模式——球場滿版、資訊卡、底部單列 `播放／∞／步驟膠囊／☰／⬇`。
+- `frame-1440-coach.png` / `frame-1440-coach-sheet.png`：框內教練模式（底部兩排）與 `🛠` 工具抽屜。
+- `frame-1440-sheet.png`：框內 `☰` 戰術手冊抽屜。
+- `frame-1440-full.png`：`?full=1` 的原大螢幕版面（零回歸對照）。
+- `frame-375-real.png`、`frame-1280-laptop.png`：真機 375×812（無外框）與 1280×720 筆電（框內 390×580）。
+
+### 四、已知取捨
+
+1. 框內是**同源 iframe 載入同一份 `index.html?phone=1`**（不是用 CSS 縮放假裝手機）：好處是 `dvh`、`matchMedia`、`pointer` 事件與真機完全一致；代價是 CDN（fabric／gifshot／supabase）會多載入一次，且外殼文件仍需解析完整份 HTML（外殼端已 `return` 前跳過 `boot()`，不建立 canvas）。
+2. 螢幕寬固定 390；高度受限於視窗（`min(844, 100dvh − 140)`）。1440×900 視窗下是 390×760，視窗高度 ≥984 才會剛好 844。
+3. 視窗高 <620px 時說明列自動收起（`.ps-bar{display:none}`），只留手機框。
+4. 矮視窗（框內高度 580）時抽屜下限 150px 會壓到「步驟資訊卡」約 43px，但球場（下緣 411）仍完整可見；此為可用性下限取捨。
+5. 尚待真機（iOS Safari／Android Chrome）驗證：`dvh` 隨網址列收合、`pointer:coarse` 判斷、iPad 分屏（寬 768–834 且為觸控 → 不套框）。
+
+---
+
 ## ✅ 驗收紀錄（本輪：手機版專業運動 App 版面重構）
 
 **日期**：2026-11-06 ｜ **方式**：`npm run build` ＋ headless Chrome（`scripts/serve-dist.mjs` 起本機預覽），以 iframe harness 固定 390×844／430×932／360×740 的真實 viewport 截圖，並用 `--dump-dom` 取 `getBoundingClientRect()` 實測幾何
@@ -917,22 +1103,411 @@ US-128 完成：快捷鍵說明卡自原始碼整塊移除（含死 CSS），桌
 
 ---
 
+## ✅ 驗收紀錄（本輪：手機單一控制卡＋手冊兩層清單＋提示條收斂）
+
+**日期**：2026-11-06 ｜ **方式**：`npm run build` → `scripts/serve-dist.mjs`（`http://localhost:4173/`，PID 35492）→ headless Chrome（`--headless=new`，DevTools 協定直連 `:9333`／`:9334`）以 `Emulation.setDeviceMetricsOverride` 在 390×844／375×667／360×740（`mobile:true`）與 1440×900（`?full=1`、`?phone=1`）實際載入、量測、點擊並截圖；`index.html` 與 `dist/index.html` SHA256 一致（`BEB30C7B…96F148B1574`）。
+
+### 一、實測結果（390 × 844 球員模式）
+
+| 量測 | 改版前 | 改版後 |
+| --- | --- | --- |
+| `#stepInfo` 父節點 | `board-panel`（球場內、卡片外） | **`stepbar`（卡片第一列）** |
+| 球場下緣 → 底部列上緣 | 有 8px 灰底間隙（`.stage` 漸層留白） | **0px（`411 = 411`）** |
+| `.stage` 背景 | `linear-gradient(...)` | **`none`** |
+| 底部區塊 | 資訊卡（54px）＋浮動動作列（59／101px） | **單一白卡 433px（`border-radius:18px 18px 0 0`、`rgb(255,255,255)`、上緣陰影）** |
+| `.stepbar` 排版 | `grid` 兩列（`play steps steps book tools`／`acts acts acts save save`） | **`grid` 三～四列：`info` / `steps`（1fr、兩欄 46px 大按鈕）/ `play＋acts＋book＋tools` / `save`** |
+| 水平溢出 | 無 | 無（`docScrollWidth 390 = innerWidth 390`，`.stepbar` `scrollWidth 390 = clientWidth 390`；375／360 亦同） |
+| 戰術手冊高度 | `--sheet-max` 約 367px（只露一小截） | **658px = 0.78 視窗**（375→520／0.78、360→577／0.78） |
+| 手冊分類 | 3 個 `<details open>` 原地展開 | **分類列（`›` 入口）→ 子頁面**：點「破 2-1-2 聯防」→ `.playbook.is-sub`、`#pbSubView.hidden=false`、標題 `破 2-1-2 聯防`／`BEAT 2-1-2`／`2`、清單 2 列；點子頁面戰術 → `is-open=false`、`is-sub` 重置、`#pbSubView` 收起、`state.playing=true`（4 步自動播放） |
+| 提示條 | 可同時堆疊多則、2800ms | **連發兩則後 `#toastStack.children.length = 1`，1.8 秒後 `0`** |
+| 教練工具抽屜 | 依球場下緣限高 | 不變（390×844 實測 421px、上緣 423 > 球場 411 → 不遮球場） |
+
+### 二、行為驗收
+
+| ID | 檢查 | 結果 |
+| --- | --- | --- |
+| AC-155 | 390×844 進站：球場下緣與白卡上緣 **零間隙**、卡片填到螢幕底（`barBottom 844 = innerHeight`）、無灰底殘留、頁面無水平捲動 | PASS |
+| AC-156 | 卡片第一列為當前步驟（`1/2 起始陣型`，教練模式 `1/4 雙肘落位`＋說明 2 行＋機會標籤），第二列兩欄大按鈕（`1 起始陣型` 磚紅選取／`2 擋拆切入` 白底），第三列 `▶ 播放`（手機顯示 `⏸` 於播放中）＋`∞`＋`＋`＋`☰`＋`🛠`，教練模式第四列滿版 `💾 儲存戰術` | PASS |
+| AC-157 | `☰` 開手冊 → 高度 78dvh；分類列不再原地展開（點 `summary` 由 JS `preventDefault()` 改切子頁面），子頁面有 `‹ 返回分類`；`‹ 返回分類` 滑回第一層；點任一戰術 → 手冊自動收起＋自動循環播放 | PASS |
+| AC-158 | 提示條連發只留最後一則、1.5 秒後淡出移除；載入戰術不再連跳「自動播放中…／已停止播放／播放完成／循環播放：開」等字樣 | PASS |
+| AC-159 | 375×667 與 360×740：卡片不溢出（`barScrollHeight = barClientHeight`）、卡片貼底、手冊 0.78 高、無水平溢出 | PASS |
+| AC-160 | 1440×900 `?full=1`：`.stepbar` 仍是單列 `display:flex`（54px）、`#stepInfo` 隱藏、`#playbook` 為 `position:static` 232px、`.pb-cat-list` 仍可展開（Accordion 未受影響）、`播放動畫` 全形標籤與 `▶` 正常；預設 `/` 的手機框外殼（`html.phone-frame`、iframe `?phone=1`、390×760）照舊 | PASS |
+
+### 三、截圖（`.scratch/`，2× DPR）
+
+- `v2-mob-card-390.png`：球員模式單一白卡（步驟說明 → 兩欄步驟鈕 → 播放／∞ → ☰／⬇）。
+- `v2-mob-coach-390.png`：教練模式白卡（資訊＋2×2 步驟鈕＋播放／∞／＋／☰／🛠＋滿版儲存）。
+- `v2-mob-pb-cat-390.png`：78dvh 手冊第一層（三個分類入口＋我的戰術）。
+- `v2-mob-pb-sub-390.png`：第二層子頁面（`‹ 返回分類`／`BEAT 2-1-2`／2 套戰術）。
+- `v2-mob-toast-390.png`、`v2-mob-375.png`、`v2-mob-pb-375.png`、`v2-mob-360.png`、`v2-mob-pb-360.png`、`v2-mob-tools-390.png`。
+- `v2-desk-1440.png`（零回歸對照）、`v2-desk-phoneframe.png`（桌面手機框外殼）。
+- 量測原始資料：`.scratch/v2-verify-report.json`、`.scratch/v2-verify-report2.json`。
+
+### 四、已知取捨
+
+1. 390×844 的卡片高 433px，只有 2 個步驟時下半部會有留白（白卡本身延伸到底，屬刻意設計）；步驟多時步驟區自身捲動，不會把底部按鈕推走。
+2. 手冊放大到 78dvh 後會蓋住球場下半部，這是「要看得清楚清單」換來的；`#pbScrim` 仍提供「點一下收起」。
+3. 教練工具抽屜維持限高（不遮球場），與手冊策略不同（C-116）。
+
+---
+
+## ✅ 驗收紀錄（本輪：手機步驟長卡片）
+
+**日期**：2026-11-06 ｜ **方式**：`npm run build` → `scripts/serve-dist.mjs`（`http://localhost:4173/`）→ headless Chrome 155（`--headless=new`，DevTools 協定直連 `:9335`）以 `Emulation.setDeviceMetricsOverride` 在 390×844／375×667／360×740（`mobile:true`、觸控模擬）與 1440×900（`mobile:false`、`?full=1` 與預設手機框外殼）實際載入、進站（`#enterPlayer`）、載入戰術 `lib:beat212-elbow`（4 步）、播放、量測並截圖；`index.html` 與 `dist/index.html` SHA256 一致（`6CEC3F35…A3BF1`），CSS 大括號 472／472 平衡，兩段 inline script 皆通過 `node --check`。
+
+### 一、實測結果（卡片尺寸／捲動）
+
+| 量測 | 390×844 球員（預設 2 步） | 390×844 球員（4 步） | 390×844 教練（4 步） | 375×667（4 步） | 360×740（4 步） |
+| --- | --- | --- | --- | --- | --- |
+| `.stepbar` 高度 | 433px | 433px | 433px | 270px | 358px |
+| 清單可視高（`clientHeight`） | 358 | 358 | 314 | 196 | 283 |
+| 清單內容高（`scrollHeight`） | 358 | 358 | **342（捲 28px）** | **294（捲 98px）** | **294（捲 11px）** |
+| 單張卡片高 | **118（上限）** | 82.1 | 78 | 66 | 66 |
+| `is-scrollable` 淡出 | 否 | 否 | **是** | **是** | **是** |
+| 水平溢出 | 無（390 = 390） | 無 | 無 | 無（375 = 375） | 無（360 = 360） |
+| `儲存戰術` 高度 | –（隱藏） | – | **36px** | – | – |
+
+- 390×844 只有 2 步時卡片停在 118px 上限、整組以 `justify-content:safe center` 垂直居中（上下留白平均分攤），不再出現「一張卡被拉成 174px 高」的空洞感。
+- 播放鍵 `#btnPlay` 仍為 44px，卡片 `min-height 78px／矮螢幕 66px` 皆遠大於 44px 觸控門檻。
+
+### 二、行為驗收
+
+| ID | 檢查 | 結果 |
+| --- | --- | --- |
+| AC-161 | 全檔已無 `#stepInfo`／`renderMobileStepInfo`／`.mobile-stepinfo` 殘留；`#stepList` 直接是 `.stepbar` 第一列（`grid-area:steps`），卡片 4 張依序 `雙肘落位／球進左肘／底角分球／內傳內放籃`，每張都有 `1`–`4` 編號徽章、`14px` 名稱、機會標籤（`肘區空檔／罰球線策應／底角 3 分／籃下真空`）與 2 行跑位說明 | PASS |
+| AC-162 | 選取中的卡片＝磚紅漸層（`linear-gradient(rgb(194,82,57), rgb(168,62,40))`）＋白字＋`rgb(180,70,47)` 邊框，右側指示為 `"●"`；其他卡片為白底＋`rgb(241,245,249)` 邊框，右側為 `"›"`；`aria-selected="true"` 與 `aria-current="step"` 只在選取項上 | PASS |
+| AC-163 | 按 `▶ 播放`：`state.playing=true`、活動卡片取得 `is-live`（指示燈 `●` 1.1s 脈動）、播放鍵變 `⏸ 暫停`；再按一次停止後 `is-live` 立即移除（`setPlaying()` 一律重繪） | PASS |
+| AC-164 | 教練模式（`body[data-mode=coach]`）：清單縮到 314px、4 張卡 78px、底部出現 20px 淡出（`.is-scrollable`）、滿版 `💾 儲存戰術` 36px 仍在最下方且不擋卡片；球員模式無儲存列（`getBoundingClientRect().height = 0`） | PASS |
+| AC-165 | 375×667／360×740：卡片自動收成 66px＋單行說明（`-webkit-line-clamp:1`），360×740 僅需再捲 11px；兩個尺寸皆無水平捲動、卡片群與播放列不重疊 | PASS |
+| AC-166 | 1440×900 `?full=1`：`.stepbar` 仍 `display:flex`／54px、`.step-chip` 33px 高（`padding:6px 11px`、12.5px）、`.step-body`／`.step-head` 為 `display:contents`、`.step-desc`／`.step-hint` 為 `display:none`（視覺與改版前一致）；預設 `/` 的手機框外殼（`html.phone-frame`、iframe `390×760`）正常載入新卡片 | PASS |
+| 補充 | 提示條位置：`--stepbar-h` 由 `ResizeObserver` 即時更新（390×844 → `433px`、375×667 → `271px`、360×740 → `358px`），提示條下緣固定在卡片上緣上方 12px，不再壓住步驟卡片 | PASS |
+
+### 三、截圖（`.scratch/`，2× DPR）
+
+- `v3-mob-cards-390.png`：球員模式 2 步（118px 卡片 ＋ 垂直居中 ＋ 提示條貼卡片上緣）。
+- `v3-mob-cards4-390.png`：載入 4 步戰術（82px／張，剛好填滿不需捲動）。
+- `v3-mob-live-390.png`：播放中（活動卡片 `●` 脈動、播放鍵變暫停）。
+- `v3-mob-cards-coach-390.png`：教練模式（78px／張 ＋ 底部淡出 ＋ 滿版儲存）。
+- `v3-mob-cards-375.png`、`v3-mob-cards-360.png`：矮螢幕（66px ＋ 單行說明 ＋ 淡出）。
+- `v3-desk-1440.png`（桌面零回歸對照）、`v3-desk-phoneframe.png`（桌面手機框外殼）。
+- 量測原始資料：`.scratch/v3-verify-report.json`。
+
+### 四、已知取捨
+
+1. 手機直向的卡片高度受「球場 100vw」壓縮：390×844 球員模式可放 4 步（82px／張），教練模式與 375／360 的螢幕一定得捲動（見 C-117）。已用底部 20px 淡出提示「下面還有」＋播放／切換步驟時自動把當前卡片捲進視野降低影響。
+2. 長說明（>46 字）會被 `-webkit-line-clamp` 截斷（矮螢幕只給 1 行）；完整文案仍在 `frame.desc` 內，桌機以 `title` 與手冊呈現，不另開彈窗。
+3. 卡片上限 118px 是刻意的：2 步時不會被拉成半個螢幕高的巨卡，留白改由垂直居中吸收。
+
+---
+
+## ✅ 驗收紀錄（本輪：免帳號繪製模式＋提案批核＋一鍵分享）
+
+**日期**：2026-11-06 ｜ **方式**：`npm run build`（`index.html` → `dist/`）→ **Node + CDP 冒煙測試** `.scratch/smoke/cdp.js`（內建 `fetch` ＋ `WebSocket` 直連 Edge `--remote-debugging-port`，用 `Emulation.setDeviceMetricsOverride` 取得真正的 390／375 寬視窗；Windows 的 `--window-size` 會被夾到約 500px，量不到手機寬度）。每次執行前清空 `localStorage`，四個規格各自開一個瀏覽器實例，跑完列印 `PASS=n FAIL=n` 與失敗明細。
+
+### 一、規格與結果
+
+| 規格 | 視窗 | 斷言數 | 結果 |
+| --- | --- | --- | --- |
+| `default` | 1440×900（`?full=1` 桌機） | 64 | **PASS=64 · FAIL=0** · `runtime.errors [none]` |
+| `390x844` | 390×844（`mobile:true`、5 觸點） | 71 | **PASS=71 · FAIL=0** · `runtime.errors [none]` |
+| `375x667` | 375×667（矮螢幕） | 71 | **PASS=71 · FAIL=0** · `runtime.errors [none]` |
+| `gif` | 390×844 ＋ `#gif`（`gifshot` stub） | 14 | **PASS=14 · FAIL=0** · `runtime.errors [none]` |
+
+> 390／375 比桌機多 7 項＝手機版面斷言（底部 4 鍵、`#editRow` 不溢出、球場高度、手冊工具列等）。
+
+### 二、行為驗收
+
+| ID | 檢查 | 結果 |
+| --- | --- | --- |
+| AC-167 | 球員點「＋ 新增戰術」→ `state.editing=true`、`body[data-edit="1"]`、`#editRow` 顯示、`#btnApprove*` 隱藏、`#pwModal` 未開啟 | PASS |
+| AC-168 | 唯讀球員點工具鈕／節點鈕／`#btnSaveStep` → 只出現「需要繪製模式…」提示，`#pwModal` 不開、畫布物件數維持 12（`gate.toolBlocked`／`gate.toolToast`／`gate.noPasswordModal`／`gate.noNodeAdded`／`gate.toolsToast`） | PASS |
+| AC-169 | `#editRow` 三態（唯讀隱藏／繪製顯示／教練審批換成批准鍵）；390／375 下 `.stepbar`、`#editRow` 無水平溢出、4 鍵皆在視窗內 | PASS |
+| AC-170 | 儲存對話框角色切換：球員＝`提交提案`＋名單下拉、`#saveCoachWrap` 隱藏；教練＝`發布`＋暗號欄、`#savePlayerWrap` 隱藏（`save.*`／`coachSave.roleCoach` 等 6 項） | PASS |
+| AC-171 | 球員送出 → 紀錄 `meta.status='pending'`；手冊顯示「未批核」＋「by #0 陳生」；教練按「✅ 批准」後轉 `approved`、批准鍵收起、加步驟鍵回來（`list.pendingTag`／`list.authorShown`／`list.hasRecord`） | PASS |
+| AC-172 | 錯暗號 `9999` → 彈窗不關並顯示錯誤（`coachSave.wrongCodeStays`）；`1234` → 關閉、`approved`、自動取得教練權限（`coachSave.approved`／`modalClosed`／`autoCoach`） | PASS |
+| AC-173 | 「✏️ 修改提案」→ `tacticId=null`、`tacticSource=null`、名稱結尾「 提案」、`editing=true`（`propose.detached`／`notOfficialId`／`nameSuffix`／`editing`）——官方紀錄不被覆寫 | PASS |
+| AC-174 | 「✏️ 修改後批核」→ `approveOnSave=true`、儲存後 `approved`、id 不變、清單不重複、旗標歸零（`approveEdit.on`／`saved`／`approved`／`sameId`／`noDuplicate`／`cleared`） | PASS |
+| AC-175 | `#gif`：擷取取得影格與 dataUrl、檔名沿用戰術名稱、結束後 loader 關閉／畫面還原／`exporting=false`；fallback 下載 GIF 並開 `wa.me`（`gif.*` 6 項 ＋ `share.*` 4 項） | PASS |
+| AC-176 | 靜態檢查 `node .scratch/smoke/integrity.js`：無亂碼字樣、CSS 大括號 **503／503** 平衡、兩段 inline script `node --check` 通過、`index.html` 與 `dist/index.html` SHA256 一致（`575EF66FBDA5…96B40`） | PASS |
+
+### 三、已知取捨／限制
+
+1. `gif` 規格以 stub 取代 `gifshot.createGIF`：headless 環境的 Web Worker 編碼永遠不會 resolve，因此只驗證「影格擷取 → dataUrl → 畫面還原 → 分享／下載路徑」，**不驗證 GIF 位元組本身**（真機行為不變）。
+2. 原生 `navigator.share` 無法在 headless 觸發，測到的是 fallback（下載 ＋ `wa.me`）；手機原生分享面板需真機驗證。
+3. 提案沒有即時推播：教練要按 `↻` 或重新開啟手冊才會看到新提案（C-120）。
+4. 「繪製模式」不是權限控管（C-118）：它只讓球員能動手，真正的保護是「提案另存一筆」與「批核需要暗號」。
+
+---
+
+## 🆕 本輪需求（US-136：頂部 Header 重構 —［球員｜教練］滑塊 ＋ ［＋ 新增］）
+
+**日期**：2026-11-06
+
+### 使用者故事
+
+> **As a** 球員／教練（同時在桌機與手機上使用）
+> **I want** 頂部右側固定是「［球員模式｜教練模式］滑塊 ＋ ［＋ 新增］」兩顆相鄰的元件
+> **so that** 我不用為了切換身分去翻手機抽屜，而且畫新戰術永遠在同一個位置、一眼就看到。
+
+原本的 `⎋ 切換身分` 是一個圓形小圖示鈕、又落在最右端，和「回到開場首頁」混在一起，語意不清；而手機版更把整個身分滑塊 `display:none` 藏進手冊抽屜（`.pb-tools-row` 的 `⎋ 切換身分`），切換身分要三步。本輪把 Header 收斂成「左：品牌／右：滑塊＋新增」的單一排列。
+
+### 功能需求
+
+| ID | 需求 | 實作位置 |
+| --- | --- | --- |
+| FR-236 | 桌機 Header 右側順序固定為 **身分切換滑塊 → ＋ 新增 → 本機儲存膠囊**；原本最右側的 `⎋` 圓形鈕（`#btnHome`／`.home-btn`）連同 CSS 規則（含 ≤720px 的縮小版）與 `bindUI()` 內的 `#btnHome → backToSplash` 綁定一併刪除 | `index.html` §1 `.topbar-right`／`#topbar-actions` |
+| FR-237 | 「＋ 新增」沿用既有 `#btnNewTactic` 與 `newTactic()`，只改外觀（橘色漸層膠囊 ＋ `＋` 圖示）與位置；行為（清畫布成 2-1-2、進繪製模式、必要時先跳確認框）完全不變 | `.new-tactic-btn` ＋ 既有 `newTactic` 綁定 |
+| FR-238 | 手機（≤767px）同樣**並排**顯示：滑塊改短標籤「球員／教練」（`.mb-short` 顯示、`.mb-full` 隱藏）、按鈕改「＋ 新增戰術」（`.ntb-long`）；390px 與 360px 都不得換行或溢出，`本機儲存` 膠囊手機仍隱藏 | §6.5 `@media (max-width:767px)` |
+| FR-239 | 兩顆元件**等高**：`.topbar-actions{display:flex;align-items:stretch}` ＋ `.new-tactic-btn{align-self:stretch}`，不寫死高度（實測桌機 37／37px、手機 29／29px）；≤380px 再加一級縮小（`.mode-btn` padding 8px／`10.5px`、`.new-tactic-btn` padding 9px／`11px`） | `@media (max-width:380px)` |
+
+### 非功能需求
+
+| ID | 需求 | 實作位置 |
+| --- | --- | --- |
+| NFR-131 | **桌機零回歸**：只動 Header 區塊與相關文案，工具列、球場、手冊、右側工具與既有 64 項斷言全數維持 PASS | 冒煙測試五種尺寸 |
+| NFR-132 | **無水平溢出**：`topbar.scrollWidth <= topbar.clientWidth` 在 1440／1184／900／768／390／375／360 皆成立 | `topbar.noOverflow` |
+
+### 限制
+
+| ID | 限制 | 說明 |
+| --- | --- | --- |
+| C-121 | 移除 `⎋` 後桌機沒有「回首頁（splash）」入口 | 手機仍可在手冊抽屜按 `⎋ 切換身分`（`#pbSwitchRole`）；`backToSplash()` 保留給它使用。桌機要回首頁目前只能重新載入頁面；若日後需要，可把 splash 掛在品牌隊徽點擊（未實作） |
+| C-122 | 文案必須跟著按鈕標籤走 | 教學提示與空狀態字串由「按右上角『＋ 新增戰術』」改為「按右上角『＋ 新增』」（`toast()` 兩處、手冊空狀態兩處、`splash-foot` 一句），避免手機／桌機標籤不同造成找不到按鈕 |
+
+### 驗收標準
+
+- **AC-177** 桌機 1440：`#btnNewTactic` 可見、`nextElementSibling` 就是滑塊 → 兩者同一列（top 差 ≤2px）、按鈕在滑塊右方、且 `.topbar-right` 右緣與 Header padding 差 ≤2px（右對齊）。
+- **AC-178** 滑塊與 `＋ 新增` **等高**（桌機 37／37、手機 29／29，差 ≤1px）。
+- **AC-179** 手機 390／375／360：滑塊可見且顯示短標籤「球員」、`.mb-full` 為 `display:none`、按鈕文字含「新增戰術」。
+- **AC-180** `document.querySelector('.home-btn')` 與 `#btnHome` 皆不存在（元素、CSS、JS 綁定都已移除）。
+- **AC-181** 點「＋ 新增」行為不變：唯讀球員按下 → `state.editing=true`、`#editRow` 出現、`#btnApprove*` 隱藏（既有 `draw.*` 斷言）。
+
+### Requirement Traceability Matrix（RTM）
+
+| Requirement ID | 需求描述 | Feature/Module | User Story | Status |
+| --- | --- | --- | --- | --- |
+| FR-236 | 桌機右側＝滑塊→＋新增→儲存膠囊，移除 `⎋` | `.topbar-right` / `.topbar-actions` | US-136 | Verified |
+| FR-237 | 「＋ 新增」沿用 `#btnNewTactic`／`newTactic()` 只改外觀 | `.new-tactic-btn` | US-136 | Verified |
+| FR-238 | 手機並排、短標籤「球員／教練」＋「＋ 新增戰術」 | §6.5 `max-width:767px` | US-136 | Verified |
+| FR-239 | 兩顆等高（stretch）＋ ≤380px 再縮一級 | §6. 媒體查詢 | US-136 | Verified |
+| NFR-131 | 桌機零回歸 | 冒煙測試 | US-136 | Verified |
+| NFR-132 | Header 無水平溢出 | `topbar.noOverflow` | US-136 | Verified |
+| C-121 | 桌機失去「回首頁」入口 | — | US-136 | Accepted |
+| C-122 | 提示文案對齊「＋ 新增」 | `toast()` / 空狀態 / `splash-foot` | US-136 | Verified |
+| AC-177～AC-181 | 驗收 | 見下方「驗收紀錄（本輪：頂部 Header 重構）」 | US-136 | Verified |
+
+---
+
+## ✅ 驗收紀錄（本輪：頂部 Header 重構 US-136）
+
+**日期**：2026-11-06 ｜ **方式**：`npm run build`（`index.html` → `dist/`）→ `node .scratch/smoke/integrity.js`（靜態檢查）→ `node .scratch/smoke/build.js` ＋ `node .scratch/smoke/cdp.js`（Node CDP 直連 Edge，`Emulation.setDeviceMetricsOverride` 取得真正的 390／375／360 寬視窗）→ `node .scratch/smoke/shot.js`（PNG 截圖目視）。本次並在 `cdp.js` 的 `SPECS` 新增 **`360x740`**（超窄機），以及新的截圖腳本 `shot.js`（乾淨頁面＋自動進站＋Header 2x 特寫裁切）。
+
+### 一、規格與結果
+
+| 規格 | 視窗 | 斷言數 | 結果 |
+| --- | --- | --- | --- |
+| `1440x900` | 1440×900（`?full=1` 桌機） | 77 | **PASS=77 · FAIL=0** · `runtime.errors [none]` |
+| `1184x820` | 1184×820（`?full=1` 中桌機） | 77 | **PASS=77 · FAIL=0** · `runtime.errors [none]` |
+| `900x900` | 900×900（平板，`本機儲存` 隱藏） | 77 | **PASS=77 · FAIL=0** · `runtime.errors [none]` |
+| `768x1024` | 768×1024（平板最小寬，品牌顯示全名） | 77 | **PASS=77 · FAIL=0** · `runtime.errors [none]` |
+| `390x844` | 390×844（iPhone 14 尺寸） | 87 | **PASS=87 · FAIL=0** · `runtime.errors [none]` |
+| `375x667` | 375×667（矮螢幕） | 87 | **PASS=87 · FAIL=0** · `runtime.errors [none]` |
+| `360x740` | 360×740（**新增**超窄機） | 87 | **PASS=87 · FAIL=0** · `runtime.errors [none]` |
+| `gif` | 390×844 ＋ `#gif`（`gifshot` stub） | 14 | **PASS=14 · FAIL=0** · `runtime.errors [none]` |
+
+> 本輪新增 13 項 `topbar.*`（桌機／手機共用）＋ 4 項 `mobile.mode*`／`mobile.newLabelLong`；桌機由 64 → 77、手機由 71 → 87。
+
+### 二、行為驗收
+
+實測幾何（`shot.js` 的 probe 與 `topbar.*` 斷言）：
+
+| 寬度 | 滑塊（寬×高） | ＋ 新增（寬×高） | 間距 | Header 溢出 |
+| --- | --- | --- | --- | --- |
+| 1440 | 179 × **37** | 73 × **37** | 10px | 無（1440／1440） |
+| 1184 / 900 / 768 | 179 × **37** | 73 × **37** | 10px | 無（768／768） |
+| 390 | 93 × **29** | 88 × **29** | 6px | 無（390／390） |
+| 375 | 93 × **29** | 88 × **29** | 6px | 無（375／375） |
+| 360 | 83 × **29** | 82 × **29** | 6px | 無（360／360） |
+
+| ID | 檢查 | 結果 |
+| --- | --- | --- |
+| AC-177 | `topbar.adjacent [new-tactic-btn]`、`topbar.newRightOfSwitch`、`topbar.sameRow [18/18]`（桌機）／`[7/7]`（手機）、`topbar.rightAligned [18px gutter]`（桌機）／`[12px gutter]`（手機）、`topbar.storePillAfterNew [12px gap]`（桌機） | PASS |
+| AC-178 | `topbar.heightMatch [37 vs 37]`（1440／1184）、`[29 vs 29]`（390／375／360） | PASS |
+| AC-179 | `mobile.modeSwitchVisible`、`mobile.modeLabelShort [球員]`、`mobile.modeLabelFullHidden`、`mobile.newLabelLong [＋新增新增戰術]` | PASS |
+| AC-180 | `topbar.homeRemoved`（`.home-btn`／`#btnHome` 都不存在）；`Select-String 'home-btn|btnHome|hb-txt'` 在 `index.html` 已無任何命中 | PASS |
+| AC-181 | 既有 `draw.editing`／`draw.bodyEdit`／`draw.editRowShown`／`draw.addVisible`／`draw.saveVisible`／`draw.approveHidden`／`draw.approveEditHidden` 全數維持 PASS（點「＋ 新增」行為不變） | PASS |
+| AC-177～181 補充 | `topbar.leftBrandFirst`、`topbar.switchRetained`、`topbar.newVisible`、`topbar.noOverflow`（五種寬度）、`topbar.platformDesktop` | PASS |
+| — | 靜態檢查：無亂碼字樣、CSS 大括號 **516／516** 平衡、兩段 inline script `node --check` 通過（702／146750 chars）、`index.html` 與 `dist/index.html` SHA256 一致（`BF9634D0F97C`） | PASS |
+
+### 三、目視驗證（截圖）
+
+| 檔案 | 內容 | 結果 |
+| --- | --- | --- |
+| `.scratch/v4-topbar-1440.png` / `-hdr.png` | 桌機：左隊徽＋`MONDAY BEER & BASKETBALL`；右「球員模式｜教練模式」滑塊 →「＋ 新增」橘色膠囊 →「本機儲存」膠囊 | 符合 |
+| `.scratch/v4-topbar-390.png` / `-hdr.png` | 手機 390：隊徽＋`MondayBeer`；右「球員｜教練」短標籤滑塊 →「＋ 新增戰術」；球場、步驟長卡、底部 4 鍵均未受影響 | 符合 |
+| `.scratch/v4-topbar-360-hdr.png` | 360 超窄機：仍並排、不換行、不裁切 | 符合 |
+| `.scratch/v4-topbar-768-hdr.png` / `-900-hdr.png` | 平板 768／900：品牌顯示全名、`本機儲存` 已因 ≤1100px 隱藏，滑塊＋「＋ 新增」仍貼右對齊 | 符合 |
+
+### 四、已知取捨／限制
+
+1. **桌機失去「回首頁（splash）」入口**（C-121）：`⎋` 鈕已移除，`backToSplash()` 只剩手機手冊抽屜的 `⎋ 切換身分`（`#pbSwitchRole`）在用。若日後要補回，建議掛在品牌隊徽點擊，而不是再塞一顆小圖示鈕。
+2. **手冊抽屜的 `⎋ 切換身分` 保留**：手機使用者要回開場頁仍有入口，只是不再從 Header 進來。
+3. **`本機儲存` 膠囊位置不動**：仍在最右端（≤1100px 與手機皆隱藏），維持原本的「狀態顯示」語意，不與動作按鈕混在一起。
+4. **按鈕高度靠 `stretch` 對齊**：沒有寫死 `height`，之後改字級／padding 時兩顆會自己保持一致；代價是若未來在 `.topbar-actions` 內加入第三顆較高元件，另兩顆會跟著長高。
+
+---
+
+## 🆕 本輪需求（US-137：手冊精簡＋「＋ 新增」建立對話框＋隊徽回首頁＋存檔鍵分身分）
+
+**日期**：2026-11-06
+
+### 使用者故事
+
+> **As a** 球員／教練（手機與桌機都用）
+> **I want** 左側「戰術手冊」就只是「標題 ＋ 關閉 ＋ 清單」，開新戰術一律從右上「＋ 新增」跳一張小表單（名稱／提議球員／防守陣型），隊徽按一下就回開場首頁，存檔鍵則依我的身分顯示「提交審核」或「儲存」
+> **so that** 手冊不再塞一堆工具鈕、我不會因為找不到「新戰術」而放棄，也不會在球員模式下誤按到「儲存」而不清楚那是送審。
+
+原本手冊抽屜／側欄把「➕ 新增戰術／✏️ 修改提案／⎋ 切換身分／↻ 重新整理」四顆工具鈕塞在標題下方（`.pb-tools-row`），手機還多一列 `.pb-new-row`；「新戰術」是清空畫布後直接進繪製模式，名稱要等存檔才知道；回首頁只有手機抽屜的 `⎋`；存檔鍵在球員模式仍寫「儲存」。本輪把入口收斂到 Header 的「＋ 新增」，並用一張對話框把「這套戰術是什麼」問清楚。
+
+### 功能需求
+
+| ID | 需求 | 實作位置 |
+| --- | --- | --- |
+| FR-240 | 戰術手冊（`.playbook`）只剩三段：`.pb-head`（`h2 戰術手冊` ＋ `#pbClose ✕`）＋ `#pbList` ＋ 底部提示；刪除 `.pb-tools-row`（`#pbTools`／`#pbPropose`／`#pbSwitchRole`）、`.pb-new-row`（`#pbNewTactic`）、`.pb-refresh`（`#pbRefresh`）與 `#pbNameInput`，連同 CSS（`.pb-new-*`／`.pb-refresh`／`.pb-tools-row`）與 `bindUI()` 綁定 | `index.html` §5.6（CSS）／「戰術手冊側欄」（HTML）／`bindUI()` |
+| FR-241 | 右上「＋ 新增」改為**開對話框** `#createModal`：`#createName`（預設 `nextTacticName()`）／`#createPerson`（名單 18 人，記住上次選擇）／`#createDefense`（`2-1-2` 首選／`2-3`／`3-2`／`人盯人`）＋ `#createError`；名稱空白不關框，`submitCreateForm()` → `startDrawingFlow(name, personNo, defenseKey)` | `openCreateDialog()`／`fillCreateOptions()`／`submitCreateForm()`／`startDrawingFlow()` |
+| FR-242 | `startDrawingFlow()` 承接原本 `newTactic()` 的清畫布流程：必要時先跳確認框（沿用 `#confirmModal`），清成 2-1-2／步驟 1、寫入 `state.tacticName`／`state.tacticAuthor`／`state.tacticDefense`，非 `212` 時以 340ms 補間套上防守預設 | `startDrawingFlow()` |
+| FR-243 | `.brand`（隊徽＋`MONDAY BEER & BASKETBALL`／手機 `MondayBeer`）改為 `<button type="button" id="brandHome">`，點擊 `backToSplash()`；加上 `.brand:hover`／`:active`／`cursor:pointer` 與 `:focus-visible` 焦點環 | `.brand` CSS ＋ `bind('#brandHome', …)` |
+| FR-244 | ~~存檔鍵依身分與狀態切換：教練／繪製中＝`💾 儲存`、球員＝`💾 提交審核`~~ **已被 US-138／FR-249 取代**：改由「作者」決定語意（`📤 提交審核`／`📢 發布`），唯讀時 `#btnSaveTactic` 仍 `hidden`，手機 `#btnQuickSave` 已移除。`syncEditRow()` 統一處理 `#editRowSave`／`#editRowTools`／`#btnSaveTactic`／`#btnQuickSave`／`#btnShare` 的顯隱與文案 | `syncEditRow()` |
+| FR-245 | ~~手機把「儲存」放進底部 4 鍵的第 4 格~~ **已被 US-138／FR-250 取代**：底部 4 鍵永久固定（`#btnQuickSave` 已刪除，`#btnShare` 不再讓位） | ~~§6.5 `#btnQuickSave` 規則~~ → §6.5 `#btnShare` |
+| FR-246 | 繪製中的教練工具在任何寬度都到得了：`>1100px` 走三欄（`.playbook ｜ stage ｜ .sidebar`）；`768–1100px` 由步驟列的 `#sideToggle` 開右側抽屜（`body[data-edit="1"] .sidebar{display:flex!important}` ＋ `body[data-edit="1"] #sideToggle{display:grid}`）；`≤767px` 用輕量列新增的 `🛠 名單`（`#editRowTools` → `openSidebar(true)`） | `@media (max-width:1100px)`／`(max-width:767px)` ＋ `#editRow .er-tools` |
+| FR-247 | 防守陣型存進 `meta.defense`（**不動 DB schema**）：`openSaveDialog()` 寫入、載入戰術時回填 `state.tacticDefense` 與 `#createDefense` 上次選擇；`meta.defense` 缺漏／未知值一律 fallback `212` | `openSaveDialog()`／`loadTactic()`／`startDrawingFlow()` |
+| FR-248 | 移除「✏️ 修改提案」路徑：`startProposalEdit()`／`syncTacticNameField()`／`focusTacticNameField()` 與 `#pbPropose` 綁定全數刪除；球員要改既有戰術就是「重新建立一套並送審」 | `index.html` JS |
+
+### 非功能需求
+
+| ID | 需求 | 實作位置 |
+| --- | --- | --- |
+| NFR-133 | **零回歸**：8 個 spec（1440／1184／900／768／390／375／360／gif）全部 `FAIL=0`，且 `runtime.errors [none]` | `node .scratch/smoke/cdp.js` |
+| NFR-134 | **無水平溢出**：`topbar.scrollWidth <= clientWidth` 在 7 種寬度成立；手機 `#editRow` 也必須 `scrollWidth <= clientWidth`（三顆按鈕不能撐破） | `topbar.noOverflow`／`mobile.editRowNoOverflow` |
+| NFR-135 | **存檔向後相容**：既有紀錄沒有 `meta.defense` 也能正常載入（防守維持畫面上的 2-1-2），舊資料不必遷移 | `loadTactic()` 的 `defenseOf()` |
+
+### 限制
+
+| ID | 限制 | 說明 |
+| --- | --- | --- |
+| C-123 | 桌機（>1100px）手冊**看不到 `✕`** | 桌機手冊是版面固定的一欄，關掉就沒有再打開的入口；`.pb-close` 只在 `≤1100px`（抽屜模式）`display:block`。要收起桌機右側工具仍用側欄上的 `›`／`‹` |
+| C-124 | `768–1100px` 的工具抽屜**沒有獨立關閉鈕** | 抽屜會蓋住步驟列上的 `🛠`，關閉靠點一下變暗的球場（`#pbScrim` → `openSidebar(false)`）；`≤767px` 的抽屜仍有把手下滑／`☰` 切換 |
+| C-125 | 球員「改既有戰術」不再是原地另存提案 | 「✏️ 修改提案」已移除，流程改成「＋ 新增 → 重新建立 → 💾 提交審核」，成本是球員要重新畫一遍（換來手冊與程式都少一條分支） |
+
+---
+
+### 驗收標準
+
+- **AC-182** 手冊只剩「標題＋`✕`＋清單」：`.playbook .pb-tools-row`、`.pb-new-row`、`.pb-refresh` 皆不存在，`#pbTools`／`#pbPropose`／`#pbSwitchRole`／`#pbNewTactic`／`#pbRefresh`／`#pbNameInput` 皆為 `null`，`.pb-head` 內只剩一顆 `#pbClose`，`#pbList` 仍在。
+- **AC-183** 按「＋ 新增」→ `#createModal` 開啟、`#createName` 有預設值、`#createPerson` 18 個選項、`#createDefense` 預設 `212` 且有 4 個選項。
+- **AC-184** 名稱清空送出 → 對話框不關、`#createError` 有錯誤文字；填好並選 `34`／`23` → 關框、`state.tacticName`／`state.tacticAuthor.no === 34`／`state.tacticDefense === '23'`、只剩「步驟 1」、進入繪製模式。
+- **AC-185** 繪製模式：`body.dataset.edit === '1'`、`#editRow` 出現、`#editRowAdd`／`#editRowTools`／`#editRowSave` 可見、`#editRowSave` 文案含「提交審核」、`#btnSaveTactic` 可見、`#btnApprove*` 隱藏。
+- **AC-186** 工具入口：`>1100px` 側欄 `display !== none`；`≤1100px` `#sideToggle` 可見，點一下開抽屜（`#rosterGrid` ≥ 10 項、`#defGrid .def-btn` = 5），再點一下收起。
+- **AC-187** ~~手機繪製中：`#btnQuickSave` 可見且文字含「提交」、與 `#btnShare` 同格（`quickSaveSameCell`）、`#btnShare` 隱藏~~ → **已被 US-138／AC-191 取代**（底部 4 鍵永久固定、`#btnQuickSave` 已移除）；`#editRowTools` 可見、點它會開工具抽屜（`#sidebar.is-open`），關閉後 `is-open` 移除（仍有效）。
+- **AC-188** 隊徽是 `<button id="brandHome">`、不在其他 button 內；點擊後 `#splash` 出現、`body` 離開編輯狀態，再按「我是球員」可回到球員模式。
+- **AC-189** 唯讀球員：`#btnSaveTactic` 仍 `hidden`、`#btnShare` 一直可見（US-138 起沒有 `#btnQuickSave` 讓位）、手冊沒有「修改提案」入口；載入含 `meta.defense` 的紀錄時 `state.tacticDefense` 正確回填。
+
+### Requirement Traceability Matrix（RTM）
+
+| Requirement ID | 需求描述 | Feature/Module | User Story | Status |
+| --- | --- | --- | --- | --- |
+| FR-240 | 手冊只剩標題＋✕＋清單，移除四顆工具鈕與 `#pbNameInput` | `.playbook` / §5.6 | US-137 | Verified |
+| FR-241 | 「＋ 新增」→ 建立新戰術對話框（名稱／提議球員／防守陣型） | `#createModal` | US-137 | Verified |
+| FR-242 | `startDrawingFlow()` 清畫布／套防守預設／寫入 state | `startDrawingFlow()` | US-137 | Verified |
+| FR-243 | 隊徽改按鈕，點擊回首頁 | `.brand` / `#brandHome` | US-137 | Verified |
+| FR-244 | ~~存檔鍵依身分切「儲存／提交審核」、唯讀隱藏~~ | `syncEditRow()` | US-137 | Superseded（US-138 / FR-249） |
+| FR-245 | ~~手機第 4 鍵＝`#btnQuickSave`（與 `#btnShare` 互斥同格）~~ | §6.5 `grid-area:share` | US-137 | Superseded（US-138 / FR-250） |
+| FR-246 | 繪製中工具入口：三欄／`🛠` 抽屜／`🛠 名單` | `.stage` ＋ media queries | US-137 | Verified |
+| FR-247 | `meta.defense` 存取與 fallback `212` | `openSaveDialog()` / `loadTactic()` | US-137 | Verified |
+| FR-248 | 移除「✏️ 修改提案」整條路徑 | `index.html` JS | US-137 | Verified |
+| NFR-133 | 8 個 spec 全綠、無 runtime error | 冒煙測試 | US-137 | Verified |
+| NFR-134 | Header／`#editRow` 無水平溢出 | `topbar.noOverflow` / `mobile.editRowNoOverflow` | US-137 | Verified |
+| NFR-135 | 舊紀錄無 `meta.defense` 仍可載入 | `defenseOf()` | US-137 | Verified |
+| C-123 | 桌機手冊無 `✕` | — | US-137 | Accepted |
+| C-124 | 768–1100 抽屜靠 scrim 關閉 | `#pbScrim` | US-137 | Accepted |
+| C-125 | 球員改戰術＝重新建立 | — | US-137 | Accepted |
+| AC-182～AC-189 | 驗收 | 見下方「驗收紀錄（本輪：US-137）」 | US-137 | Verified |
+
+
+## ✅ 驗收紀錄（本輪：手冊精簡 ＋ 建立對話框 ＋ 隊徽回首頁 US-137）
+
+**日期**：2026-11-06 ｜ **方式**：`npm run build` → `node .scratch/smoke/integrity.js`（靜態）→ `node .scratch/smoke/build.js`（重建測試頁）→ `node .scratch/smoke/cdp.js`（8 spec）→ `node .scratch/smoke/shot.js`（PNG 目視）。
+
+### 一、規格與結果
+
+| 規格 | 視窗 | 斷言數 | 結果 |
+| --- | --- | --- | --- |
+| `1440x900` | 1440×900（`?full=1` 桌機：三欄） | 102 | **PASS=102 · FAIL=0** |
+| `1184x820` | 1184×820（中桌機，仍在三欄區） | 102 | **PASS=102 · FAIL=0** |
+| `900x900` | 900×900（平板：工具改右側抽屜） | 106 | **PASS=106 · FAIL=0** |
+| `768x1024` | 768×1024（平板最小寬／斷點邊界） | 106 | **PASS=106 · FAIL=0** |
+| `390x844` | 390×844（iPhone 14 尺寸） | 120 | **PASS=120 · FAIL=0** |
+| `375x667` | 375×667（矮螢幕，`is-dense`） | 120 | **PASS=120 · FAIL=0** |
+| `360x740` | 360×740（超窄機） | 120 | **PASS=120 · FAIL=0** |
+| `gif` | 390×844 ＋ `#gif` | 14 | **PASS=14 · FAIL=0** |
+
+> 本輪新增 5 項 `pb.*`、11 項 `create.*`、5 項 `readonly.*`、5 項 `mobile.*`（`quickSave*`／`toolsDrawer*`／`editRowNoOverflow`）、5 項 `home.*`、5 項 `tools.*`；桌機 77 → 102／106，手機 87 → 120。
+
+### 二、行為驗收
+
+| ID | 檢查（斷言 id） | 結果 |
+| --- | --- | --- |
+| AC-182 | `pb.headOnlyTitleAndClose`、`pb.listKept`、`pb.newRowRemoved`、`pb.toolsRowRemoved`、`pb.refreshRemoved` | PASS |
+| AC-183 | `create.modalOpen`、`create.namePrefilled [新戰術 1]`、`create.rosterOptions [18 opts]`、`create.defenseDefault [212]`、`create.defenseOptions [4 opts]` | PASS |
+| AC-184 | `create.nameRequired`、`create.modalClosed`、`create.tacticName`、`create.authorSet [#34]`、`create.defenseStored [23]`、`create.freshStep1 [1 steps]` | PASS |
+| AC-185 | `draw.editing`、`draw.bodyEdit`、`draw.canEditTrue`、`draw.editRowShown`、`draw.addVisible`、`draw.toolsVisible`、`draw.saveVisible`、`draw.saveLabelProposal [💾 提交審核]`、`draw.deskSaveShown`、`draw.approveHidden`、`draw.approveEditHidden` | PASS |
+| AC-186 | `tools.entryRule`（`w=900/768 toggle=shown`、`w=1440 sidebar flex`）、`tools.toggleOpensDrawer`、`tools.drawerRoster [18 players]`、`tools.drawerDefense [5 presets]`、`tools.toggleClosesDrawer` | PASS |
+| AC-187 | `mobile.quickSaveVisible`、`mobile.quickSaveLabel`、`mobile.quickSaveSameCell`、`mobile.shareHiddenWhileDrawing`、`mobile.toolsDrawerReachable`／`Opens`／`Closes`、`mobile.editRowNoOverflow` | PASS |
+| AC-188 | `home.brandIsButton`、`home.notNestedInButton`、`home.splashOpened`、`home.splashedBodyMode`、`home.backToPlayer` | PASS |
+| AC-189 | `readonly.deskSaveHidden`、`readonly.quickSaveHidden`、`readonly.noProposeEntry`、`readonly.shareBack`、`readonly.metaDefenseKept` | PASS |
+| NFR-133 | 8 spec 全 `FAIL=0`（見上表），`runtime.errors [none]` | PASS |
+| NFR-134 | `topbar.noOverflow`（1440／1184／900／768／390／375／360）、`mobile.editRowNoOverflow` | PASS |
+| — | 靜態：CSS 大括號 **512／512** 平衡、兩段 inline script `node --check` 通過（702／149445 chars）、`index.html` 與 `dist/index.html` SHA256 一致（`4EFB55E7F348`） | PASS |
+
+### 三、目視驗證（截圖，2× DPR）
+
+| 檔案 | 內容 | 結果 |
+| --- | --- | --- |
+| `.scratch/us137-book-1440.png` | 桌機唯讀：左側手冊只剩「戰術手冊」＋清單＋底部提示（`↻`／`➕ 新增戰術`／工具列全消失）；Header 右側仍是滑塊＋「＋ 新增」 | 符合 |
+| `.scratch/us137-create-1440.png` | 「建立新戰術」對話框：`戰術名稱 新戰術 1`／`提議球員 #0 陳生 PG`（18 人）／`防守陣型 2-1-2 聯防・首選`／`取消`＋`開始繪製` | 符合 |
+| `.scratch/us137-draw-1440.png` | 建立後直接進繪製模式：三欄（手冊｜球場｜教練工具）、步驟列只有「步驟 1」、右上 `⬇ 導出 GIF`＋`💾 提交審核`、底部 toast 提示按「💾 提交審核」 | 符合 |
+| `.scratch/us137-draw-900.png` | 平板（900）：點步驟列 `🛠` 後工具從右側滑入（球員名單／防守陣型／戰術線條），球場變暗可點擊關閉 | 符合 |
+| `.scratch/us137-draw-390.png` | 手機繪製中：輕量列「＋ 加步驟／🛠 名單／💾 提交審核」、底部 4 鍵第 4 格換成 `💾 提交審核`、步驟卡只有 1 張 | 符合 |
+
+### 四、已知取捨／限制
+
+1. **桌機看不到 `✕`**（C-123）：`.pb-close` 只在抽屜寬度出現，桌機手冊是固定欄位。
+2. **768–1100px 抽屜只能點球場關閉**（C-124）：抽屜蓋住步驟列的 `🛠`，靠 `#pbScrim` 關；若之後覺得卡，可在 `.sidebar-head` 補一顆 `✕`（手機版已有把手下滑）。
+3. **「✏️ 修改提案」整條移除**（C-125）：球員改戰術＝重新建立；存檔一律新增一筆，不會覆蓋官方紀錄。
+4. **`meta.defense` 只存在 `meta` 裡**：Supabase／本機存檔都走同一個 JSON 欄位，沒有 migration；舊資料載入時維持畫面預設 2-1-2。
+5. **`shot.js` 新增 `pre`／`post` 勾子**：`pre` 在頁面載入後執行、`post` 再等 1.2 秒；`draw*` 規格靠它自動走完「＋ 新增 → 送出 → 確認清空」。**改 `index.html` 或 `harness.js` 後一定要先 `node .scratch/smoke/build.js`**，否則 `cdp.js` 會偷偷測到舊的暫存頁。
+
+---
+
+
 ## 🧭 使用說明
 
-1. **開啟**：直接雙擊 `index.html`（`file://` 可用），或放到任何靜態伺服器／Netlify／GitHub Pages。一進來是**開場首頁**：上方圓形隊徽（讀取同資料夾的 `WhatsApp Image …jpeg`，找不到時顯示 `MB` 字樣）＋ `MONDAY BEER & BASKETBALL`，下面兩張卡片選身分——**我是球員**（唯讀看戰術）或 **我是教練**（需密碼）；進站後頂部右側的 `⎋ 切換身分` 可隨時回到首頁。球場已改為乾淨紙白漸層（不再有隊徽浮水印）。
+1. **開啟**：直接雙擊 `index.html`（`file://` 可用），或放到任何靜態伺服器／Netlify／GitHub Pages。一進來是**開場首頁**：上方圓形隊徽（讀取同資料夾的 `WhatsApp Image …jpeg`，找不到時顯示 `MB` 字樣）＋ `MONDAY BEER & BASKETBALL`，下面兩張卡片選身分——**我是球員**（唯讀看戰術）或 **我是教練**（需密碼）。進站後**不用回首頁也能換身分**：頂部右側固定是「球員模式｜教練模式」滑塊（手機顯示短標籤「球員｜教練」），右邊緊接一顆橘色「＋ 新增」；要回開場首頁，**點左上角的隊徽或隊名**即可（那個區塊本身就是回首頁按鈕；手冊抽屜原本的 `⎋ 切換身分` 已移除）。球場已改為乾淨紙白漸層（不再有隊徽浮水印）。
 2. **教練模式**：首頁點「我是教練」→ 輸入 `coach888`（或進站後點右上「教練模式」）。
 3. **畫戰術（拖曳就會記錄）**：**直接把球員拖到想要的位置**，放開就自動長出軌跡線——持球的人拖曳時球會跟著手跑（波浪＝運球）、其他人是切入箭頭、防守員是藍色「防守移動」箭頭；**要傳球就把籃球拖到隊友身上**（靠近時會亮起橙色候選圈，放開即吸附到手上、生成傳球虛線並換人持球，下一步的持球者也會一起換）。想手動補線再用「戰術線條」工具在球場拖曳畫線 → 按「儲存此步驟」或「＋」新增下一步（**新步驟沿用目前畫面，但不會帶上自動軌跡線，手畫的線會保留**）。右側工具列由上而下是「球員名單 → 防守陣型 → 戰術線條 → 動作 → 防守與球」（原本最下方那張「快捷鍵 SHORTCUTS」說明卡已整張移除，桌機／手機都不再佔版面；鍵盤快捷鍵照樣可用，只是不再列在畫面上）；「防守與球」（`PG`／`SG`／`SF`／`PF`／`C`＋籃球）收在最下方、**預設收合**，要加防守員或球時點一下標題展開。**進攻球員請由最上方的「球員名單」點背號派上場**。
-4. **套用經典戰術**：左側手冊「經典戰術 7 套」分三類（破 2-1-2 聯防 2／破 3-2 聯防 2／底線開球 3），**點任一套即載入 4 個步驟並自動開始循環播放**（含路線與解說），要修改再按「■ 停止播放」；載入後目前戰術會以磚紅左側色條標示，`我的戰術` 仍保留原本存檔。播放中點另一套會先停下目前動畫再換，不會兩段交錯。
+4. **套用經典戰術**：左側手冊「經典戰術 7 套」分三類（破 2-1-2 聯防 2／破 3-2 聯防 2／底線開球 3）— 手機上這三類是**入口列**（右側 `›`）：點一下整層切到該分類的子頁面（上方 `‹ 返回分類` 可滑回第一層，子頁面只列該分類的戰術），**點任一套即載入 4 個步驟、自動循環播放並收起手冊**；桌機維持原本的原地展開（Accordion），**點任一套即載入 4 個步驟並自動開始循環播放**（含路線與解說），要修改再按「■ 停止播放」；載入後目前戰術會以磚紅左側色條標示，`我的戰術` 仍保留原本存檔。播放中點另一套會先停下目前動畫再換，不會兩段交錯。
 5. **讀懂每一步**：球場右上角顯示該步的「機會標籤」（例：`順下吃餅`）；持球的人會有橙色柔光（球會偏在他手側，不會蓋住背號），播放時移動中的球員會留下殘影，跟著光與殘影就知道球往哪走。
 6. **排防守**：右側「防守陣型」點 2-1-2／2-3／3-2／人盯人，五位防守者會以動畫移到標準防區（可 `Ctrl+Z` 復原）；人盯人會依目前進攻球員位置自動貼防。要擺自己的陣型就按最下方 **「自訂防守」**，之後直接拖曳 `PG`–`C` 到想要的位置，放開即記進目前步驟（不必再按「儲存此步驟」），並自動留下一條藍色「防守移動」箭頭說明誰補到哪裡。
 7. **派名單球員**：右側「球員名單」按背號由小到大排好（18 人），每人顯示「背號＋姓名＋位置」（例 `31 Sai PF/C`）；上方的位置 chips（`全部`／`PG/SG 後衛`／`SF/PF 前鋒`／`PF/C 中前鋒`）可一鍵只看那類人（可打多位置者會同時出現在相關分類），點背號即以「背號＋姓名」上場；同一背號再點一次只會選取既有球員。
 8. **看動畫**：載入戰術會自動播放；也可按 `播放動畫`（或 `Space`）手動播放，播放中再按一次即「停止播放」；`∞`（或 `L`）循環預設開啟，練球時可一直重播（系統開啟「減少動態」時不自動播放）。戰術庫載入的聯防防守會隨球自動輪轉（最近的人關門），看起來是「活的防守」。
 9. **講解時收起工具列（桌面 >1100px）**：點右側「教練工具 TOOLS」標題列右端的 `›`，工具列收起、球場自動放大並居中，右緣中段留一個 `‹` 把手；點 `‹` 即展開。狀態會記在瀏覽器裡，下次進教練模式自動還原。
-10. **開一套新戰術**：左側「戰術手冊」最上方的 **「➕ 新增戰術」**＝一鍵把畫布清成預設 2-1-2（5 攻 5 守 1 球）＋ 只留「步驟 1」，並取消目前載入的戰術；下方「戰術名稱」直接打名字（`Enter` 或點一下球場即完成輸入），接著畫線、按「＋」加步驟，最後「💾 儲存戰術」就用這個名字存檔（不必再在彈窗打一次）。若畫布上已經有多個步驟或自訂線條，會先跳確認框避免誤觸；只想清空則用「重設球場」。
-11. **存檔／改名／刪除**：`儲存戰術` 若手冊上方已填名稱就直接存，沒填才跳命名框（預設「新戰術 N」）；左側「戰術手冊」每列右側有 ✎（改名）與垃圾桶（刪除，需確認），點名稱即載入；`↻` 可重新整理清單。
-12. **手機（直向 ≤767px）**：版面只剩三塊——**球場滿版**（100vw、比例與 FIBA 一致、不裁切、無圓角）、**當前步驟卡**（第幾步／名稱／說明／機會標籤，唯讀）、**底部動作列**（`播放`／`∞`／可左右滑的步驟膠囊／`☰ 戰術手冊`／`🛠 教練工具`；教練模式多一列 `＋` 與 `💾 儲存戰術`，球員模式右側是 `⬇` 匯出 GIF）。`☰`／`🛠` 現在都是**從底部滑出的面板**（上方有把手，往下滑、按 `✕` 或點一下球場即收起），面板高度依球場下緣自動計算，**永遠不會蓋住球場**；教練工具面板裡多了「導出 GIF／複製此步驟／刪除此步驟」三顆按鈕（原本重複在底部列的那些按鈕已移除）。**手機上同樣可以直接用手指拖曳球員跑位、把球拖到隊友身上完成傳球**（籃球感應區已比外觀放大約一倍）；畫布設 `touch-action:none`，**拖曳時整頁不會跟著滾動**，輕點（位移 < 10px）也不會被誤判成拖曳。平板（768–1100px）與桌面（>1100px）版面與功能完全沒變。
-13. **分享**：`導出 GIF` 下載的檔名就是戰術名稱（`底線電梯門 · 底線發球` → `底線電梯門_底線發球.gif`，未命名時 `MondayBeer_Tactic.gif`），可直接貼群組。
+10. **開一套新戰術（免教練密碼）**：右上角的 **「＋ 新增」**（手機顯示「＋ 新增戰術」；桌機／手機都在身分滑塊右邊）任何人都能按——按下先開 **「建立新戰術」對話框**：`戰術名稱`（預設「新戰術 N」，可改）＋ `提議球員 / 作者 (Author)`（名單 18 人 ＋ 置頂的「🏀 教練 (Coach)」，依身分自動帶入上次選的人／教練模式自動選教練）＋ `防守陣型`（2-1-2 首選／2-3／3-2／人盯人，預設 2-1-2）；名稱空白會留在框內提示，按 **「開始繪製」** 才真正進場。進場後：畫布清成預設 2-1-2（5 攻 5 守 1 球）＋ 只留「步驟 1」，並把剛才選的陣型用 340ms 補間套上去（選 2-1-2 則免動畫），繪製相關工具（球員名單／防守陣型／戰術線條／動作）全部可用。按「開始繪製」本身就是確認動作——畫布直接清成預設站位，**不會再跳第二次「畫布會被清空」確認框**；只想清空則用「重設球場」。**唯讀狀態下按工具鈕不會再跳教練密碼框**，只會提示「需要繪製模式…」。
+11. **存檔／改名／刪除**：繪製中按步驟清單上方的 **「📤 提交審核」**（作者選了「🏀 教練」時是 **「📢 發布」**）就**直接寫入**：作者＝球員 → 存成「未批核」提案、作者＝教練 → 直接進官方手冊，**不再開存檔對話框**（名稱已在「建立新戰術」填好）。左側「戰術手冊」每列右側有 ✎（改名）與垃圾桶（刪除，需確認），點名稱即載入；手冊頂部已無 `↻`（清單載入／存檔後會自動刷新）。
+12. **手機（直向 ≤767px）**：頂部 Header 只留「隊徽 ＋ `MondayBeer`」，右側並排「球員｜教練」短標籤滑塊 ＋ 橘色「＋ 新增戰術」（390／375／360 都不換行；`本機儲存` 膠囊在手機隱藏）。版面只剩三塊——**球場滿版**（100vw、比例與 FIBA 一致、不裁切、無圓角）＋**球場正下方那一張白底控制卡**（與球場下緣零間隙、卡片一路延伸到螢幕底，上方圓角＋上緣陰影）。卡片上半部是**一步一步的長條卡片清單**：每張卡左邊是編號徽章、中間是**步驟名稱＋機會標籤＋這一步的跑位說明**、右邊是 `›`（提示可切換）；**目前這一步會整張變成磚紅色**（白字、右側改成播放指示 `●`，播放中會脈動），其他步驟是白底。有空間時卡片會自動長高填滿（單張最高約 118px；只有 2 步時整組會垂直居中），步驟多到放不下時**清單自己捲動**（底部會淡出提示下面還有卡片），不會把下方按鈕推走。卡片下半部固定 **4 顆均分鍵**：`▶ 播放`／`∞`／`☰ 戰術手冊`／`💬 分享`（播放中播放鍵顯示 `⏸ 暫停`；**這 4 顆永遠固定，繪製中也不會被儲存鍵取代**）。**加步驟、名單、儲存、批核不佔底部**——它們在步驟清單上方的一列輕量條：繪製模式＝「＋ 加步驟／🛠 陣容／📤 提交審核」（作者＝教練 → `📢 發布`），教練看到未批核提案＝「✅ 批准／✏️ 修改後批核」（唯讀時整列不出現）。`☰` 是**78dvh 的大抽屜**（分類 → 子頁面，見第 4 點；抽屜只剩「標題＋`✕`＋清單」，操作全部移到右上「＋ 新增」與繪製模式，最下方仍是 `⬇ 儲存 GIF`）、`🛠` 是依球場下緣限高的工具抽屜（兩者上方都有把手，往下滑、按 `✕` 或點一下球場即收起）；提示訊息**一次只顯示一則、1.5 秒後自動淡出**，而且會浮在控制卡上緣、不會蓋住步驟卡片；教練工具面板裡有「導出 GIF／複製此步驟／刪除此步驟」三顆按鈕。**手機上同樣可以直接用手指拖曳球員跑位、把球拖到隊友身上完成傳球**（籃球感應區已比外觀放大約一倍）；畫布設 `touch-action:none`，**拖曳時整頁不會跟著滾動**，輕點（位移 < 10px）也不會被誤判成拖曳。平板（768–1100px）與桌面（>1100px）版面與功能完全沒變。
+13. **分享**：手機底部第 4 鍵 **「💬 分享」** 會先把整套戰術做成 GIF——支援原生分享的裝置（大多數手機瀏覽器）直接叫出系統分享面板，選 WhatsApp 就整份 GIF 丟進群組；桌機或不支援時自動改成「下載 GIF ＋ 開啟 WhatsApp 對話」，貼上附檔即可（文案已帶好戰術名稱與步驟數）。只想存檔就用手冊抽屜最下方的 `⬇ 儲存 GIF`（桌機是右側工具列的 `導出 GIF`）；檔名就是戰術名稱（`底線電梯門 · 底線發球` → `底線電梯門_底線發球.gif`，未命名時 `MondayBeer_Tactic.gif`）。
 14. **雲端存檔（選用）**：在 `index.html` 的 `SUPABASE_URL` / `SUPABASE_ANON_KEY` 填入專案金鑰，並依檔案內註解建立 `tactics` 資料表與 RLS policy，之後儲存會自動改走 Supabase（右上狀態膠囊會變成綠色「Supabase 雲端」）。
+15. **桌面看「手機視角」**：在電腦瀏覽器打開時，預設會把整個 App 裝進一個 **390 寬的 iPhone 框**（深色底、圓角邊框＋陰影，下方說明列顯示框內真實尺寸，例如 `390 × 760`）。框內跑的是真正的手機版（同源 iframe 載入 `index.html?phone=1`，框內 `innerWidth` 就是 390），所以版面、Bottom Sheet、`dvh` 行為與球員手機上看到的完全一致。要暫時看原本的大螢幕版面，按框下說明列的 **「🖥 桌面視窗」**（網址會變 `?full=1`），按瀏覽器**上一頁**即回到手機框；真機（寬 <768px 或 iPad 等觸控裝置）一律全螢幕、不會出現外框。
+16. **球員提案 → 教練批核（免帳號）**：球員畫完按 **「📤 提交審核」** 就直接存成一份**「未批核」**的戰術（作者＝建立時選的球員，例 `#0 陳生`；手冊清單會標示「未批核」＋ `by #0 陳生`，並排在已批核的後面）。想改教練既有的戰術時，球員請按右上 **「＋ 新增」**重新建立一套（US-137 起手冊不再有「✏️ 修改提案」入口——建立時可填名稱／提議球員／防守陣型），存檔一定是**新增一筆**，不會蓋掉官方紀錄。教練看到未批核的戰術時，步驟清單上方會出現 **「✅ 批准」**（一鍵納入官方手冊）與 **「✏️ 修改後批核」**（先改內容，按「📢 發布」時一併變成已批核）；教練也可以在「建立新戰術」的作者下拉直接選 **「🏀 教練 (Coach)」**，繪製中按 **「📢 發布」** 就免暗號直接發布；要手動輸入暗號仍可從儲存對話框切到「📋 我是教練」，輸入 `1234`（已在教練模式則免輸入）。
 
 ---
 
@@ -947,4 +1522,549 @@ US-128 完成：快捷鍵說明卡自原始碼整塊移除（含死 CSS），桌
 | FR-120 | 多人協作編輯與版本歷史 |
 | FR-121 | 首頁記住上次身分（下次開啟直接進站，不用每次重選） |
 | FR-122 | 名單位置改在 UI 內編輯（目前寫死在 `ROSTER` 陣列，需改程式碼） |
+
+---
+
+## 🆕 本輪需求（US-138：「＋ 新增」流程收斂 ＋ Author 下拉加教練 ＋ 底部 4 鍵固定）
+
+**日期**：2026-11-06
+
+### 使用者故事
+
+> **As a** 球員／教練（手機與桌機都用）
+> **I want** 「＋ 新增」只問一次就把畫布備好；作者下拉裡直接有「🏀 教練 (Coach)」，按下去就依作者身分決定是「提交審核」還是「直接發布」；底部永遠是那 4 顆鍵
+> **so that** 我不會被連續兩個「畫布會被清空」的確認框卡住、教練不必靠暗號也能一次發布、手機上也不會因為繪製模式而找不到分享鍵。
+
+原本 `startDrawingFlow()` 在表單送出後**又跳一次** `#confirmModal`（「目前畫布上的 N 個步驟與 M 條線條都會被清空」），使用者要在同一件事上按兩次確認；作者下拉只有 18 位球員，教練要發布只能繞去儲存對話框切「📋 我是教練」再輸入暗號 `1234`；球員／教練的分流看的是**身分模式**（`isCoach()`）而不是**作者**；手機底部第 4 鍵在繪製中被 `#btnQuickSave` 佔走，`💬 分享` 會消失。
+
+### 功能需求
+
+| ID | 需求 | 實作位置 |
+| --- | --- | --- |
+| FR-249 | **依「作者」決定提案／發布**：新增 `AUTHOR_COACH='coach'` sentinel 與 `isCoachAuthor()`（讀 `state.tacticAuthor.coach`，舊紀錄沒有 `meta.author` 時才 fallback `isCoach()`）；`syncEditRow()` 依此把 `#editRowSave`／`#btnSaveTactic` 標成 `📤 提交審核`（球員 → `status:'pending'`）或 `📢 發布`（教練 → `status:'approved'`），`state.approveOnSave`（✏️ 修改後批核）也算發布 | `AUTHOR_COACH`／`isCoachAuthor()`／`syncEditRow()`／`quickSubmitTactic()` |
+| FR-250 | **底部 4 鍵永久固定**：刪除 `#btnQuickSave`（HTML／CSS `#btnQuickSave{grid-area:share…}`／`setPlaying()`／`bindUI()` 綁定全部移除），`#btnShare` 永遠 `hidden=false`，繪製中不再讓位 | §6.4 `.key-lbl,#btnShare,#editRow`／§6.5 `#btnShare{grid-area:share}`／`syncEditRow()` |
+| FR-251 | **只確認一次**：「建立新戰術」表單送出即為確認，`startDrawingFlow()` 不再跳第二次「畫布會被清空」確認框（`#confirmModal` 保留給刪除戰術／刪除步驟等破壞性操作） | `startDrawingFlow()` |
+| FR-252 | **Author 下拉加教練**：`appendAuthorOptions()` 產生「🏀 教練 (Coach)」（`value="coach"`，置頂）＋ 18 位球員，`#createPerson` 與 `#savePerson` 共用同一份（19 個選項） | `appendAuthorOptions()`／`fillCreateOptions()`／`fillSavePersonOptions()` |
+| FR-253 | **身分自動連結**：`defaultAuthorValue()`＝教練模式回 `coach`，否則回 `lastPlayerAuthorValue()`（上次選的球員，沒有就 `ROSTER[0]`）；`openCreateDialog()` 每次開啟都重設作者；`#savePerson` 的 `change` 與 `setSaveRole()` 互鎖（選教練 → 作者＝教練；改回球員 → 帶回上次球員） | `defaultAuthorValue()`／`lastPlayerAuthorValue()`／`openCreateDialog()`／`setSaveRole()` |
+| FR-254 | **直接寫入（不再開儲存對話框）**：新增 `quickSubmitTactic()`，`#editRowSave`／`#btnSaveTactic` 都綁它；`saveCurrentFrame()` 後以 `state.tacticName` 呼叫 `saveTacticNamed()`，`authorLabel` 依作者給「教練」或 `#背號 姓名`；只有名稱空白的極端情況才退回 `openSaveDialog()` | `quickSubmitTactic()`／`bindUI()` |
+| FR-255 | 文案同步：`#editRowTools` 由 `🛠 名單` 改 `🛠 陣容`；`#createPerson`／`#savePerson` 標籤改「提議球員 / 作者 (Author)」；建立對話框說明、建立成功 toast、`approveAfterEdit()` 提示改「📤 提交審核／📢 發布」 | `index.html` HTML／`openCreateDialog()`／`startDrawingFlow()`／`approveAfterEdit()` |
+
+### 非功能需求
+
+| ID | 需求 | 實作位置 |
+| --- | --- | --- |
+| NFR-136 | **零回歸**：`1440x900`／`390x844`／`375x667` 三個 spec `FAIL=0`、`runtime.errors [none]`；桌機三欄、手機 Sheet、GIF 分享路徑不變 | `node .scratch/smoke/cdp.js` |
+| NFR-137 | **資料層不動**：仍寫 `state.tacticStatus`／`meta.author`／`meta.authorLabel`／`meta.defense`，DB schema 與 Supabase 欄位不變；`store.save()` 在沒有 Supabase 金鑰時照舊落 localStorage | `store.save()`／`saveTacticNamed()` |
+| NFR-138 | **舊紀錄相容**：載入沒有 `meta.author` 的既有戰術時，`isCoachAuthor()` 退回 `isCoach()`，行為與 US-137 相同 | `isCoachAuthor()` |
+
+### 限制
+
+| ID | 限制 | 說明 |
+| --- | --- | --- |
+| C-126 | **「直接寫入」不接受臨時改名** | 名稱在「建立新戰術」對話框就決定；繪製中想改名仍走手冊每列的 ✎（或清空名稱的極端情況退回舊存檔對話框）。換來的是手機少一次全螢幕對話框 |
+| C-127 | **教練「📢 發布」不走暗號，但只有 UI 約束** | 作者下拉選「🏀 教練」即可發布，等於任何人自稱教練都能發布；真正的權限仍待 FR-119（Supabase Auth + coach role） |
+| C-128 | **修改後批核會把作者換成教練** | 沿用 US-137 儲存對話框「我是教練」的既有行為：`author` 會寫成 `{coach:true}`、`authorLabel='教練'`，原提案人只留在清單的歷史 `by …` |
+
+### 驗收標準
+
+- **AC-190** 建立流程只確認一次：表單送出後 `#confirmModal.hidden === true`（`create.noSecondConfirm`）、`create.authorDefaultPlayer`（球員模式作者 ≠ `coach`）、`create.authorDefaultCoach`（教練模式 `#createPerson.value === 'coach'`）。
+- **AC-191** 手機底部 4 鍵永久固定：繪製中 `#btnPlay`／`#btnLoop`／`#pbToggle`／`#btnShare` 全部可見（`mobile.fourKeysFixed`）、`mobile.shareDuringDraw`、`mobile.quickSaveRemoved`（`#btnQuickSave` 不存在）。
+- **AC-192** 作者下拉：`#createPerson`／`#savePerson` 都是 19 個選項、第一項 `value="coach"` 且文字含「教練」（`create.rosterOptions`／`create.coachOptionFirst`／`save.personOptions`），`#savePerson` 開啟時自動帶入作者（`save.authorPreselected`）。
+- **AC-193** 球員提案：繪製中 `#editRowSave` 文案含「提交審核」，點一下**不開** `#saveModal`（`submit.noDialog`）、`state.tacticStatus === 'pending'`（`submit.pending`）、記錄建立（`submit.recordId`）、作者保留（`submit.authorKept`）。
+- **AC-194** 教練發布：作者選 `coach` → `isCoachAuthor() === true`、`#editRowSave` 文案含「發布」（`author.publishLabel`）、點一下不開對話框（`author.coachNoDialog`）且 `state.tacticStatus === 'approved'`、清單紀錄也是 `approved`（`author.coachRecordApproved`）。
+- **AC-195** 「✏️ 修改後批核」：`approveEdit.noDialog`＋`approveEdit.approved`＋`approveEdit.sameId`（原地更新、`approveEdit.noDuplicate`）；唯讀時 `readonly.deskSaveHidden`＋`readonly.shareKept`。
+
+### Requirement Traceability Matrix（RTM）
+
+| Requirement ID | 需求描述 | Feature/Module | User Story | Status |
+| --- | --- | --- | --- | --- |
+| FR-249 | 作者決定「提交審核」／「發布」（pending vs approved） | `isCoachAuthor()`／`syncEditRow()`／`quickSubmitTactic()` | US-138 | Verified |
+| FR-250 | 底部 4 鍵永久固定，移除 `#btnQuickSave` | §6.4／§6.5／`syncEditRow()` | US-138 | Verified |
+| FR-251 | 建立新戰術只確認一次 | `startDrawingFlow()` | US-138 | Verified |
+| FR-252 | Author 下拉＝🏀 教練置頂 ＋ 18 球員（19 項） | `appendAuthorOptions()` | US-138 | Verified |
+| FR-253 | 身分自動連結（教練模式預設教練、球員記住上次） | `defaultAuthorValue()`／`setSaveRole()` | US-138 | Verified |
+| FR-254 | 直接寫入，不開儲存對話框 | `quickSubmitTactic()` | US-138 | Verified |
+| FR-255 | 文案同步（🛠 陣容／作者 (Author)／📤📢） | `index.html` | US-138 | Verified |
+| NFR-136 | 3 spec 全綠、無 runtime error | 冒煙測試 | US-138 | Verified |
+| NFR-137 | 資料層不動（`meta.*` 相容） | `saveTacticNamed()` | US-138 | Verified |
+| NFR-138 | 舊紀錄無 `meta.author` 仍可判斷 | `isCoachAuthor()` | US-138 | Verified |
+| C-126 | 直接寫入不接受臨時改名 | — | US-138 | Accepted |
+| C-127 | 教練發布無真正權限控管 | — | US-138 | Accepted |
+| C-128 | 修改後批核作者換成教練 | `quickSubmitTactic()` | US-138 | Accepted |
+| AC-190～AC-195 | 驗收 | 見下方「驗收紀錄（本輪：US-138）」 | US-138 | Verified |
+
+### 驗收紀錄（本輪：US-138）
+
+**日期**：2026-11-06 ｜ **方式**：`npm run build` → `node .scratch/smoke/integrity.js`（靜態）→ `node .scratch/smoke/build.js`（重建測試頁）→ `node .scratch/smoke/cdp.js`。
+
+| 規格 | 視窗 | 結果 |
+| --- | --- | --- |
+| `1440x900` | 1440×900（`?full=1` 桌機：三欄） | **PASS=111 · FAIL=0** |
+| `390x844` | 390×844（iPhone 14 尺寸） | **PASS=128 · FAIL=0** |
+| `375x667` | 375×667（矮螢幕，`is-dense`） | **PASS=128 · FAIL=0** |
+
+- 靜態檢查：無亂碼字樣、CSS 大括號 **509／509** 平衡、兩段 inline script `node --check` 通過（702／151261 chars）、`index.html` 與 `dist/index.html` 及 `frontend/site/index.html` SHA256 一致（`EA0B28A0FB7A`）。
+- 移除的舊斷言：`mobile.quickSave*`（3 項）、`save.modalOpen`／`save.rolePlayer`／`save.okLabel`／`save.nameFromCreate`／`save.playerWrapShown`／`save.coachWrapHidden`／`save.modalClosed`（7 項）、`readonly.quickSaveHidden`。
+- 新增的斷言：`create.coachOptionFirst`／`create.authorDefaultPlayer`／`create.authorDefaultCoach`／`create.noSecondConfirm`／`submit.noDialog`／`submit.pending`／`submit.recordId`／`submit.authorKept`／`save.personOptions`／`save.authorPreselected`／`author.coachDefaultInCreate`／`author.coachNoConfirm`／`author.coachEditing`／`author.coachIsAuthor`／`author.publishLabel`／`author.coachNoDialog`／`author.coachApproved`／`author.coachRecordApproved`／`approveEdit.noDialog`／`mobile.fourKeysFixed`／`mobile.shareDuringDraw`／`mobile.quickSaveRemoved`／`readonly.shareKept`。
+
+### 已知取捨／限制
+
+1. **儲存對話框退成 fallback**：只有「名稱空白」時才會開 `#saveModal`；教練暗號 `1234` 的入口仍在（切「📋 我是教練」），但日常路徑已不需要它。
+2. **作者＝教練不只是 UI 提示**：`meta.author.coach` 會寫進紀錄，日後接 Supabase Auth 時可直接用它對照真實身分。
+3. **`#btnQuickSave` 完全移除**：不再保留隱藏節點，`mobile.quickSaveRemoved` 直接斷言它不存在；若未來要恢復「繪製模式把分享鍵換掉」，需重新設計第 5 顆鍵而不是覆蓋第 4 顆。
+
+
+---
+
+## 🆕 本輪需求（US-139：建立對話框瘦身 ＋ 右上「＋ 新增 ⇄ ✕ 退出」＋ 底部編輯 4 鍵 ＋ 中間動態工具面板）
+
+**日期**：2026-11-06
+
+### 使用者故事
+
+> **As a** 球員／教練（手機與桌機都用）
+> **I want** 建立戰術時只填「名稱＋作者」就進畫布、右上角那顆按鈕在繪製中變成「✕ 退出」、底部 4 鍵在繪製中換成「加步驟／球員陣容／防守陣型／提交審核·發布」，而名單／陣型就出現在步驟清單的位置
+> **so that** 我不用在建立時先猜防守陣型、不用為了加一個步驟或換陣型去翻右側工具列、想放棄這次編輯時一鍵就能回到原本在看的那套戰術。
+
+US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布裡就能改，等於重複問一次）；繪製中的「＋ 加步驟／🛠 陣容／📤 提交審核」擠在步驟列上方一條 30px 的輕量列 `#editRow`，手機要精準點擊很難、桌機則完全看不到（`#editRow` 只在 ≤767px 進版面），教練在桌機根本沒有批核入口；球員名單與防守陣型在右側第三欄，手機要開抽屜才找得到；想放棄這次編輯只能重新載入別的戰術（沒有「取消」概念）。
+
+### 功能需求
+
+| ID | 需求 | 實作位置 |
+| --- | --- | --- |
+| FR-256 | **建立對話框只剩名稱＋作者**：`#createModal` 移除 `#createDefense` 與 `fillCreateOptions()` 的陣型分支；「開始繪製」一律從預設 2-1-2 開場（`startDrawingFlow(name, personNo)` 內部固定 `key='212'`） | `index.html` HTML／`fillCreateOptions()`／`startDrawingFlow()`／`submitCreateForm()` |
+| FR-257 | **防守陣型改在畫布裡決定**：`applyDefensePreset(key)` 套用完把 `state.tacticDefense = key`（自訂防守走 `enableCustomDefense()`），存檔時仍寫 `meta.defense`，資訊不流失 | `applyDefensePreset()`／`saveTacticNamed()` |
+| FR-258 | **右上角單一入口切換**：`#btnNewTactic` 綁 `topAction()` —— 唯讀時＝「＋ 新增」（開建立對話框）；`state.editing` 時＝「✕ 退出」（`exitEditMode()`）。標籤／icon／`aria-label`／`data-action` 由 `syncTopAction()` 統一維護，`.is-exit` 走白底磚紅字樣式 | `topAction()`／`syncTopAction()`／CSS `body[data-edit="1"] .new-tactic-btn` |
+| FR-259 | **退出＝放棄這次編輯**：進編輯前 `snapshotBeforeEdit()` 記下 `frames`（深拷貝）／`currentFrame`／`tacticId`／`tacticName`／`tacticSource`／`tacticStatus`／`tacticAuthor`／`tacticDefense`／`customDefense`；`exitEditMode()` 原樣還原後 `renderFrame()`＋`renderPlaybook()`＋`renderLibrary()`，並提示「已退出編輯 · 未提交的內容已放棄」。存檔成功會把快照清空（`state.returnTo = null`），避免發布後再退出倒回舊畫面 | `snapshotBeforeEdit()`／`exitEditMode()`／`saveTacticNamed()` |
+| FR-260 | **底部工具列徹底分流**：`.stepbar` 內兩個互斥群組 —— `#playKeys`（`#btnPrev`／`#btnPlay`／`#btnNext`／`#btnLoop`／`#pbToggle`／`#btnShare`）與 `#editKeys`（`#ekAdd`／`#ekRoster`／`#ekDefense`／`#ekSave`）；狀態只寫在 `body[data-keys="play"|"edit"]`（`syncToolbar()`：`canEdit() && !playing && !exporting` → `edit`），顯示全交給 CSS。移除 `#editRow` 與 `#btnSaveTactic` | HTML `#playKeys`／`#editKeys`、CSS `body[data-keys]`、`syncToolbar()` |
+| FR-261 | **（Superseded by US-140）** ~~編輯 4 鍵行為~~：~~`#ekAdd`＝`addStep()`；`#ekRoster`／`#ekDefense`＝`setToolPanel(...)`；`#ekSave`＝`quickSubmitTactic()`，標籤 `📤 提交審核`／`🚀 發布`~~ → `#ekAdd` 已移出 4 鍵，改由球場下方 `.step-add` 輕量條承載（FR-265）；第 3 鍵改為 `✏️ 走位畫筆`（FR-266）；發布標籤統一為 `🚀 正式發布`（FR-268） | `bindUI()`／`setToolPanel()` → `#stepAdd`／`toggleDrawPanel()`／`syncToolbar()` |
+| FR-262 | **中間動態工具面板 `#toolPanel`**：三個互斥視圖 —— `#tpStep`（預設：`步驟 N` ＋ 名稱輸入 ＋ 走位說明輸入 ＋ `▶ 預覽` ＋ `⚙ 教練工具`）、`#tpRoster`（`#posChips`＋`#rosterGrid`）、`#tpDefense`（`#defGrid` 5 顆預設）；狀態 `body[data-panel]`，`syncToolPanel()` 切 `hidden`／`aria-pressed`／`is-on`。手機 `roster`／`defense` 時面板 `grid-row:1/span 2` 吃掉 `#stepList` 的位置（省高度），回步驟視圖即恢復 → **US-140 增補**：新增第 4 個視圖 `#tpDraw`（FR-266），手機 `grid-row` 改為 `2/span 2`（第一列讓給 `.step-add`，FR-265） | HTML `#toolPanel`、CSS §6.4／§6.5、`syncToolPanel()`／`setToolPanel()` |
+| FR-263 | **面板上直接編輯步驟**：`#tpStepName`（≤24 字）／`#tpStepDesc`（≤80 字）即時寫回 `frames[currentFrame].name/.desc`（`commitStepName()`／`commitStepDesc()`，打字時只換該卡片的文字 `refreshStepChipLabel()`）；雙擊步驟卡片 `renameStep()` 改為把焦點帶到 `#tpStepName`（不再跳 `window.prompt`） | `syncStepInfo()`／`commitStepName()`／`commitStepDesc()`／`renameStep()` |
+| FR-264 | **批核入口搬進面板**：`✅ 批准`／`✏️ 修改後批核` 從 `#editRow` 移到 `#tpApprove`（面板最下方），`syncStepInfo()` 依 `isCoach() && status==='pending' && tacticId && !approveOnSave` 決定 `hidden`；桌機因此第一次有批核入口 | `#tpApprove`／`syncStepInfo()` |
+
+
+
+### 非功能需求
+
+| ID | 需求 | 實作位置 |
+| --- | --- | --- |
+| NFR-139 | **零回歸**：`1440x900`／`900x900`／`390x844`／`375x667`／`360x740`／`1184x820`／`768x1024`／`gif` 全部 `FAIL=0`、`runtime.errors [none]`；球場在 390×844 與 375×667 仍 `>120px`（`mobile.courtFitsViewport`） | `node .scratch/smoke/cdp.js` |
+| NFR-140 | **面板不擠壞球場**：面板出現時 `body[data-keys="edit"] .board-wrap{--board-h-chrome}` 桌機 `354px`、手機 `300px`，球場依既有 `1.0638` 比例重算；`.stepbar` 與 `#toolPanel` 都 `scrollWidth === clientWidth`（`mobile.panelNoOverflow`） | CSS `--board-h-chrome`／`mobile.panelNoOverflow` |
+| NFR-141 | **狀態單一來源**：`body[data-keys]`／`body[data-panel]`／`body[data-edit]` 只由 `syncToolbar()`／`syncToolPanel()`／`applyMode()` 寫入，`syncEditUI()` 一次同步三者，CSS 只讀不寫；JS 不再直接 `style.display` 切按鈕 | `syncEditUI()` |
+
+### 限制
+
+| ID | 限制 | 說明 |
+| --- | --- | --- |
+| C-129 | **退出＝丟棄，不可復原** | `exitEditMode()` 不進 `#confirmModal`（繪製中反覆確認會更煩），直接回到快照；代價是按錯就沒了，但畫布內容在「進編輯前」那一份仍完整（就是使用者當下看到的那套戰術） |
+| C-130 | **面板一次只顯示一個視圖** | 名單／陣型時步驟清單暫時讓位（決策 A）；要同時看步驟就再按同一顆鍵切回。桌機因此少了「名單常駐右欄」，改由面板按需展開 |
+
+### 驗收標準
+
+- **AC-196** 建立對話框只剩 2 個欄位：`#createForm .save-field` 長度 2（`create.twoFields`）、`#createDefense` 不存在（`create.noDefensePicker`）、`state.tacticDefense === '212'`（`create.defenseDefault212`）。
+- **AC-197** 頂部按鈕切換：繪製中 `#btnNewTactic` 文字含「退出」（`edit.exitLabel`／`topbar.exitLabel`／`mobile.exitLabelLong`／`approveEdit.exitLabel`），唯讀時含「新增」（`exit.labelBack`）。
+- **AC-198** 底部 4 鍵分流：繪製中 `body[data-keys="edit"]`（`draw.editKeysShown`）、`#playKeys` 不進版面（`draw.playKeysHidden`／`mobile.playKeysHidden`）、4 顆編輯鍵都可見（`editbar.fourKeys`／`mobile.editKeysFixed`）；唯讀時 `body[data-keys="play"]`（`player.playKeysShown`／`readonly.playKeysBack`）、`#editKeys` 與 `#toolPanel` 退場（`readonly.editKeysHidden`／`readonly.panelHidden`）。
+- **AC-199** 面板三視圖：預設 `data-panel="step"` 且 `#tpStep` 可見（`panel.stepDefault`／`panel.stepInfoShown`）；`👥` → `#tpRoster` 可見且 `#stepList` 讓位（`panel.rosterToggle`／`panel.rosterReplacesSteps`／`panel.rosterPressed`），再按一次恢復（`panel.rosterBack`）；`🛡` → `#tpDefense`（`panel.defenseToggle`），點 `2-3 聯防` → `state.tacticDefense === '23'`（`panel.defenseApplied`），點回 `2-1-2` → `'212'`（`panel.defenseRestored`），再按一次恢復（`panel.defenseBack`）。
+- **AC-200** 面板直接改步驟：輸入名稱 → `state.frames[0].name` 同步（`panel.stepNameWrite`）、輸入走位說明 → `frames[0].desc` 同步（`panel.stepDescWrite`）、步驟卡片文字跟著變（`panel.chipFollows`）。
+- **AC-201** 退出即還原：新增 → 退出後 `state.editing === false`、`body[data-keys="play"]`（`exit.restoresPlay`）、步驟數／內容／`tacticId`／`tacticName` 全部回到進編輯前（`exit.restoresFrames`／`exit.restoresFramesContent`／`exit.restoresId`／`exit.restoresName`）、播放鍵回來且編輯鍵退場（`exit.playKeysVisible`）；存檔後則清掉快照（`submit.snapshotCleared`）。
+
+### Requirement Traceability Matrix（RTM）
+
+| Requirement ID | 需求描述 | Feature/Module | User Story | Status |
+| --- | --- | --- | --- | --- |
+| FR-256 | 建立對話框只剩名稱＋作者 | `#createModal`／`startDrawingFlow()` | US-139 | Verified |
+| FR-257 | 防守陣型改由畫布決定並寫回 `meta.defense` | `applyDefensePreset()` | US-139 | Verified |
+| FR-258 | 右上角「＋ 新增 ⇄ ✕ 退出」 | `topAction()`／`syncTopAction()` | US-139 | Verified |
+| FR-259 | 退出＝快照還原、存檔後清快照 | `snapshotBeforeEdit()`／`exitEditMode()` | US-139 | Verified |
+| FR-260 | 底部播放 4 鍵 ⇄ 編輯 4 鍵（`data-keys`） | `#playKeys`／`#editKeys`／`syncToolbar()` | US-139 | Verified |
+| FR-261 | 編輯 4 鍵行為（加步驟／名單／陣型／提交·發布） | `bindUI()`／`setToolPanel()` | US-139 | Verified |
+| FR-262 | 中間動態工具面板三視圖（`data-panel`） | `#toolPanel`／`syncToolPanel()` | US-139 | Verified |
+| FR-263 | 面板直接編輯步驟名稱／走位說明 | `commitStepName()`／`commitStepDesc()`／`renameStep()` | US-139 | Verified |
+| FR-264 | 批核入口搬進面板（桌機也能批核） | `#tpApprove`／`syncStepInfo()` | US-139 | Verified |
+| NFR-139 | 8 個 spec 全綠、無 runtime error | 冒煙測試 | US-139 | Verified |
+| NFR-140 | 面板出現時球場重算、不溢出 | `--board-h-chrome`／`mobile.panelNoOverflow` | US-139 | Verified |
+| NFR-141 | 狀態單一來源（`data-keys`／`data-panel`／`data-edit`） | `syncEditUI()` | US-139 | Verified |
+| C-129 | 退出即丟棄、不跳確認 | `exitEditMode()` | US-139 | Accepted |
+| C-130 | 面板一次只顯示一個視圖 | `setToolPanel()` | US-139 | Accepted |
+| AC-196～AC-203 | 驗收 | 見下方「驗收紀錄（本輪：US-139）」 | US-139 | Verified |
+
+### 驗收紀錄（本輪：US-139）
+
+**日期**：2026-11-06 ｜ **方式**：`npm run build` → `npm run sync:site` → `node .scratch/smoke/integrity.js`（靜態）→ `node .scratch/smoke/build.js`（重建測試頁）→ `node .scratch/smoke/cdp.js`。
+
+| 規格 | 視窗 | 結果 |
+| --- | --- | --- |
+| `1440x900` | 1440×900（`?full=1` 桌機：三欄） | **PASS=138 · FAIL=0** |
+| `1184x820` | 1184×820（中桌機） | **PASS=138 · FAIL=0** |
+| `900x900` | 900×900（平板抽屜帶） | **PASS=140 · FAIL=0** |
+| `768x1024` | 768×1024（斷點邊界） | **PASS=140 · FAIL=0** |
+| `390x844` | 390×844（iPhone 14 尺寸） | **PASS=159 · FAIL=0** |
+| `375x667` | 375×667（矮螢幕，`is-dense`） | **PASS=159 · FAIL=0** |
+| `360x740` | 360×740（超窄機） | **PASS=159 · FAIL=0** |
+| `gif` | 390×844 ＋ `#gif`（GIF 擷取路徑） | **PASS=14 · FAIL=0** |
+
+- 靜態檢查：無亂碼字樣、CSS 大括號 **550／550** 平衡、兩段 inline script `node --check` 通過（702／158190 chars）、`index.html`／`dist/index.html`／`frontend/site/index.html` SHA256 一致（`5C7BF293E6DA`）。
+- 移除的舊斷言：`create.defenseDefault`／`create.defenseOptions`／`create.defenseStored`／`draw.editRowShown`／`draw.addVisible`／`draw.toolsVisible`／`draw.saveVisible`／`draw.deskSaveShown`／`draw.approveEditHidden`／`mobile.editRowVisible`／`mobile.editRowNoOverflow`／`mobile.fourKeysFixed`／`mobile.shareDuringDraw`／`mobile.toolsBtnVisible`／`mobile.toolsDrawerReachable`／`tools.drawerRoster`／`tools.drawerDefense`／`readonly.deskSaveHidden`／`player.editRowHidden`／`topbar.newLabel`／`coach.addHiddenWhileApproving`／`coach.addBackAfter`。
+- 新增的斷言：`create.twoFields`／`create.noDefensePicker`／`create.defenseDefault212`／`draw.editKeysShown`／`draw.playKeysHidden`／`editbar.fourKeys`／`editbar.addStep`／`panel.stepDefault`／`panel.stepInfoShown`／`panel.stepNameWrite`／`panel.stepDescWrite`／`panel.chipFollows`／`panel.previewPlays`／`panel.playKeysDuringPreview`／`panel.previewStops`／`panel.rosterToggle`／`panel.rosterReplacesSteps`／`panel.rosterPressed`／`panel.rosterBack`／`panel.defenseToggle`／`panel.defenseApplied`／`panel.defenseRestored`／`panel.defenseBack`／`panel.desktopRoster`／`panel.desktopDefense`／`edit.exitLabel`／`topbar.exitLabel`／`mobile.exitLabelLong`／`mobile.panelVisible`／`mobile.panelNoOverflow`／`mobile.editKeysFixed`／`mobile.playKeysHidden`／`exit.*`（10 項）／`submit.snapshotCleared`／`approve.inPanel`／`coach.approveBtnsShown`／`coach.editKeysBack`／`approveEdit.btnVisible`／`approveEdit.exitLabel`／`player.playKeysShown`／`player.panelHidden`／`player.editKeysHidden`／`readonly.playKeysBack`／`readonly.editKeysHidden`／`readonly.panelHidden`。
+
+### 已知取捨／限制
+
+1. **「退出」不等於「取消上一步」**：它回到「進編輯前」那一份快照（含剛被清掉的畫布），中間所有操作都不保留；已存檔的內容不受影響（存檔即清快照）。
+2. **批核入口只有一處**：`#tpApprove` 位於工具面板最下方，只在「教練 ＋ 載入未批核提案 ＋ 非修改後批核」時出現；切到 `roster`／`defense` 視圖時它仍可見（面板底部）。
+3. **右側第三欄變瘦**：名單／防守陣型搬進面板後，教練工具列只剩「戰術線條／動作／防守與球」；平板與手機改由面板的 `⚙` 打開同一份抽屜。
+4. **`body[data-keys]` 是唯一顯示開關**：任何新按鈕要跟著「播放／編輯」分流，請加在 `#playKeys` 或 `#editKeys` 內，並在 `syncToolbar()`／`syncStepInfo()` 補 `disabled`，不要另寫 `style.display`。
+
+### 已由 US-139 取代（Superseded）
+
+| Requirement ID | 原需求 | 取代者 | Status |
+| --- | --- | --- | --- |
+| FR-225 | 步驟列上方輕量列 `#editRow`（手機專用，`syncEditRow()` 三態） | FR-260～FR-262（`#editRow` 已刪除，改為編輯 4 鍵 ＋ 動態工具面板） | Superseded |
+| FR-226 | 手機版面 `grid-template-areas` 為 `edit`／`steps`／`play loop book share`；加步驟／儲存／批核全收進 `#editRow` | FR-260／FR-262（areas 改為 `panel`／`steps`／`keys`，面板與 4 鍵群組自己分兩態） | Superseded |
+
+- **AC-202** 批核入口在面板：`#tpApprove` 的父節點是 `#toolPanel`（`approve.inPanel`）、教練看到未批核提案時 `hidden === false`（`coach.approveShown`）且兩顆鍵都點得到（`coach.approveBtnsShown`），批准後收起（`coach.approveHiddenAfter`）並回到編輯 4 鍵（`coach.editKeysBack`）。
+- **AC-203** 面板 ▶ 預覽＝播放動畫：`＋ 加步驟` 後有 2 步（`editbar.addStep`），按 `#tpPreview` → `state.playing === true`（`panel.previewPlays`）、播放中底部自動換回播放 4 鍵（`panel.playKeysDuringPreview`）、停止後回到編輯 4 鍵（`panel.previewStops`）。只有 1 步時 `playAnimation()` 會提示「只有一個步驟…」而不進入播放（沿用既有行為）。
+
+---
+
+## 🆕 本輪需求（US-140：加步驟移出底部工具列 ＋ 底部 4 鍵均分 ＋ ✏️ 走位畫筆面板）
+
+### 使用者故事
+
+**US-140** — 作為**教練／球員（繪製模式）**，我希望**「＋ 加步驟」變成球場正下方的一條輕量條，底部 4 鍵回到「名單／陣型／走位畫筆／提交審核·正式發布」四顆等寬的工具鍵**，這樣**新增步驟不再跟工具鍵搶同一排、每一顆鍵都一樣寬好按，而且主要的跑位線／傳球／掩護線可以直接在面板上點（不必先開 ⚙ 抽屜）**。
+
+### 需求
+
+#### 功能需求（Functional）
+
+| Requirement ID | Requirement Description | Feature/Module |
+| --- | --- | --- |
+| FR-265 | **「＋ 加步驟」輕量條**：新增 `.step-add#stepAdd`（`#ekAdd` ＋ 右側 `#saCount` 步數），位置＝球場正下方、`#toolPanel` 之前；桌機在 `.stepbar`（flex-wrap）以 `order:5;flex-basis:100%` 獨佔一列並貼近球場，手機是 `.stepbar` grid 的第 1 列（`grid-template-areas` 新增 `add`）。`body[data-keys="edit"]` 才顯示；`syncToolbar()` 同步 `#saCount`（`共 N 步`）與 `#ekAdd.title`；`renderStepUI()` 末端補呼叫 `syncToolbar()`，加／刪／複製步驟後步數立即更新 | HTML `.step-add`／CSS `.step-add`／`syncToolbar()`／`renderStepUI()` |
+| FR-266 | **底部 4 鍵＝4 顆工具鍵（均分）**：`#editKeys` 改為 `#ekRoster`（👥 球員陣容）／`#ekDefense`（🛡 防守陣型）／`#ekDraw`（✏️ 走位畫筆）／`#ekSave`（📤 提交審核）；桌機 `#editKeys{flex:1 1 auto}` ＋ `.ek-btn{flex:1 1 0;min-width:0}` 讓 4 鍵等寬，手機沿用 `grid-template-columns:repeat(4,minmax(0,1fr))`。`#ekAdd` 不再是 `.ek-btn`，搬進 `.step-add` | HTML `#editKeys`／CSS `#editKeys`／`bindUI()` |
+| FR-267 | **✏️ 走位畫筆面板 `#tpDraw`**：面板第 4 個視圖，3 顆線條鍵 `class="draw-btn tool" data-tool="cut|pass|screen"`（跑位線／傳球虛線／掩護擋拆，各帶 SVG 圖示）＋ `.tp-note` 提示。沿用既有 `.tool[data-tool]` 綁定（`bindUI()` → `setTool()`）與 `applyMode()` 的 `.is-active` 標記，不新增工具狀態。`syncToolPanel()` 接受 `'draw'`；`#ekDraw.is-on` 只要「面板在 draw」或「目前工具是線條工具」就亮（側欄選線也同步） | HTML `#tpDraw`／CSS `#tpDraw`／`syncToolPanel()` |
+| FR-268 | **`toggleDrawPanel()`**：按 `#ekDraw` 進入 draw 視圖並預設 `setTool('cut')`（已在線條工具則保留）；再按一次回到 `step` 視圖並把線條／橡皮放下（`setTool('select')`）。`state.toolPanel` 先寫再呼叫 `setTool()`，避免 `setTool → applyMode → syncEditUI → syncToolPanel` 遞迴；`#ekSave` 的發布標籤統一為 `🚀 正式發布`（作者＝教練時） | `toggleDrawPanel()`／`syncToolPanel()`／`syncToolbar()` |
+| NFR-142 | **版面不因多一列而爆**：手機 `body[data-keys="edit"] .board-wrap{--board-h-chrome}` 由 `300px` 調到 `336px`（＋36px ＝ 加步驟條一列），桌機 `354px → 390px`；`.stepbar` 維持 `overflow-x:hidden`，`#editKeys`／`.ek-btn` 在 360／375／390 都不溢出（`mobile.keysNoOverflow`／`editbar.fourKeysFit`） | CSS `--board-h-chrome`／`#editKeys` |
+| C-131 | 手機 `roster`／`defense`／`draw` 三種面板模式都以 `grid-row:2 / span 2` 吃掉 `#stepList`（第一列永遠留給 `.step-add`），面板 `overflow:hidden` | CSS `body[data-panel]` |
+
+#### 驗收條件（Acceptance Criteria）
+
+- **AC-204** 加步驟條位置：`#ekAdd` 的最近 `.step-add` 可見（`stepadd.inStrip`）、**不在** `#editKeys` 內（`stepadd.notInKeys`）、在 DOM 上位於 `#toolPanel` 之前（`stepadd.beforePanel`）、手機上它的下緣不高於 `#toolPanel` 的上緣（`mobile.stepAddAbovePanel`）。
+- **AC-205** 步數同步：預設 `#saCount` 顯示「共 1 步」（`stepadd.count`），按 `＋ 加步驟` 後 `state.frames.length === 2`（`editbar.addStep`）且顯示「共 2 步」（`stepadd.countFollows`）。
+- **AC-206** 底部 4 鍵：4 顆都可見且 `#editKeys .ek-btn` 恰為 4（`editbar.fourKeys`／`mobile.editKeysFixed`）、寬度差 ≤1.5px（`editbar.fourKeysEven`／`mobile.keysEven`）、文字不被裁切（`editbar.fourKeysFit`）、整排不溢出（`mobile.keysNoOverflow`）。
+- **AC-207** 走位畫筆面板：按 `#ekDraw` → `body[data-panel="draw"]` 且 `#tpDraw` 可見／`#tpStep` 隱藏（`draw.panelToggle`）、預設工具 `cut`（`draw.defaultTool`）、面板恰有 3 顆線條鍵（`draw.threeLines`）、`#ekDraw` 亮起 `is-on` ＋ `aria-pressed="true"`（`draw.keyOn`）。
+- **AC-208** 點線條即生效：點「傳球虛線」→ `state.tool === 'pass'`（`draw.toolSwitch`）、該鍵是唯一 `is-active`（`draw.toolActive`）、`#ekDraw` 仍亮（`draw.keyStillOn`）。
+- **AC-209** 再按一次收回：`#ekDraw` 第二次點擊 → `data-panel="step"`、`#tpStep` 可見、`state.tool === 'select'`（`draw.backToStep`）；原有的側欄 `setTool('pass')` 路徑不受影響（`draw.toolPass`／`draw.hintShown`）。
+
+#### Requirement Traceability Matrix
+
+| Requirement ID | Requirement Description | Feature/Module | User Story Reference | Status |
+| --- | --- | --- | --- | --- |
+| FR-265 | 「＋ 加步驟」改成球場下方輕量條（含步數） | `.step-add`／`syncToolbar()` | US-140 | Verified |
+| FR-266 | 底部 4 鍵＝名單／陣型／走位畫筆／提交·發布（等寬） | `#editKeys`／`bindUI()` | US-140 | Verified |
+| FR-267 | ✏️ 走位畫筆面板 `#tpDraw`（3 種線條） | `#tpDraw`／`syncToolPanel()` | US-140 | Verified |
+| FR-268 | `toggleDrawPanel()` 開／關與預設工具 | `toggleDrawPanel()` | US-140 | Verified |
+| NFR-142 | 多一列仍不溢出（`--board-h-chrome` 補償） | CSS `--board-h-chrome` | US-140 | Verified |
+| C-131 | 手機三種面板模式都吃掉 `#stepList` | CSS `body[data-panel]` | US-140 | Verified |
+| AC-204～AC-209 | 驗收 | 見下方「驗收紀錄（本輪：US-140）」 | US-140 | Verified |
+| FR-261 | 原「編輯 4 鍵行為」（含 `#ekAdd`） | 被 FR-265／266／268 取代 | US-139 → US-140 | Superseded |
+
+### 驗收紀錄（本輪：US-140）
+
+**日期**：2026-11-09 ｜ **方式**：`npm run build` → `node .scratch/smoke/integrity.js`（靜態）→ `node .scratch/smoke/build.js`（重建測試頁）→ `node .scratch/smoke/cdp.js`（8 個 spec）→ `node .scratch/smoke/shot.js`（視覺檢查）。
+
+| 規格 | 視窗 | 結果 |
+| --- | --- | --- |
+| `1440x900` | 1440×900（`?full=1` 桌機：三欄） | **PASS=154 · FAIL=0** |
+| `1184x820` | 1184×820（中桌機） | **PASS=154 · FAIL=0** |
+| `900x900` | 900×900（平板抽屜帶） | **PASS=156 · FAIL=0** |
+| `768x1024` | 768×1024（斷點邊界） | **PASS=156 · FAIL=0** |
+| `390x844` | 390×844（iPhone 14 尺寸） | **PASS=178 · FAIL=0** |
+| `375x667` | 375×667（矮螢幕，`is-dense`） | **PASS=178 · FAIL=0** |
+| `360x740` | 360×740（超窄機） | **PASS=178 · FAIL=0** |
+| `gif` | 390×844 ＋ `#gif`（GIF 擷取路徑） | **PASS=14 · FAIL=0** |
+
+- 靜態檢查：CSS 大括號 **570／570** 平衡、兩段 inline script `node --check` 通過（702／159320 chars）、`index.html`／`dist/index.html` 內容一致（`665633B2E0B9`）。
+- 新增的斷言：`editbar.fourKeysEven`／`editbar.fourKeysFit`／`stepadd.inStrip`／`stepadd.notInKeys`／`stepadd.beforePanel`／`stepadd.count`／`stepadd.countFollows`／`mobile.keysEven`／`mobile.keysNoOverflow`／`mobile.stepAddAbovePanel`／`draw.keyPresent`／`draw.panelToggle`／`draw.defaultTool`／`draw.threeLines`／`draw.keyOn`／`draw.toolSwitch`／`draw.toolActive`／`draw.keyStillOn`／`draw.backToStep`。
+- 重寫的斷言：`editbar.fourKeys`／`mobile.editKeysFixed`（改以 `ekRoster`／`ekDefense`／`ekDraw`／`ekSave` 四顆判定，並要求 `#ekAdd` 不在 `#editKeys` 內）。
+- 截圖：`.scratch/us140-draw-390.png`／`us140-pen-390.png`／`us140-draw-1440.png`／`us140-pen-1440.png`。
+
+### 已知取捨／限制
+
+1. **桌機的「正下方」是相對的**：桌機 `.stepbar` 本來就在球場**上方**，所以加步驟條是 `.stepbar` 的最後一列（緊貼球場上緣）；手機（`.stepbar` 在球場下方）才是字面上「球場正下方」的第一列。
+2. **走位畫筆只放 3 種線條**：運球線／選取／橡皮仍在面板 `⚙` 的教練抽屜與右側第三欄，避免手機面板一次塞 6 顆造成溢出；`.tool[data-tool]` 兩處共用同一份狀態，任一入口選線 `#ekDraw` 都會亮。
+3. **`#ekDraw` 的亮燈條件包含「目前工具是線條工具」**：從側欄選「傳球」時底部也會亮，這是刻意的（表示線條繪製中），不代表面板一定停在 `draw` 視圖。
+4. **步數只在 `#saCount` 顯示**：繪製中原本的 `#frameCounter` 仍隱藏（`body[data-keys="edit"] #frameCounter{display:none}`），兩者不重複顯示。
+
+
+---
+
+## 🆕 本輪需求（US-141：走位畫筆 → 步驟 keyframe 聯動 ＋ 播放期箭咀＝運動路徑）
+
+### 使用者故事
+
+**US-141** — 作為**教練／球員（繪製模式）**，我希望**用 ✏️ 走位畫筆畫的跑位線／傳球虛線，會真的把球員／籃球送到箭咀終點並寫進目前這一步；播放時補間就沿著這些箭咀走**，這樣**畫布上的圖＝真實動作，不必「先畫線、再自己把球員拖到終點」做兩次，也不會出現「線畫好了、播放時球卻沒動」的圖文不符**。
+
+### 需求
+
+#### 功能需求（Functional）
+
+| Requirement ID | Requirement Description | Feature/Module |
+| --- | --- | --- |
+| FR-269 | **畫筆即 keyframe（跑位線／運球線）**：`onCanvasUp()` 在建立線條之前先交給 `commitStrokeToStep(type, start, end)`；起筆 62px 內最近的節點（`nearestNodeOf()`，`PEN_SNAP`）直接移到 `clampPoint(end)`，位移 <8px 或起筆沒對到人 → 回 `false`，退回原本的純線條（不會誤移球員）。持球者（球距 < `GLOW_REACH`）連球一起搬，自動改畫 `dribble` 線；防守球員的線標記為 `def` | §8.5 `commitStrokeToStep()`／`commitMoveStroke()` |
+| FR-270 | **傳球虛線＝換手**：終點 78px 內最近的隊友（`nearestOffense()`，`PEN_PASS_SNAP`）＝接球者 → `placeBallInHand()` ＋ `syncBallToNextFrame()`（下一步的球一起搬），並在球與接球者之間補一條 `pass` 線；終點沒人 → 球落在箭咀終點並 `toast` 警告「無人持球」；傳給自己 → 只留線條 | `commitPassStroke()` |
+| FR-271 | **掩護擋拆只留線條**：`commitStrokeToStep('screen', …)` 一律回 `false`，站位不動（掩護是標記，不是位移） | `commitStrokeToStep()` |
+| FR-272 | **三條寫入路徑統一收斂**：拖曳（`finalizeNodeDrag()`）、落球（`finishBallDrop()`）、畫筆（`commitStrokeToStep()`）都以 `makeAutoLine()` ＋ `saveCurrentFrame()` 收尾；`makeAutoLine()` 新增 `minLen` 參數（拖曳用 `DRAG_LINE_MIN`、畫筆用較寬鬆的 `PEN_LINE_MIN=22`）。`onCanvasUp()` 的純線條分支也會 `saveCurrentFrame()`，手畫線不再只是畫面上的塗鴉 | `makeAutoLine()`／`onCanvasUp()`／`saveCurrentFrame()` |
+| FR-273 | **「＋ 加步驟」自動放下畫筆**：`addStep()` 偵測 `isLineTool(state.tool)` → `state.tool='select'`、`toolPanel` 由 `draw` 回 `step`（`syncToolPanel()`），`renderFrame()` 之後補 `applyMode()`；新步驟才能直接拖曳球員（畫筆會讓畫布 `skipTargetFind`，這也是「新增步驟後拖不動」的根因） | `addStep()` |
+| FR-274 | **播放期箭咀＝運動路徑**：`tweenToFrame()` 改成 async，先 `await previewStepLines(目標步驟)` 把該步驟的 `kind:'line'` 用 `fabric.util.enlivenObjects()` 鋪上畫布（`opacity:0`、`moveTo(obj,1)`、`selectable:false`、`isPreview=true`），隨補間 `eased` 淡入；補間結束 `removePreviewLines()` 收掉；`isPreview` 物件被 `serializeCanvas()` 排除，不進存檔／匯出；fabric 版本或資料異常（`enlivenObjects` 不存在／拋錯）一律回空陣列 → 完全退回舊的淡出路徑 | `previewStepLines()`／`removePreviewLines()`／`tweenToFrame()` |
+| FR-275 | **提示文案對齊新行為**：線條工具提示＝「從球員身上起筆、拖到目標位置放開 → 該球員直接跑到箭咀終點」／「從持球者拖到隊友身上放開 → 球直接傳過去（下一步同步持球）」；掩護線加註「只是標記，不會移動球員」；非畫筆模式提示補「或按 ✏️ 用走位畫筆畫路線」 | `updateHint()` |
+
+#### 非功能需求（Non-Functional）／限制（Constraints）
+
+| Requirement ID | Requirement Description | Feature/Module |
+| --- | --- | --- |
+| NFR-143 | 兩段 inline script `node --check` 通過；8 個 spec 全綠、無 runtime error；CSS 大括號平衡 | 冒煙測試／`integrity.js` |
+| NFR-144 | 播放預覽是「加法」不是「改寫」：`tweenToFrame()` 對 `applyLerp()`／`startTrails()`／`GIF` 抽樣的行為零改動，預覽失敗時畫面與舊版一致 | `previewStepLines()` |
+| C-132 | 畫筆只改「目前步驟」的 keyframe，不動其他步驟（唯一例外：`syncBallToNextFrame()` 同步下一步持球） | `commitStrokeToStep()` |
+| C-133 | 預覽線不入庫、不入 GIF：`isPreview` 被 `serializeCanvas()` 過濾，GIF 走 `applyLerp()` 抽樣而非 canvas 內容 | `serializeCanvas()`／`exportGif()` |
+| C-134 | 一支手勢＝一個位移：畫筆只取「起點節點 → 終點」，中途的曲線不入庫（路線仍是直線／虛線＋箭咀） | `commitStrokeToStep()` |
+
+#### 驗收條件（Acceptance Criteria）
+
+- **AC-210** 測試頁備妥：`findNode('off1')`／`off2`／`ball` 都存在（`pen.fixtures`）。
+- **AC-211** 加步驟放下畫筆：`setTool('cut')` → `addStep()` → `state.tool === 'select'`（`pen.step2ToolSelect`）、`state.frames.length === 2`（`pen.step2Count`）。
+- **AC-212** 跑位線＝位移：`commitStrokeToStep('cut', off1, off1+(150,40))` 回 `true`（`pen.cutHandled`），`off1` 的新座標與箭咀終點差 <1.5px（`pen.cutMovedNode`），**且 `state.frames[1]` 內的 `off1` keyframe 同步更新**（`pen.cutKeyframeSaved`），畫布多一條 `autoLine`（`pen.cutAutoLine`）。
+- **AC-213** 傳球虛線換手：拖到 `off2` 回 `true`（`pen.passHandled`）、`getBallHandler().nodeId === 'off2'`（`pen.passHandlerChanged`）、球的新位置已寫回 `state.frames[1]`（`pen.passKeyframeSaved`）。
+- **AC-214** 掩護／無來源不接手：`commitStrokeToStep('screen', …)` 回 `false` 且 `off2` 沒被移動（`pen.screenNoMove`）；起筆離所有節點 ≥130px 的空點回 `false`（`pen.noSourceNotHandled`）——兩者都交回 `onCanvasUp()` 走純線條。
+- **AC-215** 播放期預覽：`tweenToFrame(0,1)` 進行中（約 320ms）畫布上至少 1 條 `isPreview` 的線（`play.previewLinesShown`），補間結束後全部收乾淨（`play.previewCleared`）。
+- **AC-216** 零回歸：8 個 spec（`1440x900`／`1184x820`／`900x900`／`768x1024`／`390x844`／`375x667`／`360x740`／`gif`）全部 FAIL=0。
+
+#### Requirement Traceability Matrix
+
+| Requirement ID | Requirement Description | Feature/Module | User Story Reference | Status |
+| --- | --- | --- | --- | --- |
+| FR-269 | 跑位線／運球線＝把節點移到箭咀終點 | §8.5 `commitMoveStroke()` | US-141 | Verified |
+| FR-270 | 傳球虛線＝換手＋同步下一步持球 | `commitPassStroke()` | US-141 | Verified |
+| FR-271 | 掩護線只留標記 | `commitStrokeToStep()` | US-141 | Verified |
+| FR-272 | 三條寫入路徑都 `makeAutoLine()`＋`saveCurrentFrame()` | `onCanvasUp()`／`saveCurrentFrame()` | US-141 | Verified |
+| FR-273 | `＋ 加步驟`自動放下畫筆 | `addStep()` | US-141 | Verified |
+| FR-274 | 播放期鋪上目標步驟箭咀當運動路徑 | `previewStepLines()`／`tweenToFrame()` | US-141 | Verified |
+| FR-275 | 提示文案對齊新行為 | `updateHint()` | US-141 | Verified |
+| NFR-143 | 靜態檢查＋8 spec 全綠＋無 runtime error | 冒煙測試 | US-141 | Verified |
+| NFR-144 | 播放預覽為加法、失敗即回舊行為 | `previewStepLines()` | US-141 | Verified |
+| C-132 | 畫筆只改目前步驟 | `commitStrokeToStep()` | US-141 | Accepted |
+| C-133 | 預覽線不入庫／不入 GIF | `serializeCanvas()` | US-141 | Accepted |
+| C-134 | 一支手勢＝一個位移，曲線不入庫 | `commitStrokeToStep()` | US-141 | Accepted |
+| AC-210～AC-216 | 驗收 | 見下方「驗收紀錄（本輪：US-141）」 | US-141 | Verified |
+
+### 驗收紀錄（本輪：US-141）
+
+**日期**：2026-11-09 ｜ **方式**：`npm run build` → `npm run sync:site` → `node .scratch/smoke/integrity.js`（靜態）→ `node .scratch/smoke/build.js`（重建測試頁）→ `node .scratch/smoke/cdp.js`（8 個 spec）。
+
+| 規格 | 視窗 | 結果 |
+| --- | --- | --- |
+| `1440x900` | 1440×900（`?full=1` 桌機：三欄） | **PASS=168 · FAIL=0** |
+| `1184x820` | 1184×820（中桌機） | **PASS=168 · FAIL=0** |
+| `900x900` | 900×900（平板抽屜帶） | **PASS=170 · FAIL=0** |
+| `768x1024` | 768×1024（斷點邊界） | **PASS=170 · FAIL=0** |
+| `390x844` | 390×844（iPhone 14 尺寸） | **PASS=192 · FAIL=0** |
+| `375x667` | 375×667（矮螢幕，`is-dense`） | **PASS=192 · FAIL=0** |
+| `360x740` | 360×740（超窄機） | **PASS=192 · FAIL=0** |
+| `gif` | 390×844 ＋ `#gif`（GIF 擷取路徑） | **PASS=14 · FAIL=0** |
+
+- 靜態檢查：CSS 大括號 **573／573** 平衡、兩段 inline script `node --check` 通過（702／165876 chars）、`index.html`／`dist/index.html`／`frontend/site/index.html` 一致（`2C9945310D44`）。
+- 新增的斷言（14 條）：`pen.fixtures`／`pen.step2ToolSelect`／`pen.step2Count`／`pen.cutHandled`／`pen.cutMovedNode`／`pen.cutKeyframeSaved`／`pen.cutAutoLine`／`pen.passHandled`／`pen.passHandlerChanged`／`pen.passKeyframeSaved`／`pen.screenNoMove`／`pen.noSourceNotHandled`／`play.previewLinesShown`／`play.previewCleared`。
+
+### 已知取捨／限制
+
+1. **畫筆寫入的是「目前步驟」**：跑位線／傳球線改的是 `state.frames[state.currentFrame]` 的 keyframe，等於「這一步的站位」。若想保留原本站位，請先按 `＋ 加步驟` 再畫（這也正是新步驟自動放下畫筆的原因）。
+2. **路線一律直線＋箭咀**：一支手勢只取「起點節點 → 終點」，中途手抖的曲線不入庫，播放補間也是直線內插；想畫曲線仍可用掩護／純線條模式當標記。
+3. **傳球線終點沒對到隊友時**：球會停在箭咀終點並視為「無人持球」（`toast` 警告），不會自動猜人；把線尾拉到隊友身上（78px 內）才會換手。
+4. **播放預覽只在補間期間存在**：`renderFrame()`／`applyMode()`／`serializeCanvas()` 都不會看到 `isPreview` 物件，因此存檔、匯出 GIF、複製步驟都不受影響；`fabric` 若升級到 `enlivenObjects` 行為改變，`previewStepLines()` 會回空陣列、自動退回舊版播放。
+
+
+---
+
+## 🆕 本輪需求（US-142：教練＝瀏覽同一個畫面 ＋ 🔔 待批審核中心 ＋ 球場右下批核浮條）
+
+### 使用者故事
+
+**US-142** — 作為**教練**，我希望**一登入就跟球員看到一模一樣的瀏覽畫面（不再一進去就被塞進編輯器、工具列與抽屜全部彈出來），要改東西才按「＋ 新增／✏️ 微調後發布」；而所有待批的提案集中到右上角「🔔 待批 (N)」的待審核清單，點一套就載入播放、右下角浮出「✅ 批准發布／✏️ 微調後發布／🗑 退回」**，這樣**「看戰術」與「改戰術」兩種心態不會互相干擾，批核也不用先開抽屜找提案、再回面板找批核鍵**。
+
+### 需求
+
+#### 功能需求（Functional）
+
+| Requirement ID | Requirement Description | Feature/Module |
+| --- | --- | --- |
+| FR-276 | **三層狀態模型**：`state.mode`（身分：`player`／`coach`，決定批核／退回／改別人戰術的特權與教練入口）× `state.editing`（草稿 session：是否在編輯器裡）× `state.tacticStatus`（目前載入內容的批核狀態）。`canEdit()` 只看 `state.editing`（與身分完全脫鉤） | `canEdit()`／`state` |
+| FR-277 | **教練進站＝瀏覽**：`enterCoachMode()` 一律 `editing=false`、`tool='select'`、`toolPanel='step'`、`draw=null`，並且**不再自動 `openSidebar(true)`**；要動手必須按右上角「＋ 新增」或浮條的「✏️ 微調後發布」 | `enterCoachMode()` |
+| FR-278 | **瀏覽畫面零分歧**：所有「教練才看得到」的樣式改由 `body[data-edit="1"]`（＝正在編輯）驅動，不再看 `body[data-mode]`——側欄／教練工具列／工具面板／`.step-add`／編輯 4 鍵全部只在編輯器出現，`body[data-mode="player"]` 的視覺規則全部改寫成 `body:not([data-edit="1"])` | CSS §1／§6.4／§6.5、`applyMode()` |
+| FR-279 | **🔔 待批 (N) 徽章**：`#btnPending` 插在 `.mode-switch` 與 `#btnNewTactic` 之間；只在 `isCoach() && n>0` 顯示（用 JS `hidden`，**不用 `.coach-only`**），播放／匯出中禁用；`n` 與徽章由 `state.playbookItems`（`renderPlaybook()` 的 `store.list()` 結果）算出，**不额外發請求**；手機只露 🔔＋數字（`.pend-lbl` 隱藏） | `#btnPending`／`updatePendingBadge()`／`pendingItems()` |
+| FR-280 | **待審核 Bottom Sheet**：`#pendingSheet` 由 🔔 開啟（桌機置中貼底、手機由下往上滑），列出「名稱＋`未批核`標記＋提議人＋提交時間＋LOCAL／CLOUD」，新提交排前面；`syncSheetScrim()` 納入 `.pend-sheet`／`#pendingSheet` → 共用 `#pbScrim` 遮罩；`Esc`／✕／點遮罩都能關 | `openPendingSheet()`／`closePendingSheet()`／`renderPendingList()`／`syncSheetScrim()` |
+| FR-281 | **點清單即載入**：`selectPendingItem()` → 關閉 sheet → `loadTactic(item)`（沿用 §12：自動播一次）→ 清 `reviewDismissed` → `syncEditUI()` | `selectPendingItem()` |
+| FR-282 | **右下批核浮條**：`#reviewBar` 條件＝`isCoach() && !state.editing && state.tacticId && state.tacticStatus==='pending' && !state.reviewDismissed`；顯示名稱＋`提議／提交`＋「✅ 批准發布／✏️ 微調後發布／🗑 退回／✕ 收起」；`z-index:62`（低於 `.fab` 60 以上、抽屜 70 以下），手機貼在底部 4 鍵上方（`--stepbar-h + 10px`），播放／匯出中禁用 | `#reviewBar`／`syncReviewBar()` |
+| FR-283 | **批核／退回沿用舊路徑**：`approveTactic(item)` 泛化（可傳 `{id,source,name}`，省略＝目前載入的戰術），成功後同步 `tacticStatus`、刷新清單與徽章；「✏️ 微調後發布」直接複用 `approveAfterEdit()`（`approveOnSave=true` ＋ 進編輯器，存檔即發布）；「🗑 退回」複用 `removeTactic(item, {title,desc,okText})`（新增自訂確認文字，刪除後清 `tacticStatus`／`tacticAuthor` 等狀態） | `approveTactic()`／`approveAfterEdit()`／`removeTactic()`／`rejectPending()` |
+| FR-284 | **清單標記改寫**：手冊中的未批核提案標記＝`未批核 · #34 Kenny 提議`（`title` 補完整說明），meta **不再重複** `by …`；面板裡舊的「待批核提案／✅ 批准／✏️ 修改後批核」列（`#tpApprove`）整組移除；`syncStepInfo()` 在瀏覽狀態把步驟名稱／說明輸入框設 `readOnly`，並移除 approveRow 判斷 | `renderPlaybook()`／`#tpApprove`（刪除）／`syncStepInfo()` |
+
+#### 非功能需求（Non-Functional）／限制（Constraints）
+
+| Requirement ID | Requirement Description | Feature/Module |
+| --- | --- | --- |
+| NFR-145 | **瀏覽畫面像素級一致**：教練與球員在同一份資料、同一視窗下，`#playKeys`／`#editKeys`／`#toolPanel`／`#sidebar`／`.step-add` 的 `display` 與播放鍵尺寸必須完全相同（同一組 CSS 條件驅動，不是「看起來差不多」） | 冒煙測試 `parity.*` |
+| NFR-146 | 徽章與浮條**零額外請求**：`n` 直接由 `state.playbookItems` 計算，只在 `renderPlaybook()`／`syncEditUI()`／`setPlaying()`／`setExporting()` 時同步；DOM 更新是改 `textContent`／`hidden`，不重建整份清單 | `updatePendingBadge()`／`syncReviewBar()` |
+| C-135 | 資料格式不動：**沒有** DB migration、**沒有** `meta.status` 新欄位，`store.setStatus()` 沿用既有 `meta.status`；批核／退回在 localStorage 預覽模式即可全功能運作 | `store.setStatus()`／`store.remove()` |
+| C-136 | 徽章數字上限：`store.list()` 只取最近 100 筆，因此待批數在極端情況（>100 筆紀錄且有大量舊提案）可能低估；徽章顯示 `99+` 封頂 | `pendingItems()` |
+| C-137 | 批核／退回是「教練特權」，不看 `state.editing`：非教練一律 `requestCoachMode()`；播放／匯出期間四顆批核鍵 `disabled`，避免批核與動畫抽樣互相干擾 | `approveTactic()`／`rejectPending()`／`syncReviewBar()` |
+
+#### 驗收條件（Acceptance Criteria）
+
+- **AC-217** 教練進站即瀏覽：`enterCoachMode(true)` 後 `state.editing === false`（`coach.startsBrowsing`）、`canEdit() === false`（`coach.canEditFalse`）、`body[data-keys]==='play'`（`coach.browseKeys`）、播放鍵可見（`coach.playKeysShown`）、編輯 4 鍵／工具面板／側欄／`.step-add` 全部 `display:none`（`coach.editKeysHidden`／`coach.panelHidden`／`coach.sidebarHidden`／`coach.addStripHidden`）。
+- **AC-218** 同畫面零分歧：同一頁把 `state.mode` 切到 `player`／`coach` 各取一次外框簽章，`displays + 播放鍵尺寸` 完全相同（`parity.coachVsPlayer`）；球員看不到 🔔（`parity.playerBadgeHidden`）也看不到批核浮條（`parity.playerReviewBarHidden`）。
+- **AC-219** 徽章正確：教練且有 pending → 🔔 可見（`pending.badgeShown`）、數字等於 pending 筆數（`pending.countMatches`）；批准後自動 −1（`pending.badgeDecrement`）。
+- **AC-220** 待審核 sheet：點 🔔 後 `#pendingSheet` 可見且帶 `is-open`（`pending.sheetOpens`）、`#pbScrim` 出現且 `aria-expanded="true"`（`pending.sheetScrim`）；列數＝pending 筆數（`pending.itemRows`），每列有名稱（`pending.itemName`）、`提議：… · 提交：…`（`pending.itemMeta`）與 `未批核` 標記（`pending.itemTag`）。
+- **AC-221** 點列即載入：載入後 sheet 自動關閉（`pending.sheetClosedAfterLoad`）、`state.tacticId` 換成該提案且狀態為 `pending`（`pending.loadOnClick`）、右下浮條出現（`pending.reviewBarShown`）且三顆鍵可見（`pending.reviewBtns`）、浮條顯示提議人（`pending.reviewMeta`）。
+- **AC-222** 浮條批核：停止播放後批准鍵可用（`pending.reviewBtnsEnabled`）→ 點「✅ 批准發布」後 `state.tacticStatus === 'approved'`（`pending.approved`）且浮條收起（`pending.reviewBarHiddenAfter`）。
+- **AC-223** 微調後發布：把紀錄改回 `pending` 再載入 → 浮條出現（`approveEdit.reviewBarShown`）、「✏️ 微調後發布」可見（`approveEdit.btnVisible`）→ 點下去 `approveOnSave=true` ＋ `editing=true`（`approveEdit.on`）、右上角變「✕ 退出」（`approveEdit.exitLabel`）→ 按「🚀 正式發布」不跳對話框（`approveEdit.noDialog`）、同 id 變 `approved`（`approveEdit.approved`／`sameId`／`noDuplicate`）。
+- **AC-224** 舊入口與標記：面板內 `#tpApprove` 已不存在（`panel.noApproveRow`）；手冊標記＝`未批核 · #34 … 提議`（`list.pendingTagAuthor`），meta 不再重複 `by`（`list.authorNotDuplicated`）；頂部順序＝滑塊 → 🔔 → 新增（`topbar.pendingBetween`）且不溢出（`topbar.noOverflow`）。
+
+#### Requirement Traceability Matrix
+
+| Requirement ID | Requirement Description | Feature/Module | User Story Reference | Status |
+| --- | --- | --- | --- | --- |
+| FR-276 | 三層狀態模型；`canEdit()` 只看 `editing` | `canEdit()`／`state` | US-142 | Verified |
+| FR-277 | 教練進站＝瀏覽、不自動開抽屜 | `enterCoachMode()` | US-142 | Verified |
+| FR-278 | 視覺一律由 `data-edit` 驅動 | CSS §1／`applyMode()` | US-142 | Verified |
+| FR-279 | 🔔 待批 (N) 徽章（教練專屬、零請求） | `#btnPending`／`updatePendingBadge()` | US-142 | Verified |
+| FR-280 | 待審核 Bottom Sheet ＋ 共用遮罩 | `#pendingSheet`／`syncSheetScrim()` | US-142 | Verified |
+| FR-281 | 點列即載入並自動關閉 sheet | `selectPendingItem()` | US-142 | Verified |
+| FR-282 | 右下批核浮條（條件／定位／禁用） | `#reviewBar`／`syncReviewBar()` | US-142 | Verified |
+| FR-283 | 批准／微調／退回沿用舊路徑 | `approveTactic()`／`approveAfterEdit()`／`removeTactic()` | US-142 | Verified |
+| FR-284 | 手冊標記改寫、刪除 `#tpApprove`、面板 readOnly | `renderPlaybook()`／`syncStepInfo()` | US-142 | Verified |
+| NFR-145 | 教練與球員瀏覽外框像素級一致 | 冒煙測試 `parity.*` | US-142 | Verified |
+| NFR-146 | 徽章／浮條零額外請求 | `updatePendingBadge()`／`syncReviewBar()` | US-142 | Verified |
+| C-135 | 無 DB migration、localStorage 即可全功能 | `store.setStatus()` | US-142 | Accepted |
+| C-136 | `store.list()` 取 100 筆 → 徽章可能低估 | `pendingItems()` | US-142 | Accepted |
+| C-137 | 批核＝教練特權；播放／匯出時禁用 | `approveTactic()`／`syncReviewBar()` | US-142 | Verified |
+| AC-217～AC-224 | 驗收 | 見下方「驗收紀錄（本輪：US-142）」 | US-142 | Verified |
+| FR-199 | 原 `canEdit()` 語意（教練模式即視為可編輯） | 被 FR-276 取代 | US-139 → US-142 | Superseded |
+| FR-262（批核段） | 原「面板內的待批核提案列」 | 被 FR-284 刪除、改由 FR-280／282 承載 | US-139 → US-142 | Superseded |
+
+### 驗收紀錄（本輪：US-142）
+
+**日期**：2026-11-09 ｜ **方式**：`npm run build` → `npm run sync:site` → `node .scratch/smoke/integrity.js`（靜態）→ `node .scratch/smoke/build.js`（重建測試頁）→ `node .scratch/smoke/cdp.js`（8 個 spec）→ `node .scratch/smoke/shot.js`（截圖目視）。
+
+| 規格 | 視窗 | 結果 |
+| --- | --- | --- |
+| `1440x900` | 1440×900（`?full=1` 桌機：三欄） | **PASS=196 · FAIL=0** |
+| `1184x820` | 1184×820（中桌機） | **PASS=196 · FAIL=0** |
+| `900x900` | 900×900（平板抽屜帶） | **PASS=198 · FAIL=0** |
+| `768x1024` | 768×1024（斷點邊界） | **PASS=198 · FAIL=0** |
+| `390x844` | 390×844（iPhone 14 尺寸） | **PASS=220 · FAIL=0** |
+| `375x667` | 375×667（矮螢幕，`is-dense`） | **PASS=220 · FAIL=0** |
+| `360x740` | 360×740（超窄機） | **PASS=220 · FAIL=0** |
+| `gif` | 390×844 ＋ `#gif`（GIF 擷取路徑） | **PASS=14 · FAIL=0** |
+
+- 靜態檢查：CSS 大括號 **609／609** 平衡、兩段 inline script `node --check` 通過、`index.html`／`dist/index.html`／`frontend/site/index.html` 一致。
+- 截圖：`us142-coach-browse-1440/390/360`（教練瀏覽＝球員畫面＋🔔 徽章）、`us142-pending-sheet-1440/390`（待審核 Bottom Sheet）、`us142-review-bar-1440/390`（右下批核浮條）；390／360 的 `topbarOverflow=no`。
+- 取代／刪除的斷言：`topbar.adjacent`（改 `topbar.pendingBetween`）、`list.authorShown`（改 `list.pendingTagAuthor`＋`list.authorNotDuplicated`）、`draw.approveHidden`／`approve.inPanel`／`coach.approveShown`／`coach.approveBtnsShown`／`coach.approveHiddenAfter`／`coach.editKeysBack`／`approveEdit.shown`（改 `panel.noApproveRow`／`parity.*`／`pending.*`／`approveEdit.reviewBarShown`）。
+- 新增的斷言（34 條）：`panel.noApproveRow`、`coach.startsBrowsing`、`coach.canEditFalse`、`coach.browseKeys`、`coach.playKeysShown`、`coach.editKeysHidden`、`coach.panelHidden`、`coach.sidebarHidden`、`coach.addStripHidden`、`parity.playerBadgeHidden`、`parity.playerReviewBarHidden`、`parity.coachVsPlayer`、`coach.badgeVisible`、`coach.reviewBarOnPending`、`pending.onePending`、`pending.badgeShown`、`pending.countMatches`、`pending.sheetOpens`、`pending.sheetScrim`、`pending.itemRows`、`pending.itemName`、`pending.itemMeta`、`pending.itemTag`、`pending.sheetClosedAfterLoad`、`pending.loadOnClick`、`pending.reviewBarShown`、`pending.reviewBtns`、`pending.reviewMeta`、`pending.reviewBtnsEnabled`、`pending.approved`、`pending.reviewBarHiddenAfter`、`pending.badgeDecrement`、`pen.coachBrowseFirst`、`pen.enteredEditor`。
+
+### 已知取捨／限制
+
+1. **教練登入不再自動開工具抽屜**：`enterCoachMode()` 一律 `openSidebar(false)`；編輯器裡要調線條工具請按面板 `⚙ 教練工具`（或 ≥1100px 直接看第三欄）。這是「教練＝瀏覽」的必然結果——抽屜一開就不是球員畫面了。
+2. **🔔 徽章會擠壓手機品牌名**：390／360 顯示「MondayB…／Monday…」（只剩 🔔＋數字，`.pend-lbl` 已隱藏）；若之後要完全保住品牌，唯一乾淨的做法是把徽章移出 header（例如放進手冊抽屜標題）。
+3. **徽章數字上限**：`store.list()` 只取最近 100 筆，`pendingItems()` 以之為母體，因此超過 100 筆紀錄時待批數可能低估（顯示封頂 `99+`）；`C-136`。
+4. **浮條只在「目前載入的是待批提案」時出現**：切到已批核戰術、或按 ✕ 收起（`state.reviewDismissed`）後就不再出現，直到重新載入／換戰術；`✏️ 微調後發布` 進編輯器後浮條消失（`!state.editing`），改由底部「🚀 正式發布」完成批核。
+5. **播放中不可批核**：載入提案會自動播一次，浮條三顆鍵在播放／匯出期間是 `disabled`，先按「■ 停止播放」再批核（避免批核與動畫抽樣互相干擾）。
+6. **「🗑 退回」是硬刪除**：沿用 `removeTactic()`，提案人需要重新提交；沒有「駁回但保留」的狀態（未新增 `meta.status='rejected'`，維持 `C-135` 不動資料格式）。
+
+
+
+---
+
+## 🆕 本輪需求（US-143：PWA 安裝＋iOS「加入主畫面」引導＋一次性清除測試戰術）
+
+### 使用者故事
+
+**US-143** — 作為**球隊隊友（多數用 iPhone Safari）**，我希望**把戰術板「加入主畫面」變成一個有隊徽圖示、全螢幕無網址列的 App，而且第一次用 Safari 開啟時有人告訴我怎麼加**，這樣**練球時從主畫面一點就進球場，不必每次翻群組找連結、也不會手指滑到網址列就跳出；同時專案要順手清掉早期留下的測試戰術，手冊只留真正的 7 套經典戰術**。
+
+### 需求
+
+#### 功能需求（Functional）
+
+| Requirement ID | Requirement Description | Feature/Module |
+| --- | --- | --- |
+| FR-285 | **Web App Manifest**：根目錄 `manifest.json`＝`name`「MondayBeer 戰術板」／`short_name`「MondayBeer」／`start_url` `/`／`display` `standalone`／`orientation` `portrait`／`background_color` `#0F172A`／`theme_color` `#EA580C`／icons `./icon-192.png`、`./icon-512.png`。圖示必須用 `./` 相對路徑，`scripts/build-static.mjs`／`sync-site.mjs` 才會把 manifest 與兩張 PNG 一起複製到 `dist/`、`frontend/site/` | `manifest.json`／`scripts/build-static.mjs`／`scripts/sync-site.mjs` |
+| FR-286 | **iOS 主畫面 meta**：`<head>` 加入 `mobile-web-app-capable=yes`、`apple-mobile-web-app-capable=yes`、`apple-mobile-web-app-status-bar-style=black-translucent`、`apple-mobile-web-app-title=MondayBeer`、`theme-color=#EA580C`（原 `#EBF1F6`），並補 `link[rel=manifest]`（`./manifest.json`）、`apple-touch-icon`（`./icon-192.png`）、`icon` 512（`./icon-512.png`） | `index.html` §head |
+| FR-287 | **主畫面圖示**：`icon-192.png`／`icon-512.png` 由隊徽原圖（`WhatsApp Image …jpeg` 1408×768）置中裁成 768×768 正方形後以 HighQualityBicubic 縮圖（不透明 PNG），避免 iOS／Android 主畫面圖示被拉長或裁掉隊名 | `icon-192.png`／`icon-512.png` |
+| FR-288 | **iOS 安裝引導卡**：`#pwaTip`（`.pwa-tip`）固定貼在底部控制卡上方（`bottom: calc(var(--stepbar-h,101px) + 10px)`、`z-index:61`），內容＝「📲 安裝為原生 App 體驗」標題＋分享 inline SVG＋「加入主畫面」粗體文字＋`✕`；`showPwaTip()`／`hidePwaTip()` 用 `.is-open` 做 320ms 滑入淡出，`body.has-pwa-tip` 同步把 `.toast-stack` 上移 | `#pwaTip`／CSS §7／`showPwaTip()`／`hidePwaTip()` |
+| FR-289 | **顯示條件**：只在 **iOS／iPadOS**（`/iphone|ipod|ipad/`，或 `Macintosh` UA ＋ `maxTouchPoints>1` 的 iPadOS 13+）且**非 standalone**（`navigator.standalone===true` 或 `(display-mode: standalone)`）時自動彈出；`boot()` 後延 1.5 秒，若歡迎畫面（`isSplashOpen()`）還開著就每 600ms 重試，等進站後才提示 | `initPwaTip()`／`isIosDevice()`／`isStandaloneApp()` |
+| FR-290 | **✕ 記憶 7 天**：按 ✕ 收起並寫入 `mbab:pwa-tip-dismissed-until`（now ＋ 7 天）；`pwaTipMutedUntil()` 未到期就不再彈出。關閉監聽**不分平台一律綁定**（桌機／Android 若手動開啟也關得掉），只有「要不要自動彈」才是平台條件 | `initPwaTip()`／`pwaTipMutedUntil()` |
+| FR-291 | **一次性清除測試戰術**：`purgeTestTacticsOnce()` 在 `boot()` 最前面執行——刪除所有 `mbab:tactic:*` 紀錄、把 `mbab:tactics:index` 設成 `[]`、寫入旗標 `mbab:migrate:purge-test-tactics:2026-11`（JSON：`{at, removed}`），並同步清 `state.memoryStore`；有清到東西才 toast「已清除 N 套測試戰術 · 手冊只留 7 套經典戰術」。程式內建的 `TACTIC_LIBRARY` 7 套經典戰術**不受影響** | `purgeTestTacticsOnce()`／`boot()` |
+| FR-292 | **快取標頭**：`vercel.json` 與 `frontend/vercel.json` 對 `/manifest.json` 下 `max-age=0, must-revalidate` ＋ `Content-Type: application/manifest+json`（改版即時生效），對 `/(.*).png` 下 7 天長快取（圖示幾乎不變） | `vercel.json`／`frontend/vercel.json` |
+
+#### 非功能需求（Non-Functional）／限制（Constraints）
+
+| Requirement ID | Requirement Description | Feature/Module |
+| --- | --- | --- |
+| NFR-147 | **不與既有浮層打架**：`#pwaTip` 出場時 `.toast-stack` 自動上移（`body.has-pwa-tip`），批核浮條出現時（`body.has-review`，`z-index:62`）提示卡再往上讓開（+68px）；手機貼底、桌機（≥768px）改成右下角固定寬 360px。層級 61 ＝ 高於 `.stepbar`(40)、低於 sheet(72)／modal(80)／splash(110) | `.pwa-tip` CSS／`body.has-pwa-tip`／`body.has-review` |
+| NFR-148 | **零外部依賴、零額外請求**：引導卡是純 HTML＋CSS（專案沒有 Tailwind，一律用既有 `--navy`／`--orange`／`--gold` 等 token 手寫），分享圖示用 inline SVG；不新增 CDN、不加 service worker（離線快取不在本輪範圍） | `index.html` §head／§7／`#pwaTip` |
+| C-138 | **Supabase 未設定 → 自訂戰術只存在裝置端**：`SUPABASE_URL`／`ANON_KEY` 仍是 placeholder，雲端資料表不存在，因此「清掉測試戰術」只能由 App 第一次載入時在本機執行（repo 無法直接刪資料）。日後填入金鑰後，雲端請自行在 SQL Editor 執行 `delete from tactics;`——刻意不在前端自動打刪除 API，避免誤刪全隊正式戰術 | `purgeTestTacticsOnce()` |
+| C-139 | **一次性、冪等**：旗標存在就不再執行（回傳 0），避免每次開站都清掉使用者新存的戰術；要重跑必須手動移除 `mbab:migrate:purge-test-tactics:2026-11` | `purgeTestTacticsOnce()` |
+| C-140 | **standalone 不再提示**：已「加入主畫面」開啟時 `isStandaloneApp()` 為真，`initPwaTip()` 直接 return；`black-translucent` 只是宣告，實際狀態列樣式仍由 Safari／iOS 版本決定（深色球場背景下不刺眼） | `initPwaTip()` |
+
+#### 驗收條件（Acceptance Criteria）
+
+- **AC-225** `<head>` 內 manifest／apple-touch-icon／`apple-mobile-web-app-*` 三組 meta／`theme-color=#EA580C` 全部存在且值正確。
+- **AC-226** `manifest.json` 為合法 JSON、icons 使用 `./` 相對路徑，且 `npm run build`／`npm run sync:site` 都把 manifest＋2 張 PNG 複製到 `dist/`、`frontend/site/`。
+- **AC-227** 桌機（非 iOS）開站不會自動彈出引導卡：`#pwaTip` 維持 `hidden`、`body` 沒有 `has-pwa-tip`。
+- **AC-228** 手動 `showPwaTip()` → 卡片滑入、完整落在視窗內；手機（<768px）卡片底緣不高於 `.stepbar` 頂緣（不遮住底部 4 鍵）；桌機貼右下、右緣不超出視窗。
+- **AC-229** 按 ✕ → 卡片收起並回到 `hidden`，`mbab:pwa-tip-dismissed-until` 落在「now ＋ 7 天」量級（> 6 天）。
+- **AC-230** 塞入假戰術後執行 `purgeTestTacticsOnce()` → 回傳 ≥ 2、`mbab:tactic:*` 全數消失、索引變 `[]`、旗標寫入；第二次呼叫回傳 0（冪等）。
+- **AC-231** 7 個視窗尺寸煙霧測試 `FAIL=0`；`integrity.js` 的 CSS 大括號平衡、兩段 inline script 語法、`dist` 同步雜湊全部通過。
+
+### RTM（本輪）
+
+| Requirement ID | Requirement Description | Feature/Module | User Story Reference | Status |
+| --- | --- | --- | --- | --- |
+| FR-285 | 根目錄 `manifest.json`（standalone／portrait／`#EA580C`／`./` 圖示） | `manifest.json`＋打包腳本 | US-143 | Verified |
+| FR-286 | iOS 主畫面 meta ＋ manifest／icon／apple-touch-icon 連結 | `index.html` §head | US-143 | Verified |
+| FR-287 | 192／512 不透明 PNG 主畫面圖示 | `icon-192.png`／`icon-512.png` | US-143 | Verified |
+| FR-288 | 底部安裝引導卡 `#pwaTip`（貼 stepbar 上方、z 61） | `.pwa-tip` CSS／`#pwaTip` | US-143 | Verified |
+| FR-289 | 只在 iOS 非 standalone 且 splash 關閉後提示 | `initPwaTip()`／`isIosDevice()`／`isStandaloneApp()` | US-143 | Verified |
+| FR-290 | ✕ 收起並記憶 7 天（`mbab:pwa-tip-dismissed-until`） | `initPwaTip()`／`pwaTipMutedUntil()` | US-143 | Verified |
+| FR-291 | 一次性清除測試戰術（旗標 `…purge-test-tactics:2026-11`）＋ toast | `purgeTestTacticsOnce()`／`boot()` | US-143 | Verified |
+| FR-292 | manifest／PNG 快取標頭 | `vercel.json`／`frontend/vercel.json` | US-143 | Accepted |
+| NFR-147 | 提示卡與 toast／批核浮條互不遮擋（手機貼底、桌機右下） | `.pwa-tip` CSS／`body.has-*` | US-143 | Verified |
+| NFR-148 | 純 CSS／inline SVG，不加 CDN、不加 service worker | `#pwaTip`／CSS §7 | US-143 | Verified |
+| C-138 | Supabase 未設定 → 只能在本機清，雲端需手動 `delete from tactics` | `purgeTestTacticsOnce()` | US-143 | Accepted |
+| C-139 | 一次性、冪等，需手動刪旗標才能重跑 | `purgeTestTacticsOnce()` | US-143 | Verified |
+| C-140 | standalone 不提示；狀態列樣式仍由 Safari 決定 | `initPwaTip()` | US-143 | Accepted |
+| AC-225～AC-231 | 驗收 | 見下方「驗收紀錄（本輪：US-143）」 | US-143 | Verified |
+
+### 驗收紀錄（本輪：US-143）
+
+**日期**：2026-11-09 ｜ **方式**：`npm run build` → `npm run sync:site` → `node .scratch/smoke/integrity.js`（靜態）→ `node .scratch/smoke/build.js`（重建測試頁）→ `node .scratch/smoke/cdp.js`（7 個 spec）。
+
+| 規格 | 視窗 | 結果 |
+| --- | --- | --- |
+| `390x844` | 390×844（iPhone 14） | **PASS=236 · FAIL=0** |
+| `375x667` | 375×667（矮螢幕，`is-dense`） | **PASS=236 · FAIL=0** |
+| `360x740` | 360×740（超窄機） | **PASS=236 · FAIL=0** |
+| `768x1024` | 768×1024（斷點邊界） | **PASS=214 · FAIL=0** |
+| `900x900` | 900×900（平板抽屜帶） | **PASS=214 · FAIL=0** |
+| `1184x820` | 1184×820（中桌機） | **PASS=212 · FAIL=0** |
+| `1440x900` | 1440×900（`?full=1` 桌機三欄） | **PASS=212 · FAIL=0** |
+
+- 靜態檢查：CSS 大括號 **632／632** 平衡、兩段 inline script 語法通過（`script0` 702 chars／`script1` 177695 chars）、`index.html`／`dist/index.html`／`frontend/site/index.html` 雜湊一致（`90A0F825326B`）。
+- 打包：`dist/` 與 `frontend/site/` 皆為「1 個 HTML ＋ 4 個資源」＝`index.html`、隊徽 jpeg、`icon-192.png`、`icon-512.png`、`manifest.json`。
+- 新增的斷言（15 條）：`pwa.manifestLinked`、`pwa.appleTouchIcon`、`pwa.metaTags`、`pwa.tipElement`、`pwa.tipIdleOnDesktop`、`pwa.tipShown`、`pwa.tipInsideViewport`、`pwa.tipAboveStepbar`、`pwa.dismissPersists`、`pwa.tipHiddenAfterDismiss`、`pwa.purgeRemoved`、`pwa.purgeNoTacticKeys`、`pwa.purgeIndexCleared`、`pwa.purgeRecordsGone`、`pwa.purgeFlagSet`、`pwa.purgeIdempotent`。
+- 實測值（手機）：390×844 → `tipBottom=401 / barTop=411`；375×667 → `tipBottom=386 / barTop=397`；360×740 同級，皆未遮住底部 4 鍵。
+
+### 已知取捨／限制
+
+1. **沒有 service worker**：本輪只做「可安裝＋外觀像 App」，離線快取完全沒做（也沒有 PWA 快取陷阱要顧）。若之後要離線開圖，再補 `sw.js` 與 `fetch` 策略。
+2. **iOS 沒有程式化安裝 API**：Safari 不支援 `beforeinstallprompt`，所以只能用「引導卡教學＋使用者自己按分享→加入主畫面」；卡片無法代按，也無法偵測使用者是否真的加了（只能事後用 `standalone` 判斷）。
+3. **圖示是環境照片裁切**：`icon-192/512.png` 由隊徽原圖置中裁切而來，四角仍帶原圖的球場背景（圓形隊徽外）。若要 100% 乾淨的方形底，需要在設計工具重新輸出。
+4. **清除測試戰術只在本機生效**：Supabase 未設定時戰術存在 `localStorage`，換裝置／換瀏覽器就清不到；雲端資料表要另外手動 `delete from tactics;`（`C-138`）。
+5. **旗標是一次性的**：`mbab:migrate:purge-test-tactics:2026-11` 一旦寫入就不再清除；若之後又需要清空，得改旗標版本號（例如 `…:2027-01`）或手動刪 key。
 
