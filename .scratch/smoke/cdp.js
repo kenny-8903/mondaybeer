@@ -29,6 +29,10 @@ const SPECS = {
   '375x667': { width: 375, height: 667, mobile: true, query: '' },
   '360x740': { width: 360, height: 740, mobile: true, query: '' },
   gif: { width: 390, height: 844, mobile: true, query: '#gif' },
+  /* US-146：只讀的雲端連線探測（不寫任何資料），見 harness.js 的 CLOUD_PROBE */
+  cloud: { width: 390, height: 844, mobile: true, query: '?cloud=1' },
+  /* US-146：＋ App 儲存層端到端（會寫一列 SMOKE 測試資料，跑完自清） */
+  cloudwrite: { width: 390, height: 844, mobile: true, query: '?cloud=1&write=1' },
 };
 
 function fileUrl(query) {

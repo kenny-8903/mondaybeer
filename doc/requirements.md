@@ -207,7 +207,7 @@
 
 | ID | 類型 | 需求 |
 | --- | --- | --- |
-| FR-111 | Functional | 儲存戰術（名稱＋所有步驟）到 Supabase；未設定或失敗時自動回退 localStorage，並提示使用者 |
+| FR-111 | Functional | 儲存戰術（名稱＋所有步驟）到 Supabase；未設定或失敗時自動回退 localStorage，並提示使用者。**US-146 修訂**：金鑰已正式寫進 `index.html`，出貨即走雲端；回退只發生在「CDN 未載入／RLS 或欄位錯誤／`?local=1` 強制本機」 |
 | FR-112 | Functional | 左側「戰術手冊」每一列可載入、改名（✎）與刪除（垃圾桶），標示每筆來源（CLOUD / LOCAL）與更新時間 |
 
 ### US-101～104（身分與操作輔助）
@@ -358,7 +358,7 @@
 
 | ID | 類型 | 需求 |
 | --- | --- | --- |
-| NFR-101 | Non-Functional | 單一 `index.html` 完成所有功能；無建置步驟、無 npm 依賴；Fabric.js / gifshot / supabase-js 由 CDN 載入 |
+| NFR-101 | Non-Functional | 單一 `index.html` 完成所有功能；無建置步驟、無 npm 依賴；Fabric.js / gifshot / supabase-js 由 CDN 載入。**US-146**：Supabase 金鑰以常數內嵌（`SUPABASE_URL` / `SUPABASE_ANON_KEY`），仍在「單檔、無建置」前提下運作；`frontend/src/lib/supabase.ts` 是 React 路線的另一個 client，不參與單檔出貨 |
 | NFR-102 | Non-Functional | 畫布固定邏輯解析度 1000×940，僅以 CSS 縮放，指標座標不需換算，任何裝置所見一致 |
 | NFR-103 | Non-Functional | 響應式：>1100px 為「戰術手冊＋畫布＋右側工具列」三欄（232px / 1fr / 318px）；≤1100px 球場單欄滿寬、戰術手冊與教練工具列都改為抽屜（步驟列 `☰` / `🛠` 開關）並顯示底部 dock；≤720px 精簡頂部資訊與縮圖尺寸 |
 | NFR-104 | Non-Functional | 動畫以 timer 驅動（非 requestAnimationFrame），背景分頁或被節流時不會卡住 |
@@ -369,7 +369,7 @@
 | C-101 | Constraint | 不修改既有 `frontend/`、`backend/`、`devops/`、`.env`（沿用 py-workflow-system starter 的不可變檔案規則） |
 | C-102 | Constraint | 教練密碼為前端遮蔽用途，非資安等級驗證；未串接 Supabase Auth |
 | C-103 | Constraint | 僅支援半場進攻版面（籃框在上方），不含全場與球員資料庫；防守提供 4 種固定預設（2-1-2／2-3／3-2／人盯人）＋「自訂防守」（僅記住目前 5 個防守者位置，不建陣型庫、不可命名保存） |
-| C-104 | Constraint | 未設定 Supabase 時，資料只存在該瀏覽器；換裝置或清除瀏覽器資料即遺失 |
+| C-104 | Constraint | **US-146 修訂**：Supabase 已正式對接 → 自訂戰術存雲端，換裝置也看得到；只有「CDN 載入失敗／雲端讀寫失敗自動回退／`?local=1` 強制本機」時資料才只存在該瀏覽器。反向風險同時成立：RLS 目前是 public read/write（C-148） |
 | NFR-109 | Non-Functional | 淺色主題對比度：正文與標籤文字對紙白底 ≥ 4.5:1（`#1F2A37` 約 12.6:1、`#4A5A6A` 約 7.1:1、`#7B8C9E` 約 3.9:1 僅用於輔助說明 ≥14px 粗體、磚紅 `#B4462F` 約 5.3:1、防守藍 `#2F6FA8` 約 4.7:1）；球場線條用 `rgba(31,42,55,.62)` 在 `#F2F6FA` 上等效約 4.4:1，投影與列印皆可辨識 |
 | NFR-110 | Non-Functional | 特效成本可控：光暈以單一共用 `fabric.Shadow` 每 80ms 更新（不重建物件、不重繪整張畫布以外的圖層）；殘影最多 12 條 × 2 層且於 260ms 後自動移除；戰術庫生成結果以 `LIB_CACHE` 快取，第二次載入不再重建 fabric 物件；`prefers-reduced-motion` 時關閉呼吸與殘影 |
 | C-105 | Constraint | 存檔格式向後相容：`frames[].cue` / `frames[].desc` 為新增的選填欄位，舊有 localStorage／Supabase 紀錄缺少時仍可載入（顯示為空），新存檔可被舊版忽略 |
@@ -468,7 +468,7 @@
 | FR-108 | nodeId 節點對應 | §5（`group.nodeId`）、§6 `serializeCanvas()`、§10 `nodeMapFromFrame()` | US-102 | Complete |
 | FR-109 | GIF 匯出 | §11 `exportGif()` | US-103 | Complete |
 | FR-110 | PNG 匯出 | §11 `exportPng()` | US-103 | Complete |
-| FR-111 | 雲端／本機儲存 | §3 `store`（`sbSave` / `localSave` / 自動回退） | US-104 | Complete |
+| FR-111 | 雲端／本機儲存 | §3 `store`（`sbSave` / `localSave` / 自動回退）、`supabaseReady()` / `forceLocal()` | US-104、US-146 | Verified |
 | FR-112 | 戰術手冊載入 / 改名 / 刪除 | §12 `renderPlaybook()` / `renameTactic()` / `removeTactic()` / `loadTactic()`、`store.rename()` | US-104、US-111 | Complete |
 | FR-113 | 雙模式與解鎖 | §7 `applyMode()`、§13 `requestCoachMode()` / `submitPassword()` / `exitCoachMode()` | US-101～104 | Complete |
 | FR-114 | 鍵盤快捷鍵 | §13 `handleKeydown()` | US-101 | Complete |
@@ -491,7 +491,7 @@
 | FR-136 | 機會標籤與存檔欄位 | HTML `#cueTag`、CSS `.cue-tag` / `@keyframes cuePop`、§9 `renderCueTag()`（`aria-live`）；`saveTacticNamed()` 與 `loadTactic()` 帶 `cue` / `desc` | US-112 | Complete |
 | FR-137 | 特效不污染資料 | §6 `serializeCanvas()`（過濾 `isTrail` / `isGlow`、比對 `glowShadow` 後刪除 `shadow`）、§7 `applyMode()` 跳過特效物件、§6 `loadObjects()` 重設 `glowTarget` | US-112 | Complete |
 | FR-138 | 手機抽屜與步驟 dock | HTML `#pbToggle` / `#sideToggle` / `#pbClose` / `#pbScrim` / `#mobileDock`（`#defQuick`、`#stepThumbs`、`#stepCards`）、CSS `@media (max-width:1100px)` 抽屜與 `.mobile-dock`、§13 `openPlaybookDrawer()` / `closePlaybookDrawer()` / `buildDefQuick()`、§9 `thumbSvg()` / `renderStepDock()`、`handleKeydown()` Esc | US-114 | Complete |
-| NFR-101 | 單檔無建置 | 全檔（`<style>` + 內嵌 `<script>` + 3 個 CDN） | 全部 | Complete |
+| NFR-101 | 單檔無建置 | 全檔（`<style>` + 內嵌 `<script>` + 3 個 CDN）、§1 Supabase 常數（US-146 起內嵌真金鑰） | 全部、US-146 | Complete |
 | NFR-102 | 固定邏輯解析度 | §1 `BASE_W/BASE_H`、§3 CSS `.canvas-container` | 全部 | Complete |
 | NFR-103 | 響應式 | CSS `@media (max-width:1100px/720px)` + `#fab` | US-102 | Complete |
 | NFR-104 | timer 驅動動畫 | §10 `animateValue()` | US-102 | Complete |
@@ -519,7 +519,7 @@
 | AC-115～AC-118 | 驗收 | 見下方「驗收紀錄（本輪：即點即播 + 防守與球面板 + 側欄收合）」 | 全部 | Verified |
 | C-102 | 前端密碼 | §1 `COACH_PASSWORD` | US-101 | Complete |
 | C-103 | 僅半場 | §4 `buildCourt()` | 全部 | Complete |
-| C-104 | 本機資料風險 | §3 `store` / 提示文案 | US-104 | Complete |
+| C-104 | 本機資料風險（US-146 修訂：改為「未連線／強制本機」才只存本機） | §3 `store` / `forceLocal()` / 提示文案 | US-104、US-146 | Superseded |
 | AC-101～AC-110 | 驗收 | 見下方「驗收紀錄」 | 全部 | Verified |
 | FR-147 | 防守位置代號 | §1 `NODE_LABELS`（`def1:'PG'`…`def5:'C'`）、`DEF_LABELS_TEXT`、§5 `createPlayer()`（代號文字 17/20px @800、深藍 `THEME.blue`）、HTML `.node-grid` 6 顆節點鈕、`.def-btn` / `.def-badge` | US-117 | Complete |
 | FR-148 | 防守輪轉推導 | §1 `DEFENSE_PRESETS` / `LIB_DEF`（`zone212` / `zone32`）、§5.5 `deriveDefense()`（球位位移＋最近防守者 closeout）、沿用 `manToManSpot()` | US-118 | Complete |
@@ -2008,7 +2008,7 @@ US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布�
 | --- | --- | --- |
 | NFR-147 | **不與既有浮層打架**：`#pwaTip` 出場時 `.toast-stack` 自動上移（`body.has-pwa-tip`），批核浮條出現時（`body.has-review`，`z-index:62`）提示卡再往上讓開（+68px）；手機貼底、桌機（≥768px）改成右下角固定寬 360px。層級 61 ＝ 高於 `.stepbar`(40)、低於 sheet(72)／modal(80)／splash(110) | `.pwa-tip` CSS／`body.has-pwa-tip`／`body.has-review` |
 | NFR-148 | **零外部依賴、零額外請求**：引導卡是純 HTML＋CSS（專案沒有 Tailwind，一律用既有 `--navy`／`--orange`／`--gold` 等 token 手寫），分享圖示用 inline SVG；不新增 CDN、不加 service worker（離線快取不在本輪範圍） | `index.html` §head／§7／`#pwaTip` |
-| C-138 | **Supabase 未設定 → 自訂戰術只存在裝置端**：`SUPABASE_URL`／`ANON_KEY` 仍是 placeholder，雲端資料表不存在，因此「清掉測試戰術」只能由 App 第一次載入時在本機執行（repo 無法直接刪資料）。日後填入金鑰後，雲端請自行在 SQL Editor 執行 `delete from tactics;`——刻意不在前端自動打刪除 API，避免誤刪全隊正式戰術 | `purgeTestTacticsOnce()` |
+| C-138 | **清測試戰術只在本機生效**：US-146 起 Supabase 已正式對接（金鑰不再是 placeholder），`purgeTestTacticsOnce()` 只清這台裝置的 `localStorage`，雲端 `tactics` 表不受影響（刻意不在前端自動打刪除 API，避免誤刪全隊正式戰術）。要清雲端請在 SQL Editor 執行 `delete from tactics;`——對接當下實測雲端 0 筆 | `purgeTestTacticsOnce()` |
 | C-139 | **一次性、冪等**：旗標存在就不再執行（回傳 0），避免每次開站都清掉使用者新存的戰術；要重跑必須手動移除 `mbab:migrate:purge-test-tactics:2026-11` | `purgeTestTacticsOnce()` |
 | C-140 | **standalone 不再提示**：已「加入主畫面」開啟時 `isStandaloneApp()` 為真，`initPwaTip()` 直接 return；`black-translucent` 只是宣告，實際狀態列樣式仍由 Safari／iOS 版本決定（深色球場背景下不刺眼） | `initPwaTip()` |
 
@@ -2036,7 +2036,7 @@ US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布�
 | FR-292 | manifest／PNG 快取標頭 | `vercel.json`／`frontend/vercel.json` | US-143 | Accepted |
 | NFR-147 | 提示卡與 toast／批核浮條互不遮擋（手機貼底、桌機右下） | `.pwa-tip` CSS／`body.has-*` | US-143 | Verified |
 | NFR-148 | 純 CSS／inline SVG，不加 CDN、不加 service worker | `#pwaTip`／CSS §7 | US-143 | Verified |
-| C-138 | Supabase 未設定 → 只能在本機清，雲端需手動 `delete from tactics` | `purgeTestTacticsOnce()` | US-143 | Accepted |
+| C-138 | 清測試戰術只清本機，雲端需手動 `delete from tactics`（US-146 修訂：雲端已連線） | `purgeTestTacticsOnce()` | US-143、US-146 | Accepted |
 | C-139 | 一次性、冪等，需手動刪旗標才能重跑 | `purgeTestTacticsOnce()` | US-143 | Verified |
 | C-140 | standalone 不提示；狀態列樣式仍由 Safari 決定 | `initPwaTip()` | US-143 | Accepted |
 | AC-225～AC-231 | 驗收 | 見下方「驗收紀錄（本輪：US-143）」 | US-143 | Verified |
@@ -2067,6 +2067,237 @@ US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布�
 1. **沒有 service worker**：本輪只做「可安裝＋外觀像 App」，離線快取完全沒做（也沒有 PWA 快取陷阱要顧）。若之後要離線開圖，再補 `sw.js` 與 `fetch` 策略。
 2. **iOS 沒有程式化安裝 API**：Safari 不支援 `beforeinstallprompt`，所以只能用「引導卡教學＋使用者自己按分享→加入主畫面」；卡片無法代按，也無法偵測使用者是否真的加了（只能事後用 `standalone` 判斷）。
 3. **圖示是環境照片裁切**：`icon-192/512.png` 由隊徽原圖置中裁切而來，四角仍帶原圖的球場背景（圓形隊徽外）。若要 100% 乾淨的方形底，需要在設計工具重新輸出。
-4. **清除測試戰術只在本機生效**：Supabase 未設定時戰術存在 `localStorage`，換裝置／換瀏覽器就清不到；雲端資料表要另外手動 `delete from tactics;`（`C-138`）。
+4. **清除測試戰術只在本機生效**：US-146 起雲端已對接，這支遷移只清這台裝置的 `localStorage`；雲端 `tactics` 表要另外手動 `delete from tactics;`（`C-138`）。
 5. **旗標是一次性的**：`mbab:migrate:purge-test-tactics:2026-11` 一旦寫入就不再清除；若之後又需要清空，得改旗標版本號（例如 `…:2027-01`）或手動刪 key。
+
+
+---
+
+## 🆕 本輪需求（US-144／US-145：畫布只允許單選 ＋ 教練專屬戰術刪除）
+
+### 使用者故事
+
+**US-144** — 作為**球員（手邊只有一支手機、常在校隊場邊單手划）**，我希望**畫布上一次只會點到／拖到一個球員，不要因為手指滑過球場或按住 Shift／Alt 就把兩三個人一起選走、一起移動，也不要突然拉出一個藍色多選框蓋住球場**，這樣**我隨手滑畫面不會把整隊站位攪亂，也不會在講戰術講到一半把五個人一起拖歪**。
+
+**US-145** — 作為**教練**，我希望**手冊裡每一套「我的戰術」與「待審核戰術」都有清楚可見的紅色 🗑 刪除鍵（按下去先跳確認框），而球員永遠看不到、也按不到這個鍵**，這樣**練完就淘汰的舊套路能直接清掉（不必進編輯器、也不必開資料庫），同時不用擔心球員手殘刪掉整隊的戰術本**。
+
+### 需求
+
+#### 功能需求（Functional）
+
+| Requirement ID | Requirement Description | Feature/Module |
+| --- | --- | --- |
+| FR-293 | **永久關閉畫布框選**：`applyMode()` 不再寫 `canvas.selection = selectMode`，一律 `canvas.selection = false`；選取／拖曳仍由 `skipTargetFind`／`selectable`／`lockMovement` 依 `selectMode`／`removeMode` 控制單一物件 | `applyMode()`／`initCanvas()` |
+| FR-294 | **關閉多選修飾鍵**：`initCanvas()` 設 `canvas.selectionKey = []`、`canvas.altSelectionKey = null` → Shift／Ctrl／Alt 加選與 Alt-拖曳複製全部失效 | `initCanvas()` |
+| FR-295 | **多選一律收斂成單選**：`bindCanvasEvents()` 追加 `selection:created`／`selection:updated` → `keepSingleActive()`；偵測 `getActiveObjects().length > 1` 時只保留最後一個（`discardActiveObject()` → `setActiveObject(keep)`） | `bindCanvasEvents()`／`keepSingleActive()` |
+| FR-296 | **刪除物件一次只刪一個**：`deleteSelection()` 只移除 `active[active.length - 1]`，提示改為「已刪除 1 個物件」（不需再處理多選批次） | `deleteSelection()` |
+| FR-297 | **✎／🗑 只為教練建立**：手冊列改由 `buildPlaybookRow(item)` 產生，`if (isCoach())` 才 `createElement` 改名／刪除鈕；球員的 DOM 內完全沒有 `.pb-act`（不只是 CSS 隱藏） | `renderPlaybook()`／`buildPlaybookRow()` |
+| FR-298 | **權限樣式改看身分**：`.pb-actions` 由 `body:not([data-edit="1"])` 改為 `body:not([data-mode="coach"])`（教練＝瀏覽狀態也看得到刪除鍵）；刪除鈕改為**常態紅色**（`.pb-act[data-act="delete"]`，不必 hover 才看得出來） | CSS §3 `.pb-actions`／`.pb-act[data-act="delete"]` |
+| FR-299 | **教練手冊分三組**：新增 `#pbPendingTitle`／`#pbPendingList`；教練視角把 `status==='pending'` 抽成「待審核戰術 (N)」，「我的戰術」只列已批核（`#pbMineCount` 同步改算已批核數）；球員視角完全維持原樣（pending 留在「我的戰術」、不顯示待審核組） | `renderPlaybook()`／`index.html` §手冊 |
+| FR-300 | **刪除是教練特權（含程式呼叫）**：`removeTactic()` 開頭 `if (!isCoach()) { requestCoachMode(); return; }`，與 `renameTactic()`／`rejectPending()` 同級守門 | `removeTactic()` |
+| FR-301 | **刪除前二次確認**：沿用應用內 `confirmDialog()`（不以阻塞式 `window.confirm`），文案「確定要刪除「X」嗎？此動作無法復原。」；右下批核浮條的 `#rvReject` 文案改為「🗑 退回／刪除」 | `removeTactic()`／`#rvReject` |
+| FR-302 | **經典戰術唯讀**：`TACTIC_LIBRARY` 是程式內建常數（無 store 紀錄）→ 不提供刪除；只有「我的戰術」與「待審核戰術」可刪 | `renderLibrary()`／`TACTIC_LIBRARY` |
+| FR-303 | **分組標題可隱藏**：`.pb-list[hidden]`／`.pb-group-title[hidden]` 補 `display:none`（本體是 `display:flex`，`[hidden]` 會被蓋掉） | CSS §3 |
+| FR-304 | **底部提示同步**：`updatePlaybookFoot()` 教練文案改為「點名稱載入 · ✎ 改名 · 🗑 刪除」 | `updatePlaybookFoot()` |
+
+#### 非功能需求（Non-Functional）
+
+| Requirement ID | Requirement Description | Feature/Module |
+| --- | --- | --- |
+| NFR-149 | **單選零額外成本**：不新增 timer／rAF／每幀運算，只靠 fabric 既有事件（`selection:created/updated`）；`keepSingleActive()` 只在多選真的發生時才 `discard`＋`setActive` | `keepSingleActive()` |
+| NFR-150 | **權限不下放到 DOM**：球員頁面在 DOM 層就沒有刪除鍵（`document.querySelectorAll('.pb-list .pb-act').length === 0`），不是靠 CSS `display:none` 遮掩 | `buildPlaybookRow()` |
+| NFR-151 | **零回歸**：8 個冒煙 spec（1440／1184／900／768／390／375／360／gif）全綠、`runtime.errors = none`、CSS 大括號平衡、`index.html`／`dist`／`frontend/site` 雜湊一致 | 冒煙測試／靜態檢查 |
+| NFR-152 | **手機抽屜不加高**：待審核組沿用既有 `.pb-list`／`.pb-group-title`（純新增節點，無新樣式類別），`#pbScroll` 仍是唯一捲動容器 | CSS §3、`#pbScroll` |
+
+#### 限制（Constraints）
+
+| Requirement ID | Requirement Description | Feature/Module |
+| --- | --- | --- |
+| C-141 | 經典 7 套戰術是程式內建常數，無法刪除（若要改內容得改 `TACTIC_LIBRARY` 原始碼） | `TACTIC_LIBRARY` |
+| C-142 | 刪除不可復原（沒有垃圾桶／undo）；只有二次確認框把關 | `removeTactic()` |
+| C-143 | 對待審核提案按「🗑 退回／刪除」＝直接刪掉該筆紀錄（沿用同一條 `removeTactic()`，非只改狀態） | `rejectPending()` → `removeTactic()` |
+| C-144 | 球員以程式方式呼叫 `removeTactic()` 也只會被導向教練密碼框，不會刪除任何紀錄 | `removeTactic()` |
+| C-145 | 畫布不再支援框選／多選 → 也無法「一次移動多個球員」；要整隊移動請用防守陣型按鈕或逐一拖曳 | `applyMode()`／`keepSingleActive()` |
+
+
+#### 驗收條件（Acceptance Criteria）
+
+| Requirement ID | Requirement Description |
+| --- | --- |
+| AC-232 | `canvas.selection === false`、`canvas.selectionKey` 為空陣列、`canvas.altSelectionKey` 為 `null`（工具列切到「選取」也一樣） |
+| AC-233 | 程式化塞入 `new fabric.ActiveSelection([a, b])` 後，`canvas.getActiveObjects().length === 1`（回報 `us144.multiSelectCollapsed [1 active]`） |
+| AC-234 | 球員模式下 `document.querySelectorAll('.pb-list .pb-act').length === 0`，且 `#pbPendingList.hidden === true` |
+| AC-235 | 球員（程式呼叫）`removeTactic()` → 紀錄仍在 `store.list()`、`#confirmModal` 未開、`#pwModal` 開啟（要求教練身分） |
+| AC-236 | 教練按手冊列上的 🗑 → `#confirmModal` 出現 → 按「確定」後 `store.list()` 已無該筆、該列 DOM 消失 |
+| AC-237 | 教練視角：pending 提案只出現在 `#pbPendingList`（不在 `#pbList`），標題顯示「待審核戰術 (N)」；切回球員模式後整組隱藏 |
+| AC-238 | `#rvReject.textContent` 含「刪除」字樣（實際為「🗑 退回／刪除」） |
+| AC-239 | 教練端沒有任何 pending 提案時，`#pbPendingTitle` 與 `#pbPendingList` 都 `hidden`（分組不佔位、不留空白標題） |
+
+#### 需求追溯矩陣（RTM）
+
+| Requirement ID | Requirement Description | Feature/Module | User Story Reference | Status |
+| --- | --- | --- | --- | --- |
+| FR-293 | 永久關閉畫布框選（`canvas.selection = false`） | `applyMode()` | US-144 | Verified |
+| FR-294 | 關閉多選修飾鍵（`selectionKey`／`altSelectionKey`） | `initCanvas()` | US-144 | Verified |
+| FR-295 | 多選一律收斂成單選 | `keepSingleActive()` | US-144 | Verified |
+| FR-296 | 刪除物件一次只刪一個 | `deleteSelection()` | US-144 | Verified |
+| FR-297 | ✎／🗑 只為教練建立（DOM 層） | `buildPlaybookRow()` | US-145 | Verified |
+| FR-298 | `.pb-actions` 改看 `data-mode`；刪除鈕常態紅色 | CSS §3 | US-145 | Verified |
+| FR-299 | 教練手冊新增「待審核戰術」分組 | `renderPlaybook()` | US-145 | Verified |
+| FR-300 | `removeTactic()` 教練守門 | `removeTactic()` | US-145 | Verified |
+| FR-301 | 刪除前 `confirmDialog()`；`#rvReject` 文案 | `removeTactic()`／`#rvReject` | US-145 | Verified |
+| FR-302 | 經典戰術唯讀不可刪 | `TACTIC_LIBRARY` | US-145 | Verified |
+| FR-303 | `.pb-list[hidden]`／`.pb-group-title[hidden]` 補 `display:none` | CSS §3 | US-145 | Verified |
+| FR-304 | 底部提示文案同步 | `updatePlaybookFoot()` | US-145 | Verified |
+| NFR-149 | 單選零額外成本 | `keepSingleActive()` | US-144 | Verified |
+| NFR-150 | 權限不下放到 DOM | `buildPlaybookRow()` | US-145 | Verified |
+| NFR-151 | 8 spec 全綠、無 runtime error | 冒煙測試 | US-144／US-145 | Verified |
+| NFR-152 | 手機抽屜不加高、沿用既有節點 | CSS §3／`#pbScroll` | US-145 | Verified |
+| C-141 | 經典 7 套無法刪除 | `TACTIC_LIBRARY` | US-145 | Accepted |
+| C-142 | 刪除不可復原（僅二次確認） | `removeTactic()` | US-145 | Accepted |
+| C-143 | 待審核「退回」＝刪除紀錄 | `rejectPending()` | US-145 | Accepted |
+| C-144 | 球員程式呼叫亦被導向密碼框 | `removeTactic()` | US-145 | Verified |
+| C-145 | 不再支援框選／多選整隊移動 | `applyMode()` | US-144 | Accepted |
+| AC-232～AC-239 | 驗收 | 見下方「驗收紀錄（本輪：US-144／US-145）」 | US-144／US-145 | Verified |
+
+> **US-142 條文修訂（FR-278）**：原條文把「教練才看得到」的樣式一律綁 `body[data-edit="1"]`。本輪唯一例外是手冊的 **✎／🗑**：教練在「瀏覽」狀態（`data-mode="coach"`、`data-edit="0"`）就要能刪戰術，因此 `.pb-actions` 改由 `body:not([data-mode="coach"])` 控制（FR-298），其餘側欄／工具列／工具面板／編輯 4 鍵仍全部依 `data-edit` 判斷，FR-278 其餘部分不變。
+
+### 驗收紀錄（本輪：US-144／US-145）
+
+**日期**：2026-11-09 ｜ **方式**：`npm run build` → `npm run sync:site` → `node .scratch/smoke/integrity.js`（靜態）→ `node .scratch/smoke/build.js`（重建測試頁）→ `node .scratch/smoke/cdp.js`（8 個 spec）。
+
+| 規格 | 視窗 | 結果 |
+| --- | --- | --- |
+| `1440x900` | 1440×900（`?full=1` 桌機三欄） | **PASS=230 · FAIL=0** |
+| `1184x820` | 1184×820（中桌機） | **PASS=230 · FAIL=0** |
+| `900x900` | 900×900（平板抽屜帶） | **PASS=232 · FAIL=0** |
+| `768x1024` | 768×1024（斷點邊界） | **PASS=232 · FAIL=0** |
+| `390x844` | 390×844（iPhone 14） | **PASS=254 · FAIL=0** |
+| `375x667` | 375×667（矮螢幕，`is-dense`） | **PASS=254 · FAIL=0** |
+| `360x740` | 360×740（超窄機） | **PASS=254 · FAIL=0** |
+| `gif` | 390×844 ＋ `#gif`（GIF 擷取路徑） | **PASS=14 · FAIL=0** |
+
+- 靜態檢查：CSS 大括號 **636／636** 平衡、兩段 inline script `node --check` 通過（`script0` 702 chars／`script1` 180142 chars）、`index.html`／`dist/index.html`／`frontend/site/index.html` 雜湊一致（`C606661ABFC9`）。
+- 新增的斷言（18 條）：`us144.canvasSelectionOff`、`us144.selectionKeyOff`、`us144.altSelectionKeyOff`、`us144.multiSelectCollapsed`、`us144.playerNoActions`、`us144.playerPendingGroupHidden`、`us144.playerDeleteBlocked`、`us144.playerDeleteAsksCoach`、`us144.coachHasDelete`、`us144.confirmShown`、`us144.coachDeleteRemoved`、`us144.coachDeleteRowGone`、`us144.coachPendingGroup`、`us144.pendingNotInMine`、`us144.reviewRejectMentionsDelete`、`us144.coachPendingGroupEmptyHidden`、`us144.backToPlayer`、`us144.playerPendingGroupHiddenAgain`。
+- 實測值（三個桌面／平板 spec 相同）：`canvas.selection=false`、`selectionKey=[]`、`altSelectionKey=null`、`multiSelectCollapsed [1 active]`、`playerNoActions [0 buttons]`、`reviewRejectMentionsDelete [🗑 退回／刪除]`。
+- 修正過程：`renderPlaybook()` 原本在 `items.forEach` 內直接 `list.appendChild(row)`，無法分出待審核組；改成「先分桶（`mineItems`／`pendingItems`）→ `buildPlaybookRow(item)` 回傳單列 → 各自 append」，同時把權限判斷收斂到建構函式一處。
+
+### 已知取捨／限制
+
+1. **沒有「批次移動整隊」了**：關掉框選後，一次只能拖一個球員。若要比賽時快速擺陣，請用右側「防守陣型」（2-1-2／2-3／3-2／人盯人）按鈕，而不是手動框選五個人。
+2. **Shift／Alt 快捷鍵一併失效**：`selectionKey` 清空後，桌機也無法用 Shift 加選或 Alt 拖曳複製球員；這是刻意的（避免手機長按／雙指誤觸）。需要的話用「複製步驟」整步複製。
+3. **刪除即消失**：本輪沒有垃圾桶／復原；只有 `confirmDialog()` 一次確認。若誤刪，只能從「步驟快照」或雲端備份（Supabase `tactics` 表）救回。
+4. **經典戰術刪不掉**：`TACTIC_LIBRARY` 是程式常數，沒有 store 紀錄（C-141）。要改內容請改原始碼；要「藏起來」需另做停用清單。
+5. **「退回」等於刪除**：批核浮條的「🗑 退回／刪除」直接移除該筆提案（C-143），提案人不會收到通知；若日後需要「退回並保留為草稿」，要在 `meta` 加 `status='rejected'` 並改 `store.list()` 過濾。
+
+
+---
+
+## ☁️ 本輪需求（US-146：Supabase 正式對接）
+
+### 使用者故事
+
+**US-146** — 作為**教練**，我希望**我在手機上編好的戰術會自動存進 Supabase 雲端資料表（而不是只留在這支手機的瀏覽器裡），而且一開站右上角膠囊就清楚告訴我現在是「Supabase 雲端」還是「本機儲存」**，這樣**我換平板、換電腦，或把手機瀏覽器資料清掉，戰術本還在；我也能一眼確認自己錄的戰術到底有沒有真的上雲**。
+
+### 需求
+
+#### 功能需求（Functional）
+
+| Requirement ID | Requirement Description | Feature/Module |
+| --- | --- | --- |
+| FR-305 | **出貨即連雲端**：`SUPABASE_URL`＝`https://zxjlhxozuyadqomgfodk.supabase.co`、`SUPABASE_ANON_KEY`＝專案的 publishable key（`sb_publishable_…`，46 chars）、`SUPABASE_TABLE`＝`tactics`，三者在 `index.html` §1 直接寫死（靜態站無法讀 `.env`）；`supabaseReady()` 成立時 `store` 一律走 `sbSave`／`sbList`／`sbRename`／`sbSetStatus`／`sbRemove` | §1 Supabase 常數、§3 `supabaseReady()`／`store` |
+| FR-306 | **強制本機開關**：新增 `forceLocal()`——`window.__MB_FORCE_LOCAL__ === true` 或網址帶 `?local=1`／`?nosync=1` 時 `supabaseReady()` 一律回 `false`，`store` 只碰 `localStorage`（供冒煙測試與「不想上雲」的示範場合使用） | §3 `forceLocal()`／`supabaseReady()` |
+| FR-307 | **狀態膠囊三態**：`#storePill` 依序判斷——①強制本機→「本機儲存」（title 說明 `?local=1`）；②雲端可用→「Supabase 雲端」（加 `is-cloud`，title 顯示資料表名）；③否則→「本機儲存」（title 說明 CDN 未載入或金鑰未設定） | §14 `updateStorePill()` |
+| FR-308 | **開機提示改為只在測試模式出現**：`boot()` 的 700ms 延遲 toast 改為 `forceLocal()` 才提示「測試模式（?local=1）· 戰術只存在此瀏覽器」；雲端模式下不再出現「請設定 Supabase」的提示 | §15 `boot()` |
+| FR-309 | **測試隔離與雲端探測**：`.scratch/smoke/harness.js` 在 `DOMContentLoaded → boot()` 之前同步設 `window.__MB_FORCE_LOCAL__ = true`，並新增 `store.forcedLocal`、`store.pillLocal` 兩條斷言；網址帶 `?cloud=1` 時改跑「只讀」的雲端探測（`cloud.cdnLoaded`／`cloud.mode`／`cloud.pill`／`cloud.list`／`cloud.listSource`），跑完立刻 `report()` 返回，**不會執行任何 `store.save()`**（`cdp.js` 新增 `cloud` spec） | `.scratch/smoke/harness.js`、`.scratch/smoke/cdp.js` |
+| FR-310 | **CRUD 實跑驗證腳本**：新增 `node .scratch/smoke/supabase.js`——從 `index.html` 讀出「出貨金鑰」，依序 SELECT → INSERT → SELECT 單筆 → UPDATE（改名＋`meta.status`）→ DELETE → 筆數復原，全通過才 exit 0；任何一步失敗都會在收尾時刪掉測試列（名稱帶 `SMOKE` 前綴） | `.scratch/smoke/supabase.js` |
+| FR-311 | **React 路線的 client**：`frontend/src/lib/supabase.ts` 以 `VITE_SUPABASE_URL`／`VITE_SUPABASE_ANON_KEY` 建 `createClient`，未設定時 `supabase = null`（`isSupabaseConfigured`）；`@supabase/supabase-js@^2.119.0` 加入 `frontend/package.json`（單檔版仍走 CDN，不受影響） | `frontend/src/lib/supabase.ts`、`frontend/package.json` |
+| FR-312 | **環境變數與遷移 SQL 入庫**：`.env` 追加 `VITE_SUPABASE_URL`／`VITE_SUPABASE_ANON_KEY`（`FRONTEND_PORT`／`BACKEND_PORT`／`VITE_BACKEND_URL` 未動）；新增 `.env.example`（範本）與 `doc/supabase-tactics.sql`（對齊 `tactics` 欄位與 RLS 的 DDL，附「保留舊資料」的 Alternate 寫法） | `.env`、`.env.example`、`doc/supabase-tactics.sql` |
+| FR-313 | **App 儲存層端到端驗證**：`?cloud=1&write=1`（`cdp.js` 的 `cloudwrite` spec）用真實 `store` API 跑一輪 `save` → `list` → `load` → `rename` → `setStatus` → `remove`，7 條斷言 `cloud.saveSource`（必須回 `'supabase'`，回 `'local'` 即代表靜默回退）／`cloud.saveId`／`cloud.listHasRow`（`source=supabase` 且 `status=pending`）／`cloud.loadFrames`／`cloud.rename`／`cloud.setStatus`／`cloud.remove`（刪除後不再出現在 `store.list()`）；測試列名帶 `SMOKE` 前綴並在收尾刪除 | `.scratch/smoke/harness.js`、`.scratch/smoke/cdp.js` |
+
+#### 非功能需求（Non-Functional）
+
+| Requirement ID | Requirement Description | Feature/Module |
+| --- | --- | --- |
+| NFR-153 | **測試不污染正式資料**：8 個響應式 spec 與 GIF 擷取全部被 `__MB_FORCE_LOCAL__` 鎖在本機，`store.save()`／`store.remove()` 只動 `localStorage`；真正會寫雲端的只有 `supabase.js`，而它自帶「插入→刪除＋筆數復原」自清機制 | `.scratch/smoke/harness.js`、`.scratch/smoke/supabase.js` |
+| NFR-154 | **單檔出貨不被破壞**：不加 bundler、不把 npm 依賴塞進 `index.html`；supabase-js 仍由 CDN（`jsdelivr` UMD）載入，CDN 失敗時 `cloud.cdnLoaded` 會紅但 App 仍以本機模式正常可用（NFR-105 不變） | `<head>` CDN、`supabaseReady()` |
+| NFR-155 | **驗證可重跑**：`integrity.js`／`build.js`／`cdp.js`／`supabase.js` 皆冪等；`supabase.js` 要求測試前後筆數相同，殘留測試列會被自動刪除 | `.scratch/smoke/*` |
+
+#### 限制（Constraints）
+
+| Requirement ID | Requirement Description | Feature/Module |
+| --- | --- | --- |
+| C-146 | **publishable key 是公開金鑰**：它設計上就要放進瀏覽器，真正的防線是 RLS；`service_role`／secret key 絕不可進前端、`.env` 或 `.env.example` | `index.html` §1、`.env` |
+| C-147 | **RLS 目前全開**：四條 policy 都是 `using (true)`／`with check (true)`，任何人拿到網頁（含原始碼）都能讀、改、刪全部戰術；要收緊需做 FR-119（Supabase Auth + coach role）或把 update／delete 收進 Edge Function 驗教練暗號。**2026-11-10 決策：風險已確認並接受，現階段維持公開讀寫、暫不收緊**（教練暗號仍是前端遮蔽 C-102；收緊的觸發條件＝開始有非隊內的公開使用或出現誤刪災情） | `doc/supabase-tactics.sql` |
+| C-148 | **資料表結構必須與 App 對齊**：對接時實測正式專案的 `tactics` 只有 `id`／`name`／`steps`（NOT NULL）／`created_at`，缺 `frames`／`meta`／`updated_at` → 症狀是「靜默回退本機」（畫面像存好了，其實沒上雲）。對齊用 SQL 見 `doc/supabase-tactics.sql`，須由使用者在 Supabase SQL Editor 執行（publishable key 不能做 DDL） | `doc/supabase-tactics.sql` |
+| C-149 | **靜態站無法讀 `.env`**：`index.html` 沒有建置步驟，所以金鑰只能寫成常數；`.env` 的值僅供 `frontend/`（Vite，`loadEnv(mode, repoRoot, 'VITE_')`）使用，兩邊要人工同步 | `index.html` §1、`frontend/src/lib/supabase.ts` |
+
+#### 驗收條件（Acceptance Criteria）
+
+| Requirement ID | Requirement Description |
+| --- | --- |
+| AC-240 | 未帶參數開站：膠囊顯示「Supabase 雲端」（`is-cloud`）、`store.mode() === 'supabase'`、`sbList()` 回傳陣列且不拋錯；`node .scratch/smoke/supabase.js` 六個步驟全 PASS 且筆數復原；`node .scratch/smoke/cdp.js cloudwrite` 的 App 儲存層端到端 13 條全 PASS（含 `cloud.saveSource='supabase'`、`cloud.remove` 後 `remaining=0`） |
+| AC-241 | 網址帶 `?local=1`：膠囊顯示「本機儲存」、`store.mode() === 'local'`、開機 toast 為「測試模式（?local=1）· 戰術只存在此瀏覽器」 |
+| AC-242 | `node .scratch/smoke/cdp.js` 的 8 個響應式 spec 全綠（1440×900／1184×820／900×900／768×1024／390×844／375×667／360×740／gif）且 `runtime.errors = none`；`cdp.js cloud` 的連線斷言（`cloud.cdnLoaded`／`cloud.mode`／`cloud.pill`／`cloud.listSource`）全綠——`cloud.list` 需 C-148 的 SQL 執行後才會轉綠 |
+| AC-243 | `node .scratch/smoke/integrity.js`：CSS 大括號平衡、兩段 inline script `node --check` 通過、`index.html`／`dist/index.html`／`frontend/site/index.html` 雜湊一致 |
+
+### 需求追溯矩陣（RTM）
+
+| Requirement ID | Requirement Description | Feature/Module | User Story Reference | Status |
+| --- | --- | --- | --- | --- |
+| FR-305 | 出貨金鑰寫入 §1，`store` 全走 Supabase | §1 常數、§3 `store` | US-146 | Verified |
+| FR-306 | `forceLocal()`（`__MB_FORCE_LOCAL__`／`?local=1`／`?nosync=1`） | §3 `forceLocal()` | US-146 | Verified |
+| FR-307 | `#storePill` 三態文案 | §14 `updateStorePill()` | US-146 | Verified |
+| FR-308 | 開機 toast 只在測試模式出現 | §15 `boot()` | US-146 | Verified |
+| FR-309 | 測試強制本機 ＋ `?cloud=1` 只讀探測（5 條斷言） | `.scratch/smoke/harness.js`、`cdp.js` | US-146 | Verified |
+| FR-310 | CRUD 驗證腳本（自清，6 條全 PASS） | `.scratch/smoke/supabase.js` | US-146 | Verified |
+| FR-311 | `frontend/src/lib/supabase.ts` ＋ `@supabase/supabase-js@^2.119.0` | `frontend/` | US-146 | Verified |
+| FR-312 | `.env` 兩行 ＋ `.env.example` ＋ `doc/supabase-tactics.sql` | 根目錄、`doc/` | US-146 | Verified |
+| FR-313 | App 儲存層端到端（`?cloud=1&write=1`，7 條寫入斷言，自清） | `.scratch/smoke/harness.js`、`cdp.js` | US-146 | Verified |
+| NFR-153 | 冒煙測試零雲端寫入 | `harness.js`／`supabase.js` | US-146 | Verified |
+| NFR-154 | 仍為單檔＋CDN，無 bundler | `<head>` CDN | US-146 | Verified |
+| NFR-155 | 四支驗證腳本皆冪等 | `.scratch/smoke/*` | US-146 | Verified |
+| C-146 | publishable key 公開、secret 絕不進前端 | `index.html` §1 | US-146 | Accepted |
+| C-147 | RLS 全開（public read/write） | `doc/supabase-tactics.sql` | US-146 | Accepted |
+| C-148 | `tactics` 欄位須先對齊，否則靜默回退本機 | `doc/supabase-tactics.sql` | US-146 | Verified（2026-11-10 已於 SQL Editor 執行成功） |
+| C-149 | 靜態站讀不到 `.env`，金鑰兩處要人工同步 | §1、`frontend/src/lib/supabase.ts` | US-146 | Accepted |
+| AC-240 | 雲端模式可讀可寫、筆數復原、App 儲存層端到端全綠 | 見下方「驗收紀錄（本輪：US-146）」 | US-146 | Verified |
+| AC-241 | `?local=1` 強制本機（膠囊＋toast＋`store.mode()`） | 同上 | US-146 | Verified |
+| AC-242 | 8 個響應式 spec 全綠 ＋ `cloud` 連線斷言 6/6、`cloudwrite` 13/13 | 同上 | US-146 | Verified |
+| AC-243 | 靜態／雜湊／語法檢查全綠 | 同上 | US-146 | Verified |
+
+### 驗收紀錄（本輪：US-146）
+
+**日期**：2026-11-09（首次）／**2026-11-10（資料表遷移後重跑，本表為重跑結果）** ｜ **方式**：`npm run build` → `npm run sync:site` → `node .scratch/smoke/integrity.js`（靜態）→ `node .scratch/smoke/build.js`（重建測試頁）→ `node .scratch/smoke/cdp.js`（8 個響應式 spec ＋ `cloud` ＋ `cloudwrite`）→ `node .scratch/smoke/supabase.js`（雲端 CRUD）。
+
+| 規格 | 視窗 | 結果 |
+| --- | --- | --- |
+| `1440x900` | 1440×900（`?full=1` 桌機三欄） | **PASS=232 · FAIL=0** |
+| `1184x820` | 1184×820（中桌機） | **PASS=232 · FAIL=0** |
+| `900x900` | 900×900（平板抽屜帶） | **PASS=234 · FAIL=0** |
+| `768x1024` | 768×1024（斷點邊界） | **PASS=234 · FAIL=0** |
+| `390x844` | 390×844（iPhone 14） | **PASS=256 · FAIL=0** |
+| `375x667` | 375×667（矮螢幕，`is-dense`） | **PASS=256 · FAIL=0** |
+| `360x740` | 360×740（超窄機） | **PASS=256 · FAIL=0** |
+| `gif` | 390×844 ＋ `#gif`（GIF 擷取路徑） | **PASS=14 · FAIL=0** |
+| `cloud` | 390×844 ＋ `?cloud=1`（只讀雲端探測） | **PASS=6 · FAIL=0** |
+| `cloudwrite` | 390×844 ＋ `?cloud=1&write=1`（App 儲存層端到端） | **PASS=13 · FAIL=0** |
+| `supabase.js` | Node 直打 REST（CRUD ＋ 筆數復原） | **PASS=6 · FAIL=0** |
+
+- 新增的斷言（14 條）：`store.forcedLocal`、`store.pillLocal`（8 個響應式 spec 各 +2 → 230→232、232→234、254→256）；`cloud.cdnLoaded`、`cloud.mode`、`cloud.pill`、`cloud.list`、`cloud.listSource`、`runtime.errors`（`cloud` spec）；`cloud.saveSource`、`cloud.saveId`、`cloud.listHasRow`、`cloud.loadFrames`、`cloud.rename`、`cloud.setStatus`、`cloud.remove`（`cloudwrite` spec）。
+- 靜態檢查：CSS 大括號 **636／636** 平衡、兩段 inline script `node --check` 通過（`script0` 702 chars／`script1` 181362 chars）、`index.html`／`dist/index.html`／`frontend/site/index.html` 雜湊一致（`D27DE37B7290`）。
+- 雲端實測（`cloud` spec，`file://` 直開）：`supabase=object`（CDN UMD 載入成功）、`store.mode()='supabase'`、膠囊「Supabase 雲端」、`INFO cloud.url=https://zxjlhxozuyadqomgfodk.supabase.co table=tactics` → 證明**瀏覽器到 Supabase 的網路與 CORS 都通**（拿到的是 PostgREST 語意錯誤，不是網路錯誤）。
+- **阻礙已解除（C-148 → Verified）**：首次對接時 `tactics` 只有 `id`／`name`／`steps`（NOT NULL）／`created_at`（0 筆的舊實驗表），`cloud.list` 回 `column tactics.updated_at does not exist`、INSERT 回 `Could not find the 'frames' column`。使用者已於 2026-11-10 在 Supabase SQL Editor 執行 `doc/supabase-tactics.sql`（drop＋create＋4 條 RLS 政策）並回報 Success；重跑後 `cloud.list` 回 `[0 rows]`、`supabase.js` 6/6 全綠、`cloudwrite` 13/13 全綠。
+- 雲端實測（`cloudwrite` spec，`file://` 直開）：`store.save()` 回 `source='supabase'`（**沒有** fallback）→ `id=4f474d34-2f31-4d0d-950a-91e5704725cd`；`store.list()` 找到該列且 `source=supabase`／`status=pending`；`store.load()` 取回 `frames=1`；`store.rename()` 名稱更新成功；`store.setStatus('approved')` 生效；`store.remove()` 後 `remaining=0` → **App 儲存層到正式雲端的完整來回已打通**（不只是 raw REST）。
+- 反向驗證：遷移前 `supabase.js` 的錯誤碼是 `42703`（欄位不存在）／`23502`（not null），不是 `42501`（row-level security）→ 證明 RLS 從未擋住讀寫，缺的只是欄位；遷移後同一支腳本全綠，佐證診斷正確。
+- 測試資料零殘留：`supabase.js` 於收尾刪除測試列並比對筆數（失敗也會嘗試刪除）；`cloudwrite` 的 `cloud.remove` 斷言直接確認刪除後 `store.list()` 不再有該列。最終 `supabase.js` 重跑顯示資料表仍為測試前的筆數。
+
+### 已知取捨／限制
+
+1. **新環境要記得跑一次 SQL（C-148，已解除）**：本專案的 `tactics` 表已於 2026-11-10 對齊。若換一個全新的 Supabase 專案（或誤刪資料表），必須先在 SQL Editor 執行 `doc/supabase-tactics.sql`，否則膠囊仍會顯示「Supabase 雲端」但讀寫失敗、靜默回退本機——這是最容易誤判的狀態。驗證方式：`node .scratch/smoke/supabase.js`（6/6）與 `node .scratch/smoke/cdp.js cloudwrite`（13/13）。
+2. **RLS 全開（C-147）**：任何拿到網址的人都能 `delete from tactics` 等效操作（用 publishable key 打 REST）。目前的「教練密碼」只是前端遮蔽（C-102），不是授權。要真正防護請開 FR-119（Supabase Auth）或把寫入收進 Edge Function。
+3. **金鑰有兩份（C-149）**：`index.html` 常數（單檔出貨）與 `.env`（`frontend/` React 路線）。輪替金鑰時兩邊都要改，否則會出現「單檔能存、React 版不能存」的分裂狀態。
+4. **publishable key 不是 `anon` JWT**：Supabase 新版 publishable key 在 REST 上等價於 `anon` 角色；若日後改回 legacy `anon` JWT 或啟用 Auth，記得同步 `index.html` 與 `.env.example`。
+5. **`?local=1` 是公開後門的「降級開關」**：任何使用者都能用它把資料留在本機（不會破壞雲端資料，只是該次不寫入）。若這在正式訓練時會造成混淆，可考慮只在 `location.hostname === 'localhost'` 或 `file:` 時允許。
+
 

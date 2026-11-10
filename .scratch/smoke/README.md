@@ -41,6 +41,8 @@ Windows 上 Edge／Chrome 的視窗最小寬度會被夾到約 500px，`--window
 | `375x667` | 矮螢幕手機（`-webkit-line-clamp` 收斂、`is-dense`） |
 | `360x740` | 超窄機（≤380px 再縮一級） |
 | `gif` | 390×844 ＋ `#gif`：`gifshot.createGIF` 以 stub 取代（headless 的 Worker 編碼不會 resolve），只驗證擷取 → dataUrl → 還原 → 分享／下載路徑 |
+| `cloud` | 390×844 ＋ `?cloud=1`（**US-146 只讀雲端探測**）：不設 `__MB_FORCE_LOCAL__`，驗 CDN 載入／`store.mode()`／膠囊文案／`sbList()` 是否真的讀得到 `tactics`；**不寫任何資料** |
+| `cloudwrite` | 390×844 ＋ `?cloud=1&write=1`（**US-146 App 儲存層端到端**）：在 `cloud` 的 5 條之上再跑 `store.save` → `list` → `load` → `rename` → `setStatus` → `remove`；會寫**一列**名稱帶 `SMOKE` 的測試資料並自清 |
 
 ## 斷言分組（US-140 之後）
 
@@ -62,9 +64,13 @@ Windows 上 Edge／Chrome 的視窗最小寬度會被夾到約 500px，`--window
 | `coach.*` | US-142：教練進站＝瀏覽 —— `mode`／`startsBrowsing`／`canEditFalse`／`browseKeys`／`playKeysShown`／`editKeysHidden`／`panelHidden`／`sidebarHidden`／`addStripHidden`／`badgeVisible`／`reviewBarOnPending` |
 | `parity.*` | US-142：教練瀏覽 vs 球員瀏覽外框簽章相同 —— `coachVsPlayer`（display＋播放鍵尺寸）／`playerBadgeHidden`／`playerReviewBarHidden` |
 | `pending.*` | US-142：🔔 待批審核中心 —— `onePending`／`badgeShown`／`countMatches`／`sheetOpens`／`sheetScrim`／`itemRows`／`itemName`／`itemMeta`／`itemTag`／`sheetClosedAfterLoad`／`loadOnClick`／`reviewBarShown`／`reviewBtns`／`reviewMeta`／`reviewBtnsEnabled`／`approved`／`reviewBarHiddenAfter`／`badgeDecrement` |
+| `us144.*` | US-144／US-145：畫布只允許單選 ＋ 教練專屬刪除 —— `canvasSelectionOff`／`selectionKeyOff`／`altSelectionKeyOff`／`multiSelectCollapsed`（塞 ActiveSelection 只剩 1 個）／`playerNoActions`（球員 DOM 0 個 `.pb-act`）／`playerPendingGroupHidden`／`playerDeleteBlocked`／`playerDeleteAsksCoach`／`coachHasDelete`／`confirmShown`／`coachDeleteRemoved`／`coachDeleteRowGone`／`coachPendingGroup`／`pendingNotInMine`／`reviewRejectMentionsDelete`／`coachPendingGroupEmptyHidden`／`backToPlayer`／`playerPendingGroupHiddenAgain` |
 | `mobile.*` | 手機控制卡：`panelVisible`／`panelNoOverflow`／`editKeysFixed`／`keysEven`／`keysNoOverflow`／`stepAddAbovePanel`（US-140 加步驟條在面板之上）／`playKeysHidden`／`quickSaveRemoved`／`courtFitsViewport`／`rosterRendered`／`defenseButtons`／`toolsDrawerOpens`／`toolsDrawerCloses`／`exitLabelLong` … |
 | `readonly.*` | 唯讀球員：`playKeysBack`／`editKeysHidden`／`panelHidden`／`shareKept`／`noProposeEntry`／`shareBack`／`metaDefenseKept` |
 | `home.*` | 隊徽即回首頁：`brandIsButton`／`notNestedInButton`／`splashOpened`／`splashedBodyMode`／`backToPlayer` |
+| `store.*` | US-146：儲存層被鎖在本機 —— `forcedLocal`（`store.mode() === 'local'`）／`pillLocal`（膠囊顯示「本機儲存」） |
+| `cloud.*` | US-146：只讀雲端探測（`?cloud=1`）—— `cdnLoaded`／`mode`（`'supabase'`）／`pill`（「Supabase 雲端」）／`list`（`sbList()` 不拋錯）／`listSource`（合併後每筆 `source==='supabase'`） |
+| `cloud.*`（寫入組） | US-146：`?cloud=1&write=1` 時追加 —— `saveSource`（`store.save()` 回 `'supabase'` 而非 fallback）／`saveId`／`listHasRow`（`source=supabase`、`status=pending`）／`loadFrames`（`store.load()` 取回 1 個 frame）／`rename`／`setStatus`（變 `approved`）／`remove`（刪除後 `store.list()` 不再有該列） |
 
 ## GIF／截圖
 
@@ -76,11 +82,33 @@ node .scratch\smoke\shot.js draw1440step,draw390roster,draw390defense
 node .scratch\smoke\shot.js add390,add390pen,add1440,add1440pen,coach390
 # US-142：教練＝瀏覽（＋🔔 徽章）／待審核 Bottom Sheet／球場右下批核浮條
 node .scratch\smoke\shot.js coach1440,coach390,coach360,pend1440,pend390,review1440,review390
+# US-144：教練手冊「待審核戰術／我的戰術」分組 ＋ 紅色 🗑 刪除鍵
+node .scratch\smoke\shot.js us144coach1440,us144coach390
 ```
 
 `shot.js` 支援 `pre`／`post` 兩個 evaluate 勾子（`pre` 在載入後執行、`post` 再等 1.2 秒後執行），
 `draw*` 規格就是靠它自動「＋ 新增 → 填名稱 → 送出 → 進入繪製模式（US-139 只剩名稱＋作者，不再跳確認框）」，
 面板規格再用 `post` 按 `#ekRoster`／`#ekDefense` 切到名單／防守視圖。
+
+## 雲端對接驗證（US-146）
+
+```powershell
+# 只讀探測：CDN／金鑰／膠囊／sbList（不會寫入任何資料）
+node .scratch\smoke\cdp.js cloud
+
+# App 儲存層端到端：store.save → list → load → rename → setStatus → remove
+# （會真的寫一列 SMOKE 測試資料並自清，共 13 條斷言）
+node .scratch\smoke\cdp.js cloudwrite
+
+# 完整 CRUD：SELECT → INSERT → SELECT 單筆 → UPDATE → DELETE → 筆數復原
+# （會真的寫一列 SMOKE 測試資料，跑完自動刪除；筆數沒復原就 exit 1）
+node .scratch\smoke\supabase.js
+```
+
+兩支都吃「出貨值」：金鑰由 `index.html` 的 `SUPABASE_URL`／`SUPABASE_ANON_KEY` 讀出。
+若 `cloud.list` 回 `column ... does not exist`，代表資料表結構與 App 不符——
+請先在 Supabase SQL Editor 執行 `doc/supabase-tactics.sql`（2026-11-10 已執行，
+`tactics` = `id/name/frames/meta/created_at/updated_at` ＋ RLS 公開讀寫）。
 
 ## 靜態檢查（不開瀏覽器）
 
@@ -99,3 +127,4 @@ node .scratch\smoke\integrity.js
 - `shot.js` — 截圖（乾淨頁面、自動進站；支援 `pre`／`post` evaluate 勾子）
 - `report.js` — 輸出 `#SMOKE` 文字區塊
 - `integrity.js` — 上面的靜態檢查
+- `supabase.js` — US-146 雲端 CRUD 驗證（SELECT／INSERT／UPDATE／DELETE／筆數復原，自清測試列）

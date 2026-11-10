@@ -144,6 +144,17 @@ const SPECS = {
     name: 'us142-review-bar-390', width: 390, height: 844, mobile: true, query: '', hdr: 52,
     pre: SEED_PENDING,
   },
+  /* US-144：教練手冊「待審核戰術／我的戰術」分組 ＋ 每列紅色 🗑 刪除鍵 */
+  us144coach1440: {
+    name: 'us144-playbook-1440', width: 1440, height: 900, mobile: false, query: '?full=1', hdr: 68,
+    pre: SEED_PENDING,
+    post: 'document.getElementById("rvClose").click()',
+  },
+  us144coach390: {
+    name: 'us144-playbook-390', width: 390, height: 844, mobile: true, query: '', hdr: 52,
+    pre: SEED_PENDING,
+    post: 'document.getElementById("pbToggle").click()',
+  },
   /* US-140：「＋ 加步驟」輕量條（球場正下方）＋ 底部 4 鍵（名單／陣型／畫筆／提交）*/
   add390: {
     name: 'us140-draw-390', width: 390, height: 844, mobile: true, query: '', hdr: 52,

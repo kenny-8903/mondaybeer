@@ -594,7 +594,17 @@ select.input{
 .pb-act svg{width:12px;height:12px;display:block}
 .pb-act:hover{border-color:var(--brick);color:var(--brick);background:rgba(180,70,47,.10)}
 .pb-act[data-act="delete"]:hover{border-color:var(--danger);color:#B4342A;background:rgba(229,72,77,.16)}
-body:not([data-edit="1"]) .pb-actions{display:none}
+/* US-144：✎ 改名／🗑 刪除只屬於教練（含「瀏覽」狀態，不再綁 data-edit） */
+body:not([data-mode="coach"]) .pb-actions{display:none}
+/* US-144：刪除鈕常態就是紅色小按鈕（不必 hover 才看得出來） */
+.pb-act[data-act="delete"]{
+  color:#B4342A;border-color:rgba(229,72,77,.45);background:rgba(229,72,77,.10);
+}
+.pb-act[data-act="delete"]:hover{
+  border-color:var(--danger);color:#8E3520;background:rgba(229,72,77,.22);
+}
+/* 分組容器本身是 display:flex，[hidden] 要另外壓回 display:none */
+.pb-list[hidden],.pb-group-title[hidden]{display:none}
 .pb-empty{
   padding:14px 10px;border-radius:10px;text-align:center;line-height:1.7;
   font-size:11.5px;color:var(--muted);border:1px dashed var(--line);
@@ -2147,6 +2157,10 @@ body.has-review .pwa-tip{bottom:calc(var(--stepbar-h, 101px) + 68px)}
               <div class="pb-cat-list" data-cat="blob"></div>
             </details>
 
+            <!-- US-144：教練視角獨立出「待審核戰術」分組（球員看不到這一組） -->
+            <p class="pb-group-title" id="pbPendingTitle" hidden>待審核戰術 <span id="pbPendingCount">0</span></p>
+            <div class="pb-list" id="pbPendingList" role="list" hidden></div>
+
             <p class="pb-group-title">我的戰術 <span id="pbMineCount">0</span></p>
             <div class="pb-list" id="pbList" role="list"></div>
           </div>
@@ -2296,7 +2310,7 @@ body.has-review .pwa-tip{bottom:calc(var(--stepbar-h, 101px) + 68px)}
     <div class="rv-acts">
       <button type="button" class="rv-btn is-primary" id="rvApprove" title="批准納入官方手冊">✅ 批准發布</button>
       <button type="button" class="rv-btn" id="rvEdit" title="微調後再發布">✏️ 微調後發布</button>
-      <button type="button" class="rv-btn is-danger" id="rvReject" title="退回並刪除這套提案">🗑 退回</button>
+      <button type="button" class="rv-btn is-danger" id="rvReject" title="退回並刪除這套提案">🗑 退回／刪除</button>
     </div>
     <button type="button" class="rv-close" id="rvClose" title="收起批核列" aria-label="收起批核列">✕</button>
   </div>
@@ -2442,9 +2456,10 @@ body.has-review .pwa-tip{bottom:calc(var(--stepbar-h, 101px) + 68px)}
    ============================================================ */
 'use strict';
 
-/* ── Supabase 設定（填入這兩個值即自動切換為雲端儲存） ──────────
-   1. 到 https://supabase.com 建立專案
-   2. 在 SQL Editor 執行：
+/* ── Supabase 設定（US-146：已正式對接；填了值就自動改存雲端） ──────
+   專案 ref：zxjlhxozuyadqomgfodk
+   `tactics` 資料表必須與下面這段 SQL 一致（對接時實測：舊表只有
+   id / name / steps / created_at，缺 frames / meta / updated_at → 見下方 ★）。
       create table if not exists tactics (
         id uuid primary key default gen_random_uuid(),
         name text not null,
@@ -2458,10 +2473,19 @@ body.has-review .pwa-tip{bottom:calc(var(--stepbar-h, 101px) + 68px)}
       create policy "public write"  on tactics for insert with check (true);
       create policy "public update" on tactics for update using (true);
       create policy "public delete" on tactics for delete using (true);
-   3. Project Settings → API，複製 Project URL 與 anon public key 貼到下方
+
+   ★ 資料表結構若與上面不符（例如舊表只有 id / name / steps），Supabase 會回
+     「column ... does not exist」，App 出現的症狀是「靜默回退本機」。對齊用 SQL：
+     doc/supabase-tactics.sql（Supabase Dashboard → SQL Editor 執行）。
+   ★ 安全性：下方是 Supabase 的 publishable key——設計上就是給瀏覽器用的公開金鑰，
+     真正的防線是 RLS。目前 RLS 是 public read/write（任何人拿到網頁都能改／刪），
+     要收緊請做 FR-119（Supabase Auth + coach role），或把 delete／update 收進
+     Edge Function 驗教練暗號。切勿把 service_role／secret key 放進前端。
+   ★ 測試隔離：`?local=1`（或 window.__MB_FORCE_LOCAL__ = true）會強制走本機儲存，
+     .scratch/smoke/harness.js 靠它避免把 SMOKE 資料寫進正式表。
    ──────────────────────────────────────────────────────────── */
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = 'https://zxjlhxozuyadqomgfodk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_tGmDc69DryMGUPzn5S-E3Q_cm_KDP5g';
 const SUPABASE_TABLE = 'tactics';
 
 /* ── 教練密碼（前端遮蔽用，非資安等級驗證） ── */
@@ -2835,8 +2859,19 @@ let supabaseClient = null;
 function isConfigured(value) {
   return typeof value === 'string' && value.length > 12 && value.indexOf('YOUR_') === -1;
 }
+/* ── 測試／離線強制本機（US-146）：煙霧測試不寫正式資料表 ──────────
+   ?local=1（或 ?nosync=1）與 window.__MB_FORCE_LOCAL__ = true 都視為強制本機；
+   正式站網址不帶參數 → 照常走 Supabase。 */
+function forceLocal() {
+  try {
+    if (window.__MB_FORCE_LOCAL__ === true) return true;
+    return /[?&](local|nosync)=1(&|$)/.test(location.search);
+  } catch (err) {
+    return false;
+  }
+}
 function supabaseReady() {
-  return !!(window.supabase && window.supabase.createClient &&
+  return !forceLocal() && !!(window.supabase && window.supabase.createClient &&
     isConfigured(SUPABASE_URL) && isConfigured(SUPABASE_ANON_KEY));
 }
 function getSupabaseClient() {
@@ -2866,8 +2901,9 @@ function lsSet(key, value) {
    localStorage（mbab:tactics:index ＋ mbab:tactic:<id>），伺服器端沒有資料可刪，
    所以只能由 App 自己在第一次載入時清。
    手冊上的 7 套經典戰術是程式內建的 TACTIC_LIBRARY（不在儲存層）→ 清完仍保留。
-   ※ 若日後填入 Supabase 金鑰，雲端資料表請自行在 SQL Editor 執行：
-       delete from tactics;
+   ※ US-146 起 Supabase 已正式對接：本機這支遷移只清「這台裝置」的舊資料，
+      雲端 tactics 表（對接時實測 0 筆）若要清空，請自行在 SQL Editor 執行：
+        delete from tactics;
    （刻意不在前端自動打刪除 API，避免誤刪全隊的正式戰術） */
 const LS_PURGE_FLAG = 'mbab:migrate:purge-test-tactics:2026-11';
 
@@ -3138,14 +3174,18 @@ const store = {
 function updateStorePill() {
   const pill = $('#storePill');
   if (!pill) return;
-  if (supabaseReady()) {
+  if (forceLocal()) {
+    pill.textContent = '本機儲存';
+    pill.classList.remove('is-cloud');
+    pill.title = '測試模式（?local=1）：戰術只存在此瀏覽器的 localStorage，不會寫入雲端';
+  } else if (supabaseReady()) {
     pill.textContent = 'Supabase 雲端';
     pill.classList.add('is-cloud');
     pill.title = '已連線 Supabase，戰術會儲存到雲端資料表 ' + SUPABASE_TABLE;
   } else {
     pill.textContent = '本機儲存';
     pill.classList.remove('is-cloud');
-    pill.title = '尚未設定 Supabase，戰術儲存在此瀏覽器的 localStorage';
+    pill.title = '尚未設定 Supabase（或 CDN 未載入），戰術儲存在此瀏覽器的 localStorage';
   }
 }
 /* ============================================================
@@ -3879,6 +3919,10 @@ function initCanvas() {
     fireRightClick: false,
     allowTouchScrolling: false
   });
+  /* US-144：只允許操作「單一球員」 —— 關掉 Shift／Ctrl／Alt 多選與 Alt-拖曳複製，
+     畫布框選（marquee）則由 applyMode() 永久關閉（canvas.selection = false） */
+  canvas.selectionKey = [];
+  canvas.altSelectionKey = null;
   bindCanvasEvents();
 }
 
@@ -4000,7 +4044,9 @@ function applyMode() {
   const removeMode = canEdit() && state.tool === 'eraser';
   const selectMode = canEdit() && state.tool === 'select';
 
-  canvas.selection = selectMode;
+  /* US-144：永久關閉畫布框選／多選 —— 手機滑動不會再拉出藍色多選框，
+     選取與拖曳仍然只靠 selectMode 控制單一物件（skipTargetFind / selectable / lockMovement） */
+  canvas.selection = false;
   canvas.skipTargetFind = !(selectMode || removeMode);
   canvas.defaultCursor = drawMode ? 'crosshair' : 'default';
   canvas.hoverCursor = selectMode ? 'move' : (removeMode ? 'pointer' : 'default');
@@ -4129,6 +4175,20 @@ function bindCanvasEvents() {
   canvas.on('mouse:up', onCanvasUp);
   canvas.on('object:moving', onNodeMoving);
   canvas.on('object:modified', onNodeModified);
+  /* US-144：任何多選（框選殘留、程式化選取）一律收斂成最後點到的那一個物件 */
+  canvas.on('selection:created', keepSingleActive);
+  canvas.on('selection:updated', keepSingleActive);
+}
+
+/* US-144：畫布只允許單一選取 —— 一次只能點／拖一個球員，避免誤觸多名球員一起移動 */
+function keepSingleActive() {
+  if (!canvas) return;
+  const active = canvas.getActiveObjects();
+  if (active.length <= 1) return;
+  const keep = active[active.length - 1];
+  canvas.discardActiveObject();
+  if (keep) canvas.setActiveObject(keep);
+  canvas.requestRenderAll();
 }
 
 /* 教練拖曳球員後立即寫回目前步驟（自訂防守、自由擺位都靠這裡記錄）
@@ -6493,7 +6553,7 @@ function updatePlaybookFoot() {
   const foot = $('#pbFoot');
   if (!foot) return;
   foot.textContent = isCoach()
-    ? '點名稱載入 · ✎ 改名 · 垃圾桶刪除'
+    ? '點名稱載入 · ✎ 改名 · 🗑 刪除'
     : '點一下即可載入播放';
 }
 
@@ -6517,8 +6577,22 @@ async function renderPlaybook() {
     if (pa !== pb) return pa - pb;
     return String(b.updated_at || '').localeCompare(String(a.updated_at || ''));
   });
+  /* US-144：教練視角把「待審核戰術」抽成獨立分組；球員維持原樣（pending 留在我的戰術） */
+  const coach = isCoach();
+  const pendingItems = coach ? items.filter(function (it) { return it.status === 'pending'; }) : [];
+  const mineItems = coach ? items.filter(function (it) { return it.status !== 'pending'; }) : items;
+
   const mineCount = $('#pbMineCount');
-  if (mineCount) mineCount.textContent = items.length;
+  if (mineCount) mineCount.textContent = mineItems.length;
+  const pendingCount = $('#pbPendingCount');
+  if (pendingCount) pendingCount.textContent = pendingItems.length;
+  const pendingTitle = $('#pbPendingTitle');
+  if (pendingTitle) pendingTitle.hidden = !pendingItems.length;
+  const pendingHost = $('#pbPendingList');
+  if (pendingHost) {
+    pendingHost.hidden = !pendingItems.length;
+    pendingHost.innerHTML = '';
+  }
   updatePlaybookFoot();
 
   list.innerHTML = '';
@@ -6532,64 +6606,82 @@ async function renderPlaybook() {
     return;
   }
 
-  items.forEach(function (item) {
-    const label = item.name || '未命名戰術';
-    const isPending = item.status === 'pending';
-    const row = document.createElement('div');
-    row.className = 'pb-item' +
-      (state.tacticId && item.id === state.tacticId ? ' is-active' : '') +
-      (isPending ? ' is-pending' : '');
-    row.dataset.id = item.id;
-    row.dataset.source = item.source;
-    row.dataset.name = label;
-    row.title = label + (isPending ? '（未批核）' : '');
-    row.addEventListener('click', function () { loadTactic(item); });
+  if (!mineItems.length) {
+    const empty = document.createElement('div');
+    empty.className = 'pb-empty';
+    empty.textContent = '還沒有已批核的戰術 · 待審核的提案在上方清單。';
+    list.appendChild(empty);
+  } else {
+    mineItems.forEach(function (item) { list.appendChild(buildPlaybookRow(item)); });
+  }
+  if (pendingHost && pendingItems.length) {
+    pendingItems.forEach(function (item) { pendingHost.appendChild(buildPlaybookRow(item)); });
+  }
+}
 
-    const main = document.createElement('button');
-    main.type = 'button';
-    main.className = 'pb-main';
-    main.title = label + ' · 點擊載入';
-    main.addEventListener('click', function (event) {
-      event.stopPropagation();
-      loadTactic(item);
-    });
+/* US-144：單列建構 —— 只有教練才產生 ✎ 改名／🗑 刪除（球員 DOM 內完全沒有按鈕） */
+function buildPlaybookRow(item) {
+  const label = item.name || '未命名戰術';
+  const isPending = item.status === 'pending';
+  const row = document.createElement('div');
+  row.className = 'pb-item' +
+    (state.tacticId && item.id === state.tacticId ? ' is-active' : '') +
+    (isPending ? ' is-pending' : '');
+  row.dataset.id = item.id;
+  row.dataset.source = item.source;
+  row.dataset.name = label;
+  row.title = label + (isPending ? '（未批核）' : '');
+  row.addEventListener('click', function () { loadTactic(item); });
 
-    /* 名稱 + 未批核標記（球員提案，等教練批核） */
-    const nameRow = document.createElement('span');
-    nameRow.className = 'pb-name-row';
-    const nameEl = document.createElement('span');
-    nameEl.className = 'pb-name';
-    nameEl.textContent = label;
-    nameRow.appendChild(nameEl);
-    if (isPending) {
-      const pendingTag = document.createElement('span');
-      pendingTag.className = 'pb-pending-tag';
-      /* US-142：未批核提案直接在標記上寫出提議人「未批核 · #34 Kenny 提議」 */
-      pendingTag.textContent = '未批核' + (item.authorLabel ? ' · ' + item.authorLabel + ' 提議' : '');
-      pendingTag.title = item.authorLabel ? '由 ' + item.authorLabel + ' 提交 · 等待教練批核' : '等待教練批核';
-      nameRow.appendChild(pendingTag);
-    }
+  const main = document.createElement('button');
+  main.type = 'button';
+  main.className = 'pb-main';
+  main.title = label + ' · 點擊載入';
+  main.addEventListener('click', function (event) {
+    event.stopPropagation();
+    loadTactic(item);
+  });
 
-    const metaEl = document.createElement('span');
-    metaEl.className = 'pb-meta';
-    const tag = document.createElement('span');
-    tag.className = 'tag' + (item.source === 'supabase' ? ' is-cloud' : '');
-    tag.textContent = item.source === 'supabase' ? 'CLOUD' : 'LOCAL';
-    const timeEl = document.createElement('span');
-    timeEl.textContent = formatTime(item.updated_at) || '—';
-    metaEl.appendChild(tag);
-    /* US-142：未批核時提議人已寫在「未批核 · … 提議」標記上，meta 不再重複 by */
-    if (item.authorLabel && !isPending) {
-      const authorEl = document.createElement('span');
-      authorEl.className = 'pb-author';
-      authorEl.textContent = 'by ' + item.authorLabel;
-      metaEl.appendChild(authorEl);
-    }
-    metaEl.appendChild(timeEl);
+  /* 名稱 + 未批核標記（球員提案，等教練批核） */
+  const nameRow = document.createElement('span');
+  nameRow.className = 'pb-name-row';
+  const nameEl = document.createElement('span');
+  nameEl.className = 'pb-name';
+  nameEl.textContent = label;
+  nameRow.appendChild(nameEl);
+  if (isPending) {
+    const pendingTag = document.createElement('span');
+    pendingTag.className = 'pb-pending-tag';
+    /* US-142：未批核提案直接在標記上寫出提議人「未批核 · #34 Kenny 提議」 */
+    pendingTag.textContent = '未批核' + (item.authorLabel ? ' · ' + item.authorLabel + ' 提議' : '');
+    pendingTag.title = item.authorLabel ? '由 ' + item.authorLabel + ' 提交 · 等待教練批核' : '等待教練批核';
+    nameRow.appendChild(pendingTag);
+  }
 
-    main.appendChild(nameRow);
-    main.appendChild(metaEl);
+  const metaEl = document.createElement('span');
+  metaEl.className = 'pb-meta';
+  const tag = document.createElement('span');
+  tag.className = 'tag' + (item.source === 'supabase' ? ' is-cloud' : '');
+  tag.textContent = item.source === 'supabase' ? 'CLOUD' : 'LOCAL';
+  const timeEl = document.createElement('span');
+  timeEl.textContent = formatTime(item.updated_at) || '—';
+  metaEl.appendChild(tag);
+  /* US-142：未批核時提議人已寫在「未批核 · … 提議」標記上，meta 不再重複 by */
+  if (item.authorLabel && !isPending) {
+    const authorEl = document.createElement('span');
+    authorEl.className = 'pb-author';
+    authorEl.textContent = 'by ' + item.authorLabel;
+    metaEl.appendChild(authorEl);
+  }
+  metaEl.appendChild(timeEl);
 
+  main.appendChild(nameRow);
+  main.appendChild(metaEl);
+
+  row.appendChild(main);
+
+  /* US-144：✎ 改名／🗑 刪除只給教練（球員 DOM 內不產生按鈕，CSS 再擋一層） */
+  if (isCoach()) {
     const actions = document.createElement('span');
     actions.className = 'pb-actions';
 
@@ -6623,10 +6715,10 @@ async function renderPlaybook() {
 
     actions.appendChild(renameBtn);
     actions.appendChild(delBtn);
-    row.appendChild(main);
     row.appendChild(actions);
-    list.appendChild(row);
-  });
+  }
+
+  return row;
 }
 
 /* 就地改名：走同一套 promptText，存回 store 後只重繪手冊 */
@@ -6705,8 +6797,10 @@ async function loadTactic(item) {
   if (loadedName) autoPlayLoaded(loadedName);
 }
 
-/* US-142：opts 可自訂確認框文字（教練從待批清單「退回」時沿用同一條刪除路徑） */
+/* US-142：opts 可自訂確認框文字（教練從待批清單「退回」時沿用同一條刪除路徑）
+   US-144：刪除＝教練專屬動作，球員（含程式呼叫）一律先要求教練身分 */
 async function removeTactic(item, opts) {
+  if (!isCoach()) { requestCoachMode(); return; }
   const o = opts || {};
   const name = item.name || '未命名戰術';
   const ok = await confirmDialog(
@@ -7010,11 +7104,13 @@ function deleteSelection() {
   if (!canEdit()) return;
   const active = canvas.getActiveObjects();
   if (!active.length) { toast('請先選取要刪除的物件', 'warn'); return; }
+  /* US-144：一次只刪一個物件（單選是常態，這裡再加一道保險） */
+  const target = active[active.length - 1];
   pushUndo();
-  active.forEach(function (obj) { canvas.remove(obj); });
   canvas.discardActiveObject();
+  if (target) canvas.remove(target);
   canvas.requestRenderAll();
-  toast('已刪除選取物件', 'success');
+  toast('已刪除 1 個物件', 'success');
 }
 
 function handleKeydown(event) {
@@ -7467,8 +7563,8 @@ function boot() {
   }
 
   setTimeout(function () {
-    if (!supabaseReady()) {
-      toast('目前使用本機儲存 · 設定 Supabase 後會自動改存雲端');
+    if (forceLocal()) {
+      toast('測試模式（?local=1）· 戰術只存在此瀏覽器');
     }
     if (typeof gifshot === 'undefined') {
       toast('gifshot 未載入，GIF 匯出暫時不可用', 'warn');

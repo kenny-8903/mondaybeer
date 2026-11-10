@@ -1,4 +1,13 @@
 (async function () {
+  /* US-146：Supabase 已正式對接 → 煙霧測試一律強制本機儲存，
+     否則 harness 內的 store.save()／store.remove() 會真的寫入／刪除正式資料表的列。
+     這一行在 DOMContentLoaded → boot() 之前同步執行，時序上一定生效。
+     例外：`?cloud=1` 是「只讀」的雲端連線探測（見下方 CLOUD_PROBE），不寫任何資料。 */
+  const CLOUD_PROBE = /[?&]cloud=1(&|$)/.test(location.search);
+  /* `?cloud=1&write=1` 再加驗 App 儲存層的完整來回（會寫一列 SMOKE 測試資料並自清） */
+  const CLOUD_WRITE = CLOUD_PROBE && /[?&]write=1(&|$)/.test(location.search);
+  if (!CLOUD_PROBE) window.__MB_FORCE_LOCAL__ = true;
+
   const log = [];
   const errs = [];
   window.addEventListener('error', function (e) {
@@ -89,9 +98,96 @@
   /* 清掉上一輪煙霧測試留下的本機紀錄，讓計數類斷言可重複 */
   try { window.localStorage.clear(); } catch (err) { /* noop */ }
 
+  /* ── 0. US-146 雲端連線探測（只讀；不寫任何資料）────────────────
+     node .scratch/smoke/cdp.js cloud
+     驗的是「出貨值」：CDN 的 supabase-js 有沒有載入、publishable key 能不能通、
+     RLS 讀不讀得到 tactics。寫入／改名／刪除請跑 node .scratch/smoke/supabase.js。 */
+  if (CLOUD_PROBE) {
+    ok('cloud.cdnLoaded', typeof supabase !== 'undefined', 'supabase=' + typeof supabase);
+    ok('cloud.mode', store.mode() === 'supabase', store.mode());
+    ok('cloud.pill', ($id('storePill').textContent || '') === 'Supabase 雲端',
+      $id('storePill').textContent);
+    let rows = null;
+    let err = null;
+    /* 直接打 sbList()：store.list() 會吞掉錯誤並回退本機，驗不出雲端到底通不通 */
+    try { rows = await sbList(); } catch (e) { err = e; }
+    ok('cloud.list', Array.isArray(rows),
+      err ? String((err && err.message) || err) : rows.length + ' rows');
+    let merged = null;
+    try { merged = await store.list(); } catch (e) { merged = null; }
+    const allCloud = Array.isArray(merged) && merged.every(function (r) { return r.source === 'supabase'; });
+    ok('cloud.listSource', allCloud,
+      Array.isArray(merged) ? (merged.map(function (r) { return r.source; }).join(',') || '0 rows') : 'n/a');
+    log.push('INFO cloud.url=' + SUPABASE_URL + ' table=' + SUPABASE_TABLE);
+
+    /* ── App 儲存層端到端（`write=1`）：save → list → load → rename → setStatus → remove ──
+       只寫一列名字帶 SMOKE 的測試資料，最後一定刪掉；任何一步失敗仍會嘗試清理。 */
+    if (CLOUD_WRITE) {
+      const stamp = new Date().toISOString();
+      const name = 'SMOKE US-146 app 寫入 ' + stamp;
+      let id = null;
+      try {
+        const saved = await store.save({
+          name: name,
+          frames: [{ name: '第1步', cue: '', desc: '', objects: [] }],
+          meta: { status: 'pending', authorLabel: 'smoke' }
+        });
+        ok('cloud.saveSource', saved.source === 'supabase',
+          saved.source + (saved.fallback ? ' (fallback)' : ''));
+        id = saved.record && saved.record.id;
+        ok('cloud.saveId', !!id, String(id));
+      } catch (err) {
+        ok('cloud.saveSource', false, String((err && err.message) || err));
+      }
+      if (id) {
+        try {
+          const rows = await store.list();
+          const hit = rows.filter(function (r) { return r.id === id; })[0];
+          ok('cloud.listHasRow', !!hit && hit.source === 'supabase' && hit.status === 'pending',
+            hit ? hit.source + '/' + hit.status : 'missing');
+        } catch (err) {
+          ok('cloud.listHasRow', false, String((err && err.message) || err));
+        }
+        try {
+          const full = await store.load(id, 'supabase');
+          ok('cloud.loadFrames', !!full && Array.isArray(full.frames) && full.frames.length === 1,
+            full ? 'frames=' + (full.frames || []).length : 'null');
+        } catch (err) {
+          ok('cloud.loadFrames', false, String((err && err.message) || err));
+        }
+        try {
+          const renamed = await store.rename(id, 'supabase', name + ' · 改名');
+          ok('cloud.rename', !!renamed && /· 改名/.test(renamed.name || ''), renamed && renamed.name);
+        } catch (err) {
+          ok('cloud.rename', false, String((err && err.message) || err));
+        }
+        try {
+          const st = await store.setStatus(id, 'supabase', 'approved');
+          ok('cloud.setStatus', !!st && st.status === 'approved', st && st.status);
+        } catch (err) {
+          ok('cloud.setStatus', false, String((err && err.message) || err));
+        }
+        try {
+          await store.remove(id, 'supabase');
+          const left = (await store.list()).filter(function (r) { return r.id === id; }).length;
+          ok('cloud.remove', left === 0, 'remaining=' + left);
+        } catch (err) {
+          ok('cloud.remove', false, String((err && err.message) || err));
+        }
+      }
+      log.push('INFO cloud.appRoundTrip id=' + id);
+    }
+    report();
+    return;
+  }
+
   ok('boot.fabric', typeof fabric !== 'undefined', 'fabric=' + typeof fabric);
   ok('boot.canvasEl', !!$id('board') || !!document.querySelector('canvas'));
   ok('boot.splashOpen', $id('splash') ? !$id('splash').hidden : false);
+  /* US-146：正式站走 Supabase，但煙霧測試被 __MB_FORCE_LOCAL__ 強制回本機 */
+  ok('store.forcedLocal', store.mode() === 'local', store.mode());
+  ok('store.pillLocal', ($id('storePill').textContent || '') === '本機儲存',
+    $id('storePill').textContent);
   log.push('INFO boot.frames=' + state.frames.length + ' playing=' + state.playing);
 
   /* ── 1. 球員模式：唯讀 ── */
@@ -811,6 +907,101 @@
   $id('enterPlayer').click();
   await sleep(400);
   ok('home.backToPlayer', document.body.dataset.mode === 'player', document.body.dataset.mode);
+
+  /* ── 10b. US-144：畫布只允許「單一球員」操作（關閉框選／多選）＋ 教練專屬戰術刪除 ── */
+  ok('us144.canvasSelectionOff', canvas.selection === false, String(canvas.selection));
+  ok('us144.selectionKeyOff',
+    (Array.isArray(canvas.selectionKey) && canvas.selectionKey.length === 0) ||
+    canvas.selectionKey === null,
+    JSON.stringify(canvas.selectionKey));
+  ok('us144.altSelectionKeyOff', !canvas.altSelectionKey, String(canvas.altSelectionKey));
+
+  /* 程式化塞一個 ActiveSelection（等同框選結果）→ 必須被收斂成單選 */
+  const uA = new fabric.Circle({ radius: 6, left: 24, top: 24, fill: '#fff' });
+  const uB = new fabric.Circle({ radius: 6, left: 64, top: 64, fill: '#fff' });
+  canvas.add(uA);
+  canvas.add(uB);
+  canvas.setActiveObject(new fabric.ActiveSelection([uA, uB], { canvas: canvas }));
+  await sleep(150);
+  const uActive = canvas.getActiveObjects().length;
+  ok('us144.multiSelectCollapsed', uActive === 1, uActive + ' active');
+  canvas.discardActiveObject();
+  canvas.remove(uA);
+  canvas.remove(uB);
+  canvas.requestRenderAll();
+
+  /* 球員：手冊內完全不產生 ✎／🗑 按鈕（DOM 沒有，不只是 CSS 藏） */
+  await renderPlaybook();
+  await sleep(250);
+  const uPlayerActs = document.querySelectorAll('.pb-list .pb-act').length;
+  ok('us144.playerNoActions', uPlayerActs === 0, uPlayerActs + ' buttons');
+  ok('us144.playerPendingGroupHidden', $id('pbPendingList').hidden === true);
+
+  /* 球員（就算是程式呼叫）：removeTactic 必須先要求教練身分，紀錄不能被刪掉 */
+  const uRec = (await store.save({
+    name: 'SMOKE US144 刪除測試',
+    frames: [],
+    meta: { status: 'approved', authorLabel: '教練' }
+  })).record;
+  await renderPlaybook();
+  await sleep(250);
+  await removeTactic({ id: uRec.id, source: 'local', name: uRec.name });
+  await sleep(350);
+  const uAlive = (await store.list()).some(function (i) { return i.id === uRec.id; });
+  ok('us144.playerDeleteBlocked', uAlive === true && $id('confirmModal').hidden === true,
+    'alive=' + uAlive);
+  ok('us144.playerDeleteAsksCoach', $id('pwModal').hidden === false);
+  closeModal('pwModal');
+
+  /* 教練：🗑 刪除鈕出現 → 點擊 → 確認框 → 紀錄與列都消失 */
+  enterCoachMode(true);
+  await sleep(500);
+  await renderPlaybook();
+  await sleep(300);
+  const uDelBtn = document.querySelector('.pb-item[data-id="' + uRec.id + '"] .pb-act[data-act="delete"]');
+  ok('us144.coachHasDelete', !!uDelBtn);
+  if (uDelBtn) {
+    uDelBtn.click();
+    await sleep(400);
+    ok('us144.confirmShown', $id('confirmModal').hidden === false);
+    $id('confirmOk').click();
+    await sleep(800);
+  }
+  const uGone = (await store.list()).every(function (i) { return i.id !== uRec.id; });
+  ok('us144.coachDeleteRemoved', uGone === true);
+  ok('us144.coachDeleteRowGone', !document.querySelector('.pb-item[data-id="' + uRec.id + '"]'));
+
+  /* 教練：待審核提案獨立成「待審核戰術」一組，不再混在「我的戰術」 */
+  const uPend = (await store.save({
+    name: 'SMOKE US144 待審核',
+    frames: [],
+    meta: { status: 'pending', authorLabel: '#34 Kenny' }
+  })).record;
+  await renderPlaybook();
+  await sleep(300);
+  ok('us144.coachPendingGroup', $id('pbPendingList').hidden === false &&
+    !!document.querySelector('#pbPendingList .pb-item[data-id="' + uPend.id + '"]'),
+    'hidden=' + $id('pbPendingList').hidden);
+  ok('us144.pendingNotInMine',
+    !document.querySelector('#pbList .pb-item[data-id="' + uPend.id + '"]'));
+  ok('us144.reviewRejectMentionsDelete',
+    ($id('rvReject').textContent || '').indexOf('刪除') >= 0, $id('rvReject').textContent);
+  await store.remove(uPend.id, uPend.source);
+  await renderPlaybook();
+  await sleep(300);
+  ok('us144.coachPendingGroupEmptyHidden',
+    $id('pbPendingList').hidden === true && $id('pbPendingTitle').hidden === true,
+    'list=' + $id('pbPendingList').hidden + ' title=' + $id('pbPendingTitle').hidden);
+
+  /* 收拾：回球員模式，抽屜重繪後「待審核」那一組必須消失 */
+  await stopPlayback();
+  await sleep(200);
+  exitCoachMode();
+  await sleep(500);
+  await renderPlaybook();
+  await sleep(250);
+  ok('us144.backToPlayer', document.body.dataset.mode === 'player', document.body.dataset.mode);
+  ok('us144.playerPendingGroupHiddenAgain', $id('pbPendingList').hidden === true);
 
   /* ── 11. US-143：PWA（manifest／iOS 主畫面 meta／安裝引導／一次性清除遷移） ── */
   const manifestLink = document.querySelector('link[rel="manifest"]');
