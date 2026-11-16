@@ -2705,7 +2705,7 @@ US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布�
 | --- | --- | --- |
 | C-162 | **自訂分類是裝置本地的**：`mbab:tactic-categories` 只存在這台裝置；要在其他裝置出現，必須有戰術以該分類批核（靠 `meta.category` 回到分類聯集） | Accepted |
 | C-163 | **一套戰術只屬於一個分類**（單一字串標籤）：改分類＝重新批核或微調後發布；不做多標籤 | Accepted |
-| C-164 | **分類改名／刪除未提供**：改名等同新分類（舊標籤會由 `meta.category` 長回來）；要清掉自訂分類需清 localStorage | Accepted |
+| C-164 | ~~**分類改名／刪除未提供**：改名等同新分類（舊標籤會由 `meta.category` 長回來）；要清掉自訂分類需清 localStorage~~ → **US-152 已提供刪除**（FR-347） | Accepted → Superseded（US-152） |
 | C-165 | **雲端清空不寫進前端**：`public.tactics` 的清空是一次性腳本＋手動 SQL（`delete from public.tactics;`），前端刻意不做自動刪除 API，避免誤刪全隊正式戰術 | Accepted |
 
 #### 驗收條件（Acceptance Criteria）
@@ -2757,4 +2757,100 @@ US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布�
 1. **自訂分類不會跨裝置同步**（C-162）：分類本身沒有資料表，只有「有戰術用過」才會透過 `meta.category` 出現在其他裝置。
 2. **分類改名／刪除要手動處理**（C-164）：目前只能改 localStorage；已批核戰術的舊標籤會讓舊分類繼續出現。
 3. **`＋ 新增分類` 只給教練**（`[data-mode="coach"]`）：球員連 DOM 都看不到（`display:none`），但仍不是伺服器端權限控制——與既有 `✎ 改名`／`🗑 刪除` 同一信任模型。
+
+
+---
+
+## 🆕 本輪需求（US-152：發布時指定分類、教練加減分類、教練刪除戰術）
+
+### 使用者故事
+
+**US-152** — 作為**球隊教練**，我希望**在發布／送出戰術時就能指定名稱與分類，並且能自己新增／刪除分類、在手冊任一清單直接刪掉不要的戰術（含雲端）**，這樣**手冊的分類結構完全由我維護，球員誤送或多餘的戰術不必再進資料庫手動清**。
+
+### 需求
+
+#### 功能需求（Functional Requirements）
+
+| Requirement ID | 需求 | Feature/Module | Status |
+| --- | --- | --- | --- |
+| FR-345 | **發布確認視窗**：`#ekSave`（`📤 提交審核`／`🚀 正式發布`）不再直接寫入 → `openPublishDialog()` 開 `#publishModal`：標題／說明／`#pubOk` 文案依 `isCoachAuthor() \|\| state.approveOnSave` 在「🚀 正式發布·發布」與「📤 送出審核·送出」之間切換；`#pubName` 預填 `state.tacticName`（沒有才 `nextTacticName()`）；`#pubCategory` 由 `fillCategoryOptions()` 灌入 `LIB_CATEGORIES` 並選回 `state.tacticCategory` | `index.html` `#publishModal`／`openPublishDialog()`／`submitPublishForm()` | Verified |
+| FR-346 | **分類一併寫入雲端**：`submitPublishForm()` 取 `#pubCategory` 的 key → `categoryLabelOf()` 得標籤 → 交給 `saveTacticNamed(name, { status, authorLabel, author, category })`；`saveTacticNamed()` 以 `info.category → state.tacticCategory → LIB_CATEGORIES[0]` 決定 `meta.category`，並回寫 `state.tacticCategory`、toast「歸入「○○」」；成功後 `renderPlaybook()` 讓分類數量徽章同步 | `index.html` `saveTacticNamed()` | Verified |
+| FR-347 | **教練刪除分類**：分類卡片數量徽章右側多一顆「🗑 刪」（`isCoach()` 才建立，CSS `body:not([data-mode="coach"])` 再擋）；`deleteCategory(key)` → `confirmDialog`（有戰術時顯示「還有 N 套戰術…會留在我的戰術但不歸類」）→ 有戰術則逐筆 `store.setCategory(id, source, '')` 移出分類（**不刪戰術**）→ 預設分類寫進 `mbab:tactic-categories-hidden`、自訂分類從 `mbab:tactic-categories` 移除 → `renderPlaybook()`＋`syncEditUI()`；**只剩一個分類時拒絕**（toast「至少要保留一個分類。」） | `index.html` `deleteCategory()`／`renderLibrary()` | Verified |
+| FR-348 | **分類資料夾內刪除戰術**：`savedTacticButton()` 回傳 `.pb-lib-row`（載入鈕 ＋ 教練「🗑 刪」），桌機 Accordion 與手機第二層 `#pbSubList` 共用；按鈕 `e.stopPropagation()` → `removeTactic(item)`（確認框 → `store.remove()` → 本機 `localRemove()`／雲端 `supabase.from('tactics').delete().eq('id', id)`） | `index.html` `savedTacticButton()`／`removeTactic()`／`sbRemove()` | Verified |
+| FR-349 | **待審核清單刪除提案**：`renderPendingList()` 每列改成 `div.pend-item`（`role="listitem"`）內含 `button.pend-main`（載入）＋ 教練 `button.pend-del`「🗑 刪除」→ `rejectPending(item)`（標題「退回提案」）；`openPendingSheet()` 的初始 focus 改抓 `.pend-main`（div 不可 focus） | `index.html` `renderPendingList()`／`openPendingSheet()` | Verified |
+| FR-350 | **分類寫入 API**：新增 `localSetCategory()`（同步單筆紀錄 `meta.category` ＋ 索引 `category`）、`sbSetCategory()`（讀回 `meta` jsonb 後 set／`delete` 再 update）、`store.setCategory(id, source, category)`（雲端優先、失敗 fallback 本機） | `index.html` §12 儲存層 | Verified |
+
+#### 非功能需求（Non-Functional Requirements）
+
+| Requirement ID | 需求 | Status |
+| --- | --- | --- |
+| NFR-168 | **iOS 不放大、不溢出**：`#pubName`／`#pubCategory` 沿用 `.input`（觸控裝置 16px，`submit.nameFontNoZoom 16px`）；`openPublishDialog()`／`submitPublishForm()` **刻意不 `focus()`**（`submit.noAutofocus`）；320×568 實測 `#publishModal .modal-card` `278 vs 278`（無橫向溢出）、375×667 同值 | Verified |
+| NFR-169 | **窄機按鈕不溢出**：`us152.subRowNoOverflow`（資料夾列：375 `347 vs 347`、320 `292 vs 292`）、`us152.pendingRowNoOverflow`（待批列：375 `347 vs 347`、320 `292 vs 292`）；`layout.noHScroll`／`topbar.noOverflow`／`mobile.keysNoOverflow` 未回歸 | Verified |
+| NFR-170 | **零 migration ＋ 單一刪除路徑**：分類／刪除都只動 `meta` jsonb 與既有 `removeTactic()`（本機、雲端同一條路徑），不新增資料表／欄位；刪除分類不新增 API，只重用 `setCategory(...,'')` | Verified |
+
+#### 限制與約束（Constraints）
+
+| Requirement ID | 內容 | Status |
+| --- | --- | --- |
+| C-166 | **刪掉的分類是「這台裝置」的決定**：預設分類以 `mbab:tactic-categories-hidden` 記住（否則會被 `DEFAULT_CATEGORIES`／雲端 `meta.category` 聯集長回來）；換裝置仍會看到預設 3 類——要跨裝置一致，只能把該分類下的戰術全部移出分類 | Accepted |
+| C-167 | **刪除戰術不可復原**：與 US-144 同一條 `removeTactic()`，雲端列直接 `delete`，沒有垃圾桶／軟刪除 | Accepted |
+| C-168 | **最後一個分類不可刪**（`LIB_CATEGORIES.length <= 1` → toast 拒絕）：避免發布視窗沒有分類可選 | Accepted |
+| C-169 | **刪除仍走公開 RLS**：`tactics` 表沒有伺服器端身分驗證，教練身分只是前端 UI 閘門（與 `✎ 改名`／`🗑 刪除`／`✅ 批核` 同一信任模型） | Accepted |
+
+
+#### 驗收條件（Acceptance Criteria）
+
+- **AC-269** 球員送出：`#ekSave` → `#publishModal` 出現（`submit.publishDialog`）、`#saveModal` 不開（`submit.legacyDialogHidden`）、名稱預填「SMOKE 新戰術」（`submit.namePrefilled`）、按鈕「送出」（`submit.sendLabel`）、分類 3 選項（`submit.categoryOptions`）、未自動 focus（`submit.noAutofocus`）、卡片不溢出（`submit.dialogNoHScroll 278 vs 278`）、送出後 `state.tacticStatus === 'pending'`（`submit.pending`）且紀錄 `category === '破 3-2 聯防'`（`submit.categoryApplied`）。
+- **AC-270** 教練發布：「🚀 正式發布」→ 視窗標題含「正式發布」、按鈕「發布」（`author.publishTitle`／`author.dialogOkLabel`／`author.publishDialog`）→ 送出後 `approved`（`author.coachApproved`）且 `category === 底線開球`（`author.categoryApplied`）；「✏️ 微調後發布 → 發布」同樣先開視窗（`approveEdit.publishDialog`／`approveEdit.legacyDialogHidden`），原地更新同 id（`sameId`／`noDuplicate`）。
+- **AC-271** 分類加減：教練看得到 `＋ 新增分類`（`cat.addButtonCoach block`）與每類「🗑 刪」（`cat.delButtonCoach`），球員兩者 `display:none`（`cat.coachOnlyHidden`）；`addCategory('SMOKE 自訂分類')` 成功且寫入 `mbab:tactic-categories`（`cat.added`／`cat.persisted`）；分類內有 1 套戰術時徽章＝`1` 且有資料夾列（`cat.countIncremented`），刪除先跳確認（`cat.deleteNonEmptyConfirm`）→ 戰術保留但 `category === ''`、狀態仍 `approved`（`cat.deleteNonEmptyMovesOut`）、分類從清單消失（`cat.deletedFromList`）、標籤寫進 `mbab:tactic-categories-hidden`（`cat.hiddenPersisted`）、資料夾不再有該列（`cat.tacticKeptOutOfFolders`）；只剩一個分類時 `deleteCategory()` 回 `false`（`cat.lastOneKept`）。
+- **AC-272** 刪除戰術：分類資料夾列有「🗑 刪」（`us152.folderDeleteBtn`）→ 確認框寫出戰術名稱（`us152.folderDeleteConfirm`）→ 確認後 `store.list()` 不再有該筆（`us152.folderDelete`）；待審核 Bottom Sheet 每列有「🗑 刪除」（`us152.pendingDelShown`）→ 確認框標題「退回提案」（`us152.pendingDeleteConfirm`）→ 確認後提案消失（`us152.pendingDelete`）。
+- **AC-273** `node .scratch/smoke/integrity.js` 全綠：CSS 大括號 `671/671`、`script0` 702 chars／`script1` 198715 chars 語法通過、`index.html ↔ dist` 同雜湊 `9A41671AF2AF`。
+- **AC-274** 煙霧測試全綠（見下方驗收紀錄表格），`layout.noHScroll`／`input.noIosZoom`／`pending.*`／`us144.*` 皆未回歸。
+
+#### 需求追溯矩陣（RTM）
+
+| Requirement ID | Requirement Description | Feature/Module | User Story Reference | Status |
+| --- | --- | --- | --- | --- |
+| FR-345 | 發布確認視窗（名稱＋分類） | `#publishModal`／`openPublishDialog()` | US-152 | Verified |
+| FR-346 | 分類寫入 `meta.category`（雲端同步） | `saveTacticNamed()` | US-152 | Verified |
+| FR-347 | 教練刪除分類（含移出分類） | `deleteCategory()`／`renderLibrary()` | US-152 | Verified |
+| FR-348 | 分類資料夾內刪除戰術 | `savedTacticButton()`／`removeTactic()` | US-152 | Verified |
+| FR-349 | 待審核清單刪除提案 | `renderPendingList()`／`rejectPending()` | US-152 | Verified |
+| FR-350 | 分類寫入 API（本機＋雲端） | `store.setCategory()`／`localSetCategory()`／`sbSetCategory()` | US-152 | Verified |
+| NFR-168 | 16px／不自動 focus／不溢出 | `#publishModal` CSS ＋ `openPublishDialog()` | US-152 | Verified |
+| NFR-169 | 窄機按鈕不溢出 | `us152.*RowNoOverflow` | US-152 | Verified |
+| NFR-170 | 零 migration、單一刪除路徑 | `removeTactic()`／jsonb `meta` | US-152 | Verified |
+| C-166 | 刪除分類只在本裝置生效 | `mbab:tactic-categories-hidden` | US-152 | Accepted |
+| C-167 | 刪除戰術不可復原 | `removeTactic()` | US-152 | Accepted |
+| C-168 | 最後一個分類不可刪 | `deleteCategory()` | US-152 | Accepted |
+| C-169 | 刪除走公開 RLS | `sbRemove()` | US-152 | Accepted |
+| AC-269～AC-274 | 驗收 | 見下方「驗收紀錄（本輪：US-152）」 | US-152 | Verified |
+
+
+### 驗收紀錄（本輪：US-152）
+
+**日期**：2026-11-16 ｜ **方式**：改 `index.html`（CSS／HTML／JS）＋ `.scratch/smoke/harness.js` → `node .scratch/smoke/build.js` → `npm run sync:site` → `npm run build` → `node .scratch/smoke/integrity.js` → `node .scratch/smoke/cdp.js …`。
+
+| 檢查 | 結果 |
+| --- | --- |
+| `integrity.*` | `noCorruption`／`cssBraces 671/671`／`script0 702`／`script1 198715`／`distSynced 9A41671AF2AF`／manifest 全 PASS |
+| `375x667` | **PASS=310 · FAIL=0** |
+| `360x740` | **PASS=310 · FAIL=0** |
+| `390x844` | **PASS=310 · FAIL=0** |
+| `320x568` | **PASS=310 · FAIL=0** |
+| `768x1024`／`768x1024t`／`900x900` | **PASS=286 · FAIL=0** |
+| `1184x820` | **PASS=284 · FAIL=0** |
+| `1440x900` | **PASS=284 · FAIL=0** |
+
+- US-152 新斷言（38 項）全 PASS：`submit.publishDialog`／`namePrefilled`／`sendLabel`／`categoryOptions`／`noAutofocus`／`dialogNoHScroll`／`nameFontNoZoom`／`dialogClosed`／`legacyDialogHidden`／`categoryApplied`；`author.publishDialog`／`publishTitle`／`dialogOkLabel`／`legacyDialogHidden`／`categoryApplied`；`approveEdit.publishDialog`／`legacyDialogHidden`；`cat.addButtonCoach`／`delButtonCoach`／`coachOnlyHidden`／`delButtonBack`／`added`／`persisted`／`countIncremented`／`deleteNonEmptyConfirm`／`deleteNonEmptyMovesOut`／`deletedFromList`／`hiddenPersisted`／`tacticKeptOutOfFolders`／`lastOneKept`；`us152.folderDeleteBtn`／`subRowNoOverflow`／`folderDeleteConfirm`／`folderDelete`／`pendingDelShown`／`pendingRowNoOverflow`／`pendingDeleteConfirm`／`pendingDelete`。
+- 保留的舊路徑：`#saveModal`（`openSaveDialog()`／`submitSaveForm()`）**完全未動**，`save.*`／`coachSave.*` 7 條斷言仍 PASS——教練暗號發布與「名稱空白」的極端 fallback 不受影響。
+- 未跑 `cloud`／`cloudwrite`：`cloudwrite` 會寫 Supabase 測試列；本輪新增的 `sbSetCategory()` 與 `removeTactic()` 走的是同一條 `store.*`／`supabase.from('tactics')` 路徑。
+
+### 已知取捨／限制
+
+1. **刪除分類不會跨裝置同步**（C-166）：隱藏清單存在 `localStorage`；其他裝置只要還有戰術掛在該分類，`meta.category` 就會讓它回來。本輪已自動把戰術移出分類，因此在同一裝置不會復活。
+2. **分類刪除是「移出」不是「連戰術一起刪」**：教練若要一次清掉整套，得再逐套按「🗑 刪除」；這是刻意的雙重確認，避免誤刪正式戰術。
+3. **`promptText({ autofocus:false })` 目前只用在「＋ 新增分類」**：改名／儲存仍保留自動 focus（鍵盤直接跳出來比較快）；只有分類名稱這種「慢慢打」的欄位犧牲自動 focus 換 iOS 不放大。
+4. **教練身分仍是前端閘門**（C-169）：`🗑 刪除`／`🗑 刪` 都先用 `isCoach()` 檢查並在 DOM 不產生按鈕（球員連節點都沒有），但 Supabase RLS 仍是公開讀寫——與既有 US-144 同一信任模型。
+5. **`#saveModal` 與 `#publishModal` 並存**：前者只剩「教練暗號發布」與「名稱空白 fallback」兩條路徑，刻意不刪以縮小回歸面；未來可評估合併成同一個視窗。
 

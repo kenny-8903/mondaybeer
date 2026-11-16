@@ -58,8 +58,10 @@ Windows 上 Edge／Chrome 的視窗最小寬度會被夾到約 500px，`--window
 | `panel.*` | US-139：中間動態工具面板 —— `stepDefault`／`stepInfoShown`／`stepNameWrite`／`stepDescWrite`／`chipFollows`／`previewPlays`／`playKeysDuringPreview`／`previewStops`／`rosterToggle`／`rosterReplacesSteps`／`rosterPressed`／`rosterBack`／`defenseToggle`／`defenseApplied`／`defenseRestored`／`defenseBack`／`desktopRoster`／`desktopDefense` |
 | `edit.*` | 右上角「＋ 新增」⇄「✕ 退出」：`exitLabel`（繪製中顯示「退出」） |
 | `exit.*` | US-139：新增→退出 → 原樣回到進編輯前的畫面：`createOpened`／`inEdit`／`labelWhileEditing`／`restoresPlay`／`restoresFrames`／`restoresFramesContent`／`restoresId`／`restoresName`／`labelBack`／`playKeysVisible` |
-| `submit.*` | US-138：`📤 提交審核` 直接寫入 —— `noDialog`／`pending`／`recordId`／`authorKept`／`snapshotCleared`（存檔後「退出」不再倒回） |
-| `author.*` | US-138：作者＝🏀 教練 → 「🚀 發布」直接發布 —— `coachDefaultInCreate`／`coachNoConfirm`／`coachEditing`／`coachIsAuthor`／`publishLabel`／`coachNoDialog`／`coachApproved`／`coachRecordApproved` |
+| `submit.*` | US-152：`📤 提交審核` 先開「發布確認」視窗（名稱＋分類）—— `publishDialog`／`namePrefilled`／`sendLabel`／`categoryOptions`／`noAutofocus`／`dialogNoHScroll`／`nameFontNoZoom`／`dialogClosed`／`legacyDialogHidden`（`#saveModal` 不開）／`pending`／`recordId`／`authorKept`／`categoryApplied`（選到的分類寫進 `meta.category`）／`snapshotCleared`（存檔後「退出」不再倒回） |
+| `author.*` | US-138／US-152：作者＝🏀 教練 → 「🚀 正式發布」開確認視窗 —— `coachDefaultInCreate`／`coachNoConfirm`／`coachEditing`／`coachIsAuthor`／`publishLabel`（底部鍵文案）／`publishDialog`／`publishTitle`／`dialogOkLabel`（視窗按鈕＝「發布」）／`legacyDialogHidden`／`coachApproved`／`coachRecordApproved`／`categoryApplied` |
+| `cat.*` | **US-152**：教練加減分類 —— `addButtonCoach`／`delButtonCoach`／`coachOnlyHidden`（球員 `display:none`）／`delButtonBack`／`added`／`persisted`／`countIncremented`（數量徽章＋資料夾列）／`deleteNonEmptyConfirm`／`deleteNonEmptyMovesOut`（戰術保留、分類清空）／`deletedFromList`／`hiddenPersisted`（`mbab:tactic-categories-hidden`）／`tacticKeptOutOfFolders`／`lastOneKept`（最後一個分類不可刪） |
+| `us152.*` | **US-152**：各分組刪除戰術 —— `folderDeleteBtn`／`folderDeleteConfirm`／`folderDelete`（分類資料夾）／`pendingDelShown`／`pendingDeleteConfirm`／`pendingDelete`（待審核 Bottom Sheet） |
 | `save.*` | 儲存對話框（fallback 路徑）：`personOptions(19)`／`authorPreselected` |
 | `tools.*` | 工具入口隨寬度換：`entryRule`（>1100 第三欄、≤1100 `#sideToggle`）／`toggleOpensDrawer`／`toggleClosesDrawer` |
 | `approve.*` | **（US-142 已改寫）** 舊「批核入口在工具面板內（`tpApprove`）」整套移除 → 現在是 `panel.noApproveRow`＋`parity.*`／`pending.*`／`approveEdit.reviewBarShown` |

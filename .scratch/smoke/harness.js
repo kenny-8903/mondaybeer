@@ -641,14 +641,39 @@
   setTool('select');
   await sleep(120);
 
-  /* ── 3. 📤 提交審核 → 依作者直接寫入（不跳儲存對話框） ── */
+  /* ── 3. US-152：📤 提交審核 → 先開「發布確認」視窗（名稱＋分類）→ 送出才寫入 ── */
   $id('ekSave').click();
+  await sleep(500);
+  ok('submit.publishDialog', $id('publishModal').hidden === false && $id('saveModal').hidden === true,
+    'publish=' + $id('publishModal').hidden + ' save=' + $id('saveModal').hidden);
+  ok('submit.namePrefilled', ($id('pubName').value || '') === 'SMOKE 新戰術', $id('pubName').value);
+  ok('submit.sendLabel', ($id('pubOk').textContent || '').trim() === '送出', $id('pubOk').textContent);
+  ok('submit.categoryOptions', $id('pubCategory').options.length >= 3,
+    $id('pubCategory').options.length + ' opts');
+  ok('submit.noAutofocus', document.activeElement !== $id('pubName'),
+    String(document.activeElement && document.activeElement.id));
+  const pubCard = document.querySelector('#publishModal .modal-card');
+  ok('submit.dialogNoHScroll', !!pubCard && pubCard.scrollWidth <= pubCard.clientWidth + 1,
+    pubCard ? pubCard.scrollWidth + ' vs ' + pubCard.clientWidth : 'no card');
+  const touchFormPub = window.matchMedia('(max-width:767px)').matches ||
+    window.matchMedia('(hover:none) and (pointer:coarse)').matches;
+  const pubFont = parseFloat(getComputedStyle($id('pubName')).fontSize);
+  ok('submit.nameFontNoZoom', pubFont >= 16 || !touchFormPub, pubFont + 'px');
+  const pubCatLabel = $id('pubCategory').options[1] ? $id('pubCategory').options[1].textContent : '';
+  $id('pubCategory').value = $id('pubCategory').options[1].value;
+  $id('publishForm').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
   await sleep(1800);
-  ok('submit.noDialog', $id('saveModal').hidden === true);
+  ok('submit.dialogClosed', $id('publishModal').hidden === true);
+  ok('submit.legacyDialogHidden', $id('saveModal').hidden === true);
   ok('submit.pending', state.tacticStatus === 'pending', String(state.tacticStatus));
   ok('submit.recordId', !!state.tacticId, String(state.tacticId));
   ok('submit.authorKept', !!state.tacticAuthor && state.tacticAuthor.no === 34,
     JSON.stringify(state.tacticAuthor));
+  /* US-152：選到的分類要真的寫進 meta.category（球員提案也一樣） */
+  const submitRec = (await store.list()).filter(function (i) { return i.id === state.tacticId; })[0];
+  ok('submit.categoryApplied',
+    !!submitRec && submitRec.category === pubCatLabel && state.tacticCategory === pubCatLabel,
+    (submitRec ? submitRec.category : 'missing') + ' / ' + state.tacticCategory + ' vs ' + pubCatLabel);
   /* US-139：存檔後「退出」不再倒回存檔前（快照已清） */
   ok('submit.snapshotCleared', state.returnTo === null);
 
@@ -760,6 +785,152 @@
   const pendLeft = (state.playbookItems || []).filter(function (i) { return i.status === 'pending'; }).length;
   ok('pending.badgeDecrement', pendLeft === pendBefore - 1, pendLeft + ' ← ' + pendBefore);
 
+  /* ── 4c. US-152：教練「新增／刪除分類」＋ 各分組「刪除戰術」 ── */
+  const catAddBtn = $id('pbAddCat');
+  ok('cat.addButtonCoach', !!catAddBtn && getComputedStyle(catAddBtn).display !== 'none',
+    catAddBtn ? getComputedStyle(catAddBtn).display : 'missing');
+  const firstCatDel = document.querySelector('#pbCatList .pb-cat-del');
+  ok('cat.delButtonCoach', !!firstCatDel, String(!!firstCatDel));
+  state.mode = 'player';
+  applyMode();
+  ok('cat.coachOnlyHidden',
+    !!catAddBtn && getComputedStyle(catAddBtn).display === 'none' &&
+    !!firstCatDel && getComputedStyle(firstCatDel).display === 'none',
+    (catAddBtn ? getComputedStyle(catAddBtn).display : 'x') + '/' +
+    (firstCatDel ? getComputedStyle(firstCatDel).display : 'x'));
+  state.mode = 'coach';
+  applyMode();
+  syncEditUI();
+  ok('cat.delButtonBack', !!firstCatDel && getComputedStyle(firstCatDel).display !== 'none',
+    firstCatDel ? getComputedStyle(firstCatDel).display : 'missing');
+
+  /* ① ＋ 新增分類（addCategory；UI 由 #pbAddCat → promptText 觸發） */
+  const catAdded = addCategory('SMOKE 自訂分類');
+  renderLibrary();
+  await sleep(150);
+  ok('cat.added', catAdded.ok && LIB_CATEGORIES.some(function (c) {
+    return c.label === 'SMOKE 自訂分類';
+  }), JSON.stringify(catAdded));
+  ok('cat.persisted',
+    readCustomCategories().some(function (c) { return c.label === 'SMOKE 自訂分類'; }),
+    readCustomCategories().map(function (c) { return c.label; }).join(',') || 'none');
+
+  /* ② 分類內有戰術 → 刪除要確認、確認後戰術移出分類但保留 */
+  const catRecSave = await store.save({
+    name: 'SMOKE 分類刪除',
+    frames: [{ name: '步驟 1', objects: [] }],
+    meta: { app: 'SMOKE', status: 'approved', authorLabel: '教練', category: 'SMOKE 自訂分類' }
+  });
+  const catRecId = catRecSave.record.id;
+  await renderPlaybook();
+  await sleep(250);
+  const catKeyAdded = categoryKeyOfLabel('SMOKE 自訂分類');
+  const addedDetails = document.querySelector('#pbCatList .pb-cat[data-cat="' + catKeyAdded + '"]');
+  ok('cat.countIncremented', !!addedDetails &&
+    !!addedDetails.querySelector('.pb-cat-count') &&
+    addedDetails.querySelector('.pb-cat-count').textContent === '1' &&
+    !!addedDetails.querySelector('.pb-lib-row .pb-lib-del'),
+    addedDetails ? (addedDetails.querySelector('.pb-cat-count') || {}).textContent : 'no folder');
+
+  if (addedDetails) {
+    addedDetails.querySelector('.pb-cat-del').click();
+    await sleep(350);
+    ok('cat.deleteNonEmptyConfirm',
+      $id('confirmModal').hidden === false && /還有 1 套戰術/.test($id('confirmDesc').textContent || ''),
+      $id('confirmDesc').textContent || 'no confirm');
+    $id('confirmOk').click();
+    await sleep(1200);
+    const movedOut = (await store.list()).filter(function (i) { return i.id === catRecId; })[0];
+    ok('cat.deleteNonEmptyMovesOut',
+      !!movedOut && (movedOut.category || '') === '' && movedOut.status === 'approved',
+      movedOut ? 'category=' + (movedOut.category || 'empty') + ' · ' + movedOut.status : 'record gone');
+    ok('cat.deletedFromList', !LIB_CATEGORIES.some(function (c) { return c.label === 'SMOKE 自訂分類'; }),
+      LIB_CATEGORIES.map(function (c) { return c.label; }).join(','));
+    ok('cat.hiddenPersisted',
+      readHiddenCategories().indexOf(normCategoryLabel('SMOKE 自訂分類')) >= 0,
+      readHiddenCategories().join(',') || 'none');
+    ok('cat.tacticKeptOutOfFolders',
+      !document.querySelector('#pbCatList .pb-lib-row[data-id="' + catRecId + '"]'),
+      'row=' + !!document.querySelector('#pbCatList .pb-lib-row[data-id="' + catRecId + '"]'));
+  }
+
+  /* ③ 分類刪到剩一個 → 拒絕（不會開確認框） */
+  const catSnapshot = LIB_CATEGORIES.slice();
+  LIB_CATEGORIES.length = 0;
+  LIB_CATEGORIES.push({ key: 'smokeOnly', label: 'SMOKE 唯一分類', en: '', custom: true });
+  const lastOneResult = await deleteCategory('smokeOnly');
+  ok('cat.lastOneKept', lastOneResult === false && LIB_CATEGORIES.length === 1,
+    'result=' + lastOneResult + ' n=' + LIB_CATEGORIES.length);
+  LIB_CATEGORIES.length = 0;
+  catSnapshot.forEach(function (c) { LIB_CATEGORIES.push(c); });
+  renderLibrary();
+  await sleep(150);
+
+  /* ④ 分類資料夾內的「🗑 刪」→ 確認後真的移除（本機 store 同步少一筆） */
+  const folderRecSave = await store.save({
+    name: 'SMOKE 資料夾刪除',
+    frames: [{ name: '步驟 1', objects: [] }],
+    meta: { app: 'SMOKE', status: 'approved', authorLabel: '教練', category: '底線開球' }
+  });
+  const folderRecId = folderRecSave.record.id;
+  await renderPlaybook();
+  await sleep(250);
+  const folderKey = categoryKeyOfLabel('底線開球');
+  const folderRow = document.querySelector('#pbCatList .pb-cat[data-cat="' + folderKey + '"] ' +
+    '.pb-lib-row[data-id="' + folderRecId + '"]');
+  ok('us152.folderDeleteBtn', !!folderRow && !!folderRow.querySelector('.pb-lib-del'),
+    folderRow ? 'row ok' : 'no row');
+  /* 375／320 窄機：資料夾列（載入鈕＋🗑 刪）不得溢出 */
+  openPlaybookCategory(folderKey);
+  await sleep(250);
+  const subRow = document.querySelector('#pbSubList .pb-lib-row[data-id="' + folderRecId + '"]');
+  ok('us152.subRowNoOverflow', !!subRow && subRow.scrollWidth <= subRow.clientWidth + 1,
+    subRow ? subRow.scrollWidth + ' vs ' + subRow.clientWidth : 'missing');
+  closePlaybookCategory(true);
+  await sleep(150);
+  if (folderRow) {
+    folderRow.querySelector('.pb-lib-del').click();
+    await sleep(350);
+    ok('us152.folderDeleteConfirm', $id('confirmModal').hidden === false &&
+      /SMOKE 資料夾刪除/.test($id('confirmDesc').textContent || ''), $id('confirmDesc').textContent);
+    $id('confirmOk').click();
+    await sleep(1200);
+    const folderGone = (await store.list()).filter(function (i) { return i.id === folderRecId; }).length;
+    ok('us152.folderDelete', folderGone === 0, 'remains=' + folderGone);
+  }
+
+  /* ⑤ 待審核清單每列都有「🗑 刪除」→ 確認後刪掉提案（雲端／本機同一條 removeTactic） */
+  const pendRecSave = await store.save({
+    name: 'SMOKE 待批刪除',
+    frames: [{ name: '步驟 1', objects: [] }],
+    meta: { app: 'SMOKE', status: 'pending', authorLabel: '#34 Kenny' }
+  });
+  const pendRecId = pendRecSave.record.id;
+  await renderPlaybook();
+  await sleep(250);
+  openPendingSheet();
+  await sleep(400);
+  const pendRow = document.querySelector('#pendList .pend-item[data-id="' + pendRecId + '"]');
+  const pendDel = pendRow ? pendRow.querySelector('.pend-del') : null;
+  ok('us152.pendingDelShown', !!pendDel && getComputedStyle(pendDel).display !== 'none',
+    pendDel ? pendDel.textContent : 'missing');
+  if (pendRow) {
+    ok('us152.pendingRowNoOverflow', pendRow.scrollWidth <= pendRow.clientWidth + 1,
+      pendRow.scrollWidth + ' vs ' + pendRow.clientWidth);
+  }
+  if (pendDel) {
+    pendDel.click();
+    await sleep(400);
+    ok('us152.pendingDeleteConfirm', $id('confirmModal').hidden === false &&
+      /退回/.test($id('confirmTitle').textContent || ''), $id('confirmTitle').textContent);
+    $id('confirmOk').click();
+    await sleep(1200);
+    const pendGone = (await store.list()).filter(function (i) { return i.id === pendRecId; }).length;
+    ok('us152.pendingDelete', pendGone === 0, 'remains=' + pendGone);
+  }
+  closePendingSheet();
+  await sleep(250);
+
   /* ── 5. 球員看既有戰術：唯讀瀏覽（US-137 起手冊不再有「✏️ 修改提案」入口） ── */
   exitCoachMode();
   await sleep(300);
@@ -852,14 +1023,27 @@
   ok('author.publishLabel', ($id('ekSave').textContent || '').indexOf('發布') >= 0,
     ($id('ekSave').textContent || '').trim());
   $id('ekSave').click();
+  await sleep(500);
+  ok('author.publishDialog', $id('publishModal').hidden === false && $id('saveModal').hidden === true,
+    'publish=' + $id('publishModal').hidden + ' save=' + $id('saveModal').hidden);
+  ok('author.publishTitle', ($id('pubTitle').textContent || '').indexOf('正式發布') >= 0,
+    $id('pubTitle').textContent);
+  ok('author.dialogOkLabel', ($id('pubOk').textContent || '').trim() === '發布', $id('pubOk').textContent);
+  const coachCatOpt = $id('pubCategory').options[2] || $id('pubCategory').options[0];
+  const coachCatLabel = coachCatOpt ? coachCatOpt.textContent : '';
+  if (coachCatOpt) $id('pubCategory').value = coachCatOpt.value;
+  $id('publishForm').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
   await sleep(1800);
-  ok('author.coachNoDialog', $id('saveModal').hidden === true);
+  ok('author.legacyDialogHidden', $id('saveModal').hidden === true);
   ok('author.coachApproved', state.tacticStatus === 'approved', String(state.tacticStatus));
   const coachRec = (await store.list()).filter(function (i) {
     return i.name === 'SMOKE 教練自建';
   })[0];
   ok('author.coachRecordApproved', !!coachRec && coachRec.status === 'approved',
     coachRec ? String(coachRec.status) : 'missing record');
+  /* US-152：教練發布同樣走視窗選的分類 */
+  ok('author.categoryApplied', !!coachRec && coachRec.category === coachCatLabel,
+    (coachRec ? coachRec.category : 'missing') + ' vs ' + coachCatLabel);
 
   /* -- 8. 「修改後批核」：改完按儲存 --> 原地變已批核（不新增紀錄） -- */
   const mine = (await store.list()).filter(function (i) { return i.name === 'SMOKE 教練發布'; })[0];
@@ -880,9 +1064,13 @@
     ok('approveEdit.on', state.approveOnSave === true && state.editing === true,
       state.approveOnSave + '/' + state.editing);
     ok('approveEdit.exitLabel', ($id('btnNewTactic').textContent || '').indexOf('退出') >= 0);
-    $id('ekSave').click();            /* US-138：直接發布，不再經過儲存對話框 */
+    $id('ekSave').click();            /* US-152：先開發布確認視窗，確認後才寫入 */
+    await sleep(500);
+    ok('approveEdit.publishDialog', $id('publishModal').hidden === false &&
+      ($id('pubOk').textContent || '').trim() === '發布', $id('pubOk').textContent);
+    $id('publishForm').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
     await sleep(1800);
-    ok('approveEdit.noDialog', $id('saveModal').hidden === true);
+    ok('approveEdit.legacyDialogHidden', $id('saveModal').hidden === true);
     ok('approveEdit.approved', state.tacticStatus === 'approved', String(state.tacticStatus));
     ok('approveEdit.sameId', state.tacticId === beforeId, String(state.tacticId));
     ok('approveEdit.cleared', state.approveOnSave === false);

@@ -712,6 +712,16 @@ body:not([data-mode="coach"]) .pb-actions{display:none}
   border-radius:999px;background:rgba(47,111,168,.14);color:var(--blue);
   font-size:9.5px;font-weight:800;
 }
+/* US-152：教練「🗑 刪」分類（數量徽章右側；球員模式由 CSS 再擋一層） */
+.pb-cat-del{
+  flex:0 0 auto;display:inline-grid;place-items:center;
+  height:18px;padding:0 6px;border-radius:6px;
+  border:1px solid rgba(180,70,47,.45);background:rgba(180,70,47,.08);
+  color:var(--brick);font-size:9.5px;font-weight:800;line-height:1;cursor:pointer;
+  white-space:nowrap;
+}
+.pb-cat-del:hover{background:rgba(180,70,47,.18);border-color:var(--brick)}
+body:not([data-mode="coach"]) .pb-cat-del{display:none}
 .pb-cat-list{display:flex;flex-direction:column;gap:4px;padding:5px}
 /* US-151：動態分類清單（預設＋教練自訂＋雲端）＋ 教練「＋ 新增分類」 */
 .pb-cats{display:flex;flex-direction:column;gap:5px}
@@ -744,6 +754,17 @@ body:not([data-mode="coach"]) .pb-add-cat{display:none}
   font-weight:800;padding:1px 4px;border-radius:4px;
   background:rgba(47,111,168,.12);color:var(--blue);
 }
+/* US-152：分類資料夾內的列＝載入鈕 ＋ 教練「🗑 刪」 */
+.pb-lib-row{display:flex;align-items:center;gap:4px;min-width:0}
+.pb-lib-row > .pb-lib{flex:1 1 auto;min-width:0}
+.pb-lib-del{
+  flex:0 0 auto;height:26px;padding:0 7px;border-radius:7px;
+  border:1px solid rgba(180,70,47,.45);background:rgba(180,70,47,.07);
+  color:var(--brick);font-size:9.5px;font-weight:800;line-height:1;cursor:pointer;
+  white-space:nowrap;
+}
+.pb-lib-del:hover{background:rgba(180,70,47,.18);border-color:var(--brick)}
+body:not([data-mode="coach"]) .pb-lib-del{display:none}
 
 /* ── 機會標籤（cue） ── */
 .cue-tag{
@@ -1187,7 +1208,7 @@ body[data-keys="edit"] #toolPanel{display:flex;order:-1;flex-basis:100%}
   display:flex;flex-direction:column;gap:6px;padding-right:2px;
 }
 .pend-item{
-  display:flex;flex-direction:column;gap:2px;width:100%;
+  display:flex;flex-direction:row;align-items:center;gap:6px;width:100%;
   padding:8px 10px;border-radius:11px;cursor:pointer;text-align:left;
   border:1px solid var(--line);background:#fff;color:var(--cream);
   transition:border-color .16s,background .16s,box-shadow .16s;
@@ -1203,6 +1224,20 @@ body[data-keys="edit"] #toolPanel{display:flex;order:-1;flex-basis:100%}
 }
 .pend-item-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10.5px;color:var(--muted)}
 .pend-item-meta .tag{font-size:8.5px}
+/* US-152：列主體（載入）＋ 教練「🗑 刪除」——分開兩顆按鈕才不會誤觸載入 */
+.pend-main{
+  flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px;
+  padding:0;border:0;background:none;color:inherit;font:inherit;
+  text-align:left;cursor:pointer;
+}
+.pend-del{
+  flex:0 0 auto;height:26px;padding:0 7px;border-radius:7px;
+  border:1px solid rgba(180,70,47,.5);background:rgba(180,70,47,.08);
+  color:var(--brick);font-size:9.5px;font-weight:800;line-height:1;cursor:pointer;
+  white-space:nowrap;
+}
+.pend-del:hover{background:rgba(180,70,47,.2);border-color:var(--brick)}
+body:not([data-mode="coach"]) .pend-del{display:none}
 .pend-empty{margin:0;padding:12px 8px;text-align:center;font-size:11.5px;line-height:1.7;color:var(--muted)}
 
 /* ── 3) 球場右下批核浮條（載入待批提案後自動出現） ── */
@@ -1687,6 +1722,8 @@ body[data-keys="edit"] .board-wrap{--board-h-chrome:390px}
     -webkit-overflow-scrolling:touch;
   }
   .pb-sub-list .pb-lib{padding:10px 11px;border-radius:10px}
+  /* US-152：觸控目標不低於 32px 高（與分類列同節奏） */
+  .pb-sub-list .pb-lib-del{height:32px;padding:0 9px;font-size:10.5px}
   .pb-sub-list .pb-lib-name{font-size:12.5px;white-space:normal;line-height:1.35}
   .pb-sub-empty{
     padding:16px 10px;border-radius:10px;text-align:center;
@@ -1694,6 +1731,8 @@ body[data-keys="edit"] .board-wrap{--board-h-chrome:390px}
   }
   /* 分類列＝入口（手機不吃原地展開）：箭頭改 ›，內嵌清單不再顯示 */
   .pb-cat > summary{padding:10px;font-size:12.5px}
+  /* US-152：手機的「🗑 刪」要摸得到（18px → 22px） */
+  .pb-cat-del{height:22px;padding:0 8px;font-size:10.5px}
   .pb-cat > summary::before{content:"›";font-size:14px;color:var(--blue);transition:none}
   .pb-cat[open] > summary::before{transform:none}
   .pb-cat-list{display:none}
@@ -2458,6 +2497,31 @@ body.has-review .pwa-tip{bottom:calc(var(--stepbar-h, 101px) + 68px)}
   </div>
 </div>
 
+<!-- ══════════ US-152：正式發布／送出審核（名稱 ＋ 所屬分類） ══════════ -->
+<div class="modal" id="publishModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="pubTitle">
+    <h2 id="pubTitle">🚀 正式發布</h2>
+    <p class="modal-desc" id="pubDesc">確認名稱與分類後送出，戰術會直接歸入對應的「戰術分類」。</p>
+    <form id="publishForm" novalidate>
+      <div class="save-field">
+        <label class="field-label" for="pubName">戰術名稱</label>
+        <input type="text" id="pubName" class="input" maxlength="60"
+               placeholder="例：Horns 45 擋拆" autocomplete="off" enterkeyhint="done">
+      </div>
+      <div class="save-field">
+        <label class="field-label" for="pubCategory">所屬分類</label>
+        <select id="pubCategory" class="input" aria-label="所屬分類"></select>
+        <p class="save-note">分類會顯示在「戰術分類」內，數量徽章同步更新。</p>
+      </div>
+      <p class="form-error" id="pubError" role="alert"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close="publishModal">取消</button>
+        <button type="submit" class="btn btn-primary" id="pubOk">發布</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- ══════════ 建立新戰術（US-139：只剩名稱＋作者；防守陣型進畫布後用 🛡 切換） ══════════ -->
 <div class="modal" id="createModal" hidden>
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="createTitle">
@@ -2860,11 +2924,14 @@ function promptText(options) {
   $('#textError').textContent = '';
   $('#textInput').classList.remove('is-invalid');
   openModal('textModal');
-  setTimeout(function () {
-    const input = $('#textInput');
-    input.focus();
-    input.select();
-  }, 40);
+  /* US-152：iOS 聚焦會放大視窗 → 分類名稱這類「不趕時間」的輸入可傳 autofocus:false */
+  if (opt.autofocus !== false) {
+    setTimeout(function () {
+      const input = $('#textInput');
+      input.focus();
+      input.select();
+    }, 40);
+  }
   return new Promise(function (resolve) { textResolver = resolve; });
 }
 function settleText(value) {
@@ -3108,6 +3175,29 @@ function localSetStatus(id, status, category) {
   return { id: id, status: next, category: savedCategory, updated_at: now };
 }
 
+/* US-152：清空／指定分類（空字串＝移出分類）→ 同步單筆紀錄與索引 */
+function localSetCategory(id, category) {
+  const clean = String(category || '').trim();
+  const now = new Date().toISOString();
+  const raw = lsGet(LS_TACTIC_PREFIX + id);
+  if (raw) {
+    try {
+      const record = JSON.parse(raw);
+      const meta = Object.assign({}, record.meta || {});
+      if (clean) meta.category = clean;
+      else delete meta.category;
+      record.meta = meta;
+      record.updated_at = now;
+      lsSet(LS_TACTIC_PREFIX + id, JSON.stringify(record));
+    } catch (err) { /* 損壞的紀錄就只更新索引 */ }
+  }
+  const index = localIndex().map((item) => (item.id === id
+    ? Object.assign({}, item, { updated_at: now, category: clean })
+    : item));
+  lsSet(LS_INDEX_KEY, JSON.stringify(index.slice(0, 100)));
+  return { id: id, category: clean, updated_at: now };
+}
+
 /* ── Supabase CRUD ── */
 async function sbSave(payload) {
   const client = getSupabaseClient();
@@ -3168,6 +3258,22 @@ async function sbSetStatus(id, status, category) {
   });
   const cleanCategory = String(category || '').trim();
   if (cleanCategory) meta.category = cleanCategory;
+  const res = await client.from(SUPABASE_TABLE)
+    .update({ meta: meta, updated_at: new Date().toISOString() })
+    .eq('id', id).select().single();
+  if (res.error) throw res.error;
+  return res.data;
+}
+
+/* US-152：雲端改分類／移出分類（只動 meta jsonb，不需 migration） */
+async function sbSetCategory(id, category) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase 未設定');
+  const current = await sbLoad(id);
+  const meta = Object.assign({}, (current && current.meta) || {});
+  const clean = String(category || '').trim();
+  if (clean) meta.category = clean;
+  else delete meta.category;
   const res = await client.from(SUPABASE_TABLE)
     .update({ meta: meta, updated_at: new Date().toISOString() })
     .eq('id', id).select().single();
@@ -3264,6 +3370,20 @@ const store = {
       }
     }
     return localSetStatus(id, next, category);
+  },
+
+  /* US-152：指定／清空分類（教練刪分類時把戰術移出分類） */
+  async setCategory(id, source, category) {
+    const clean = String(category || '').trim();
+    if (source === 'supabase' && supabaseReady()) {
+      try {
+        const row = await sbSetCategory(id, clean);
+        return { id: row.id, category: (row.meta && row.meta.category) || '' };
+      } catch (err) {
+        console.warn('[supabase] setCategory failed, fallback to local', err);
+      }
+    }
+    return localSetCategory(id, clean);
   }
 };
 
@@ -3811,15 +3931,57 @@ function readCustomCategories() {
 function writeCustomCategories(list) {
   try { lsSet(LS_CATEGORIES, JSON.stringify(list.slice(0, CATEGORY_LIMIT))); } catch (err) { /* noop */ }
 }
-/* 重建 LIB_CATEGORIES（就地更新，其他模組持有的參考不會失效） */
+/* US-152：被教練刪掉的分類標籤（含預設 3 類）記在這裡 → 不會被「預設／雲端 meta.category」聯集長回來。
+   只存在這台裝置（與自訂分類同一模型，見 C-162）；要跨裝置同步必須把戰術移出分類。 */
+const LS_CAT_HIDDEN = 'mbab:tactic-categories-hidden';
+const CATEGORY_HIDE_LIMIT = 60;
+
+function readHiddenCategories() {
+  let raw = '';
+  try { raw = lsGet(LS_CAT_HIDDEN) || ''; } catch (err) { return []; }
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(function (value) {
+      return typeof value === 'string' && value.trim();
+    }).map(function (value) {
+      return normCategoryLabel(value);
+    }).slice(0, CATEGORY_HIDE_LIMIT);
+  } catch (err) {
+    return [];
+  }
+}
+function writeHiddenCategories(list) {
+  try { lsSet(LS_CAT_HIDDEN, JSON.stringify(list.slice(0, CATEGORY_HIDE_LIMIT))); } catch (err) { /* noop */ }
+}
+function hideCategory(label) {
+  const norm = normCategoryLabel(label);
+  if (!norm) return;
+  const list = readHiddenCategories();
+  if (list.indexOf(norm) >= 0) return;
+  list.push(norm);
+  writeHiddenCategories(list);
+}
+function unhideCategory(label) {
+  const norm = normCategoryLabel(label);
+  if (!norm) return;
+  const list = readHiddenCategories();
+  const next = list.filter(function (value) { return value !== norm; });
+  if (next.length !== list.length) writeHiddenCategories(next);
+}
+/* 重建 LIB_CATEGORIES（就地更新，其他模組持有的參考不會失效）
+   US-152：教練刪掉的分類標籤一律先過濾 → 預設／自訂／雲端都不會把它長回來 */
 function refreshCategories() {
   const seen = Object.create(null);
+  const hidden = readHiddenCategories();
   const next = [];
   const push = function (cat) {
     const label = String((cat && cat.label) || '').trim();
     if (!label) return;
     const norm = normCategoryLabel(label);
     if (!norm || seen[norm]) return;
+    if (hidden.indexOf(norm) >= 0) return;
     seen[norm] = true;
     next.push({
       key: cat.key || categoryHash(label),
@@ -3855,6 +4017,12 @@ function addCategory(label) {
   const clean = String(label || '').trim().replace(/\s+/g, ' ');
   if (!clean) return { ok: false, error: '請輸入分類名稱。' };
   if (clean.length > 20) return { ok: false, error: '分類名稱最多 20 個字。' };
+  /* US-152：之前被刪掉的同名分類（含預設）→ 解除隱藏就等於「復原」，不必重建 */
+  if (readHiddenCategories().indexOf(normCategoryLabel(clean)) >= 0) {
+    unhideCategory(clean);
+    refreshCategories();
+    return { ok: true, label: clean, restored: true };
+  }
   refreshCategories();
   const norm = normCategoryLabel(clean);
   if (LIB_CATEGORIES.some(function (cat) { return normCategoryLabel(cat.label) === norm; })) {
@@ -3868,6 +4036,61 @@ function addCategory(label) {
   writeCustomCategories(custom);
   refreshCategories();
   return { ok: true, label: clean };
+}
+
+/* US-152：教練刪除分類。
+   預設分類記進隱藏清單（否則會被預設／雲端聯集長回來）、自訂分類直接移除；
+   分類下的戰術保留在「我的戰術」，但 meta.category 一律清空（已批核＋待批核都清）。
+   回傳 true＝已刪除、false＝取消／被擋下。 */
+async function deleteCategory(key) {
+  if (!isCoach()) { requestCoachMode(); return false; }
+  const cat = categoryByKey(key);
+  if (!cat) return false;
+  if (LIB_CATEGORIES.length <= 1) {
+    toast('至少要保留一個分類。', 'warn');
+    return false;
+  }
+  const norm = normCategoryLabel(cat.label);
+  const affected = (state.playbookItems || []).filter(function (item) {
+    return item && normCategoryLabel(item.category) === norm;
+  });
+  const desc = affected.length
+    ? ('「' + cat.label + '」下還有 ' + affected.length + ' 套戰術。刪除後這些戰術會留在「我的戰術」但不歸類，確定刪除？')
+    : ('確定要刪除分類「' + cat.label + '」嗎？此分類沒有任何戰術。');
+  const okDelete = await confirmDialog('刪除分類', desc, '刪除分類');
+  if (!okDelete) return false;
+
+  hideCategory(cat.label);
+  writeCustomCategories(readCustomCategories().filter(function (item) {
+    return normCategoryLabel(item.label) !== norm;
+  }));
+
+  if (affected.length) {
+    showLoader('分類移出中…', 40);
+    try {
+      for (let i = 0; i < affected.length; i += 1) {
+        try {
+          await store.setCategory(affected[i].id, affected[i].source, '');
+        } catch (err) {
+          console.warn('[category] clear failed', err);
+        }
+      }
+    } finally {
+      hideLoader();
+    }
+  }
+
+  if (normCategoryLabel(state.tacticCategory) === norm) state.tacticCategory = '';
+  const subHost = $('#pbSubList');
+  const subKey = subHost && subHost.dataset ? subHost.dataset.cat : '';
+  await renderPlaybook();          /* 重抓 store → 分類聯集、數量徽章、清單同步 */
+  if (subKey === key || (subHost && subHost.dataset && subHost.dataset.cat === key)) {
+    closePlaybookCategory(true);
+  }
+  syncEditUI();                    /* 批核浮條的分類下拉同步少一項 */
+  toast('已刪除分類「' + cat.label + '」' +
+    (affected.length ? ' · ' + affected.length + ' 套已移出分類' : ''), 'success');
+  return true;
 }
 
 /* 步驟工廠：name / cue（機會標籤）/ desc（解說）/ 進攻 / 防守 / 球 / 線條 */
@@ -5954,6 +6177,10 @@ async function saveTacticNamed(name, publish) {
     : (state.tacticSource === 'local' ? state.tacticId : null);
   const status = state.approveOnSave ? 'approved' : (info.status || 'approved');
   const now = new Date().toISOString();
+  /* US-152：分類以「發布視窗選的」優先 → 目前狀態 → 第一個分類 */
+  const catLabel = String(info.category || '').trim() ||
+    String(state.tacticCategory || '').trim() ||
+    ((LIB_CATEGORIES[0] && LIB_CATEGORIES[0].label) || '');
 
   const payload = {
     id: reuseId,
@@ -5972,8 +6199,8 @@ async function saveTacticNamed(name, publish) {
       },
       /* US-134：批核狀態／提案人放在 meta，Supabase 不需 migration */
       status: status,
-      /* US-151：分類（純文字標籤）→ 手冊「戰術分類」直接以 meta.category 分組 */
-      category: state.tacticCategory || (LIB_CATEGORIES[0] && LIB_CATEGORIES[0].label) || '',
+      /* US-151／US-152：分類（純文字標籤）→ 手冊「戰術分類」直接以 meta.category 分組 */
+      category: catLabel,
       authorLabel: info.authorLabel || (status === 'approved' ? '教練' : ''),
       author: info.author || state.tacticAuthor || null,
       approvedAt: status === 'approved' ? now : null
@@ -5987,13 +6214,15 @@ async function saveTacticNamed(name, publish) {
     state.tacticName = result.record.name;
     state.tacticSource = result.source;
     state.tacticStatus = status;
+    state.tacticCategory = catLabel;
     state.approveOnSave = false;
+    const catNote = catLabel ? ' · 歸入「' + catLabel + '」' : '';
     if (result.fallback) {
       toast('雲端儲存失敗，已改存本機', 'warn');
     } else if (status === 'pending') {
-      toast('已提交提案「' + clean + '」· 等教練批核', 'success');
+      toast('已提交提案「' + clean + '」' + catNote + ' · 等教練批核', 'success');
     } else {
-      toast('已發布「' + clean + '」到' + (result.source === 'supabase' ? ' Supabase 雲端' : '本機儲存'), 'success');
+      toast('已發布「' + clean + '」到' + (result.source === 'supabase' ? ' Supabase 雲端' : '本機儲存') + catNote, 'success');
     }
     /* 教練用暗號發布 → 這次瀏覽直接取得教練權限，才能繼續批核其他提案 */
     if (status === 'approved' && !isCoach() && info.author && info.author.coach) {
@@ -6253,24 +6482,78 @@ function topAction() {
   newTactic();
 }
 
-/* US-138／US-139：底部「📤 提交審核 / 🚀 發布」→ 依「作者」直接寫入，完全不開儲存對話框
+/* US-138／US-152：底部「📤 提交審核 / 🚀 正式發布」→ 先開「發布確認」視窗（名稱＋分類），
+   確認後才依作者寫入：
    ─ 作者＝球員 → status 'pending'（等教練批核）
    ─ 作者＝教練（或按了 ✏️ 修改後批核）→ status 'approved'（直接發布）
-   名稱在「建立新戰術」對話框已填好；真的沒有名稱時才退回舊的儲存對話框。 */
-async function quickSubmitTactic() {
-  if (state.exporting || state.playing) return;
-  saveCurrentFrame();
-  const clean = String(state.tacticName || '').trim();
-  if (!clean) { openSaveDialog(); return; }
+   名稱在「建立新戰術」對話框已填好（視窗會預填），分類則寫進 meta.category → 直接歸入資料夾。 */
+function publishIntent() {
   const publishing = isCoachAuthor() || !!state.approveOnSave;
   const author = state.tacticAuthor;
-  await saveTacticNamed(clean, {
+  return {
+    publishing: publishing,
     status: publishing ? 'approved' : 'pending',
     authorLabel: publishing
       ? '教練'
       : (author && author.no != null ? ('#' + author.no + ' ' + author.name) : '球員'),
     author: publishing ? { coach: true } : author
+  };
+}
+
+function openPublishDialog() {
+  if (state.exporting || state.playing) return;
+  saveCurrentFrame();
+  refreshCategories();
+  const intent = publishIntent();
+  const titleEl = $('#pubTitle');
+  const descEl = $('#pubDesc');
+  const okBtn = $('#pubOk');
+  const errEl = $('#pubError');
+  if (titleEl) titleEl.textContent = intent.publishing ? '🚀 正式發布' : '📤 送出審核';
+  if (descEl) {
+    descEl.textContent = intent.publishing
+      ? '確認名稱與分類後送出，戰術會直接歸入對應的「戰術分類」。'
+      : '確認名稱與分類後送出，提案會標記「未批核」，等教練批核後才進官方手冊。';
+  }
+  if (okBtn) okBtn.textContent = intent.publishing ? '發布' : '送出';
+  if (errEl) errEl.textContent = '';
+  const nameEl = $('#pubName');
+  if (nameEl) {
+    nameEl.value = String(state.tacticName || '').trim() || nextTacticName();
+    nameEl.classList.remove('is-invalid');
+  }
+  fillCategoryOptions($('#pubCategory'), state.tacticCategory || '');
+  openModal('publishModal');
+  /* 刻意不 focus()：iOS 聚焦 <16px 表單會放大整個視窗，且鍵盤會蓋住分類下拉（US-149） */
+}
+
+async function submitPublishForm(event) {
+  if (event) event.preventDefault();
+  const nameEl = $('#pubName');
+  const catSel = $('#pubCategory');
+  const errEl = $('#pubError');
+  const name = String((nameEl && nameEl.value) || '').trim();
+  if (!name) {
+    if (errEl) errEl.textContent = '請輸入戰術名稱。';
+    if (nameEl) nameEl.classList.add('is-invalid');
+    return;                        /* 不 focus()：避免 iOS 放大 */
+  }
+  const catKey = catSel ? catSel.value : '';
+  const catLabel = (catKey && categoryLabelOf(catKey)) || state.tacticCategory || '';
+  state.tacticName = name;
+  if (catLabel) state.tacticCategory = catLabel;
+  closeModal('publishModal');
+  const intent = publishIntent();
+  await saveTacticNamed(name, {
+    status: intent.status,
+    authorLabel: intent.authorLabel,
+    author: intent.author,
+    category: catLabel
   });
+}
+
+function quickSubmitTactic() {
+  openPublishDialog();
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -6317,12 +6600,17 @@ function renderPendingList() {
   list.innerHTML = '';
   if (empty) empty.hidden = items.length > 0;
   items.forEach(function (item) {
-    const row = document.createElement('button');
-    row.type = 'button';
+    const row = document.createElement('div');
     row.className = 'pend-item' + (state.tacticId === item.id ? ' is-current' : '');
     row.setAttribute('role', 'listitem');
     row.dataset.id = item.id;
     row.title = '載入並批核「' + (item.name || '未命名戰術') + '」';
+
+    /* US-152：列主體才是「載入」按鈕；教練另外掛一顆「🗑 刪除」→ 不會誤觸載入 */
+    const main = document.createElement('button');
+    main.type = 'button';
+    main.className = 'pend-main';
+    main.title = row.title;
 
     const nameRow = document.createElement('span');
     nameRow.className = 'pend-item-name';
@@ -6344,8 +6632,29 @@ function renderPendingList() {
     src.textContent = item.source === 'cloud' ? 'CLOUD' : 'LOCAL';
     meta.appendChild(src);
 
-    row.appendChild(nameRow);
-    row.appendChild(meta);
+    main.appendChild(nameRow);
+    main.appendChild(meta);
+    main.addEventListener('click', function (event) {
+      event.stopPropagation();
+      selectPendingItem(item);
+    });
+    row.appendChild(main);
+
+    if (isCoach()) {
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'pend-del';
+      del.dataset.id = item.id;
+      del.title = '刪除提案「' + (item.name || '未命名戰術') + '」';
+      del.setAttribute('aria-label', '刪除提案「' + (item.name || '未命名戰術') + '」');
+      del.textContent = '🗑 刪除';
+      del.addEventListener('click', function (event) {
+        event.stopPropagation();
+        rejectPending(item);
+      });
+      row.appendChild(del);
+    }
+
     row.addEventListener('click', function () { selectPendingItem(item); });
     list.appendChild(row);
   });
@@ -6364,7 +6673,8 @@ function openPendingSheet() {
   syncSheetScrim();
   /* 先移除 hidden、下一格再加 is-open，才有滑入動畫 */
   window.requestAnimationFrame(function () { sheet.classList.add('is-open'); });
-  const first = sheet.querySelector('.pend-item') || $('#pendClose');
+  /* US-152：列主體才是可按鈕（div 不能 focus） */
+  const first = sheet.querySelector('.pend-main') || $('#pendClose');
   if (first) window.setTimeout(function () { first.focus(); }, 80);
 }
 
@@ -6611,7 +6921,27 @@ function savedTacticButton(item) {
   btn.appendChild(name);
   btn.appendChild(meta);
   btn.addEventListener('click', function () { loadTactic(item); });
-  return btn;
+
+  /* US-152：教練在分類資料夾內也能直接刪除（移除雲端＋本機，見 removeTactic） */
+  const row = document.createElement('div');
+  row.className = 'pb-lib-row';
+  row.dataset.id = item.id;
+  row.appendChild(btn);
+  if (isCoach()) {
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'pb-lib-del';
+    del.dataset.id = item.id;
+    del.title = '刪除「' + (item.name || '未命名戰術') + '」';
+    del.setAttribute('aria-label', '刪除「' + (item.name || '未命名戰術') + '」');
+    del.textContent = '🗑 刪';
+    del.addEventListener('click', function (event) {
+      event.stopPropagation();
+      removeTactic(item);
+    });
+    row.appendChild(del);
+  }
+  return row;
 }
 
 /* 依分類重建手冊清單（分類會因自訂／雲端而變動 → 每次重建，並保留收合狀態） */
@@ -6646,6 +6976,22 @@ function renderLibrary() {
     summary.appendChild(label);
     summary.appendChild(en);
     summary.appendChild(count);
+    /* US-152：教練在數量徽章右側多一顆「🗑 刪」→ 確認後刪除分類 */
+    if (isCoach()) {
+      const delCat = document.createElement('button');
+      delCat.type = 'button';
+      delCat.className = 'pb-cat-del';
+      delCat.dataset.cat = cat.key;
+      delCat.title = '刪除分類「' + cat.label + '」';
+      delCat.setAttribute('aria-label', '刪除分類「' + cat.label + '」');
+      delCat.textContent = '🗑 刪';
+      delCat.addEventListener('click', function (event) {
+        event.preventDefault();      /* 不要連帶展開／收合 <details> */
+        event.stopPropagation();
+        deleteCategory(cat.key);
+      });
+      summary.appendChild(delCat);
+    }
     details.appendChild(summary);
 
     const list = document.createElement('div');
@@ -7449,21 +7795,23 @@ function bindUI() {
       state.tacticCategory = categoryLabelOf(rvCategoryEl.value) || '';
     });
   }
-  /* US-151：教練「＋ 新增分類」→ 寫進 localStorage 後重建清單 */
+  /* US-151／US-152：教練「＋ 新增分類」→ 寫進 localStorage 後重建清單
+     （autofocus:false：iOS 聚焦輸入框會放大整個視窗） */
   bind('#pbAddCat', async function () {
     if (!isCoach()) { requestCoachMode(); return; }
     const value = await promptText({
       title: '新增分類',
       label: '分類名稱',
       placeholder: '例：快攻 / 陣地戰 / 發球戰術',
-      okText: '新增'
+      okText: '新增',
+      autofocus: false
     });
     if (value === null) return;
     const result = addCategory(value);
     if (!result.ok) { toast(result.error, 'warn'); return; }
     renderLibrary();
     syncReviewBar();
-    toast('已新增分類「' + result.label + '」', 'success');
+    toast(result.restored ? '已復原分類「' + result.label + '」' : '已新增分類「' + result.label + '」', 'success');
   });
   bind('#btnShare', shareTactic);            /* 播放 4 鍵：分享 GIF */
   bind('#btnGifBook', exportGif);            /* 手冊抽屜：儲存 GIF 到裝置 */
@@ -7503,6 +7851,8 @@ function bindUI() {
   if (pbScrollEl) {
     pbScrollEl.addEventListener('click', function (event) {
       const target = event.target;
+      /* US-152：分類的「🗑 刪」不是入口 → 不要切到分類子頁面 */
+      if (target && target.closest && target.closest('.pb-cat-del')) return;
       const summary = target && target.closest ? target.closest('.pb-cat > summary') : null;
       if (!summary || !pbScrollEl.contains(summary)) return;
       const details = summary.parentElement;
@@ -7557,6 +7907,17 @@ function bindUI() {
   /* 表單 */
   const saveFormEl = $('#saveForm');
   if (saveFormEl) saveFormEl.addEventListener('submit', submitSaveForm);
+  /* US-152：發布確認視窗（名稱＋分類）→ 一併寫入 meta.category */
+  const publishFormEl = $('#publishForm');
+  if (publishFormEl) publishFormEl.addEventListener('submit', submitPublishForm);
+  const pubNameEl = $('#pubName');
+  if (pubNameEl) {
+    pubNameEl.addEventListener('input', function () {
+      pubNameEl.classList.remove('is-invalid');
+      const errEl = $('#pubError');
+      if (errEl) errEl.textContent = '';
+    });
+  }
   const createFormEl = $('#createForm');
   if (createFormEl) createFormEl.addEventListener('submit', submitCreateForm);
   /* US-138：儲存對話框的作者 ↔ 身分互鎖（選 🏀 教練＝直接發布；選球員＝提交提案） */
