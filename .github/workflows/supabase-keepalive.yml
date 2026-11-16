@@ -1,0 +1,49 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # 每 3 天的 UTC 00:00 自動執行一次（確保遠低於 7 天休眠限制）
+    - cron: '0 0 */3 * *'
+  workflow_dispatch: # 允許在 GitHub 網頁手動點擊測試執行
+
+# 只用來打一個對外 GET，不需要任何寫入 repo 的權限
+permissions:
+  contents: read
+
+# 排程若被 GitHub 延遲到與下一輪重疊，讓前一輪跑完（不要中斷）
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping Supabase tactics table
+        env:
+          # 專案 ref：zxjlhxozuyadqomgfodk（與 index.html §1 同一組出貨值）
+          # publishable key 本就是給瀏覽器用的公開金鑰，防線在 RLS；
+          # 切勿改放 service_role / secret key。
+          SUPABASE_URL: https://zxjlhxozuyadqomgfodk.supabase.co
+          SUPABASE_ANON_KEY: sb_publishable_tGmDc69DryMGUPzn5S-E3Q_cm_KDP5g
+        run: |
+          set -euo pipefail
+          url="${SUPABASE_URL}/rest/v1/tactics?select=id&limit=1"
+          echo "GET ${url}  @ $(date -u +%FT%TZ)"
+
+          # -f   : HTTP >= 400 直接讓 job 失敗（金鑰失效／RLS 擋住都看得到，不會假綠）
+          # -i   : 一併收 response header，才能讀 Content-Range 的總筆數
+          # Prefer: count=exact → 直接問「有幾筆 id」，空表回 */0
+          resp=$(curl -sS -f -i --max-time 30 --retry 3 --retry-delay 5 \
+            -X GET "${url}" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "Prefer: count=exact")
+
+          echo "${resp}"
+
+          rows=$(printf '%s\n' "${resp}" | tr -d '\r' \
+            | awk 'tolower($1) == "content-range:" { print $2; exit }')
+          echo "tactics id count = ${rows:-unknown}   (Content-Range 格式 start-end/total；*/0 = 空表)"
+          echo "OK — tactics table touched (HTTP 200), project stays active."
