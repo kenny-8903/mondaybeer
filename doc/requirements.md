@@ -2463,7 +2463,7 @@ US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布�
 | C-154 | 金鑰第三處，輪替需三處同改；禁 service_role | `index.html` §1／`frontend/.env`／workflow | US-148 | Accepted |
 | C-155 | 「GET 即活動」非契約，平台判定可能改變 | — | US-148 | Accepted |
 | C-156 | GitHub cron 延遲／略過 | — | US-148 | Accepted |
-| AC-250～AC-253 | 驗收 | 見下方「驗收紀錄（本輪：US-148）」 | US-148 | Verified／Pending（AC-253 待 push 後） |
+| AC-250～AC-253 | 驗收 | 見下方「驗收紀錄（本輪：US-148）」 | US-148 | Verified／Pending（AC-253：已 push，待首次排程紀錄） |
 
 ### 驗收紀錄（本輪：US-148）
 
@@ -2476,7 +2476,7 @@ US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布�
 | 是否打到正確專案 | **OK** — header 含 `sb-project-ref: zxjlhxozuyadqomgfodk`、`sb-gateway-version: 1` |
 | 筆數回報是否生效 | **OK** — header 含 `preference-applied: count=exact`、`Content-Range: */0`（空表） |
 | `set -u` 守門 | **OK** — 首次預演未注入 `env:` 時立即以 `SUPABASE_URL: unbound variable` 失敗，證明環境變數漏設不會被靜默吞掉 |
-| 上線後（AC-253） | **Pending** — 檔案尚未 push 到 `main`，GitHub 端尚無 `schedule` 紀錄 |
+| 上線後（AC-253） | **已 push（`540e20d`，2026-11-16）** — `.github/workflows/supabase-keepalive.yml` 已在 `main`；首次 `schedule` 觸發需等下一個 `cron`（`*/3` 日 00:00 UTC），之後可於 GitHub → Actions → *Keep Supabase Alive* 或 **Run workflow** 手動確認。本機 `gh` 未登入（`gh auth login` 未執行），故未由 CLI 代驗 |
 
 - 本輪**未修改任何前端／後端程式碼**：`index.html`／`dist/`／`frontend/`／`scripts/`／`backend/` 皆未動，冒煙測試（`.scratch/smoke/*`）不需重跑。
 
@@ -2661,6 +2661,7 @@ US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布�
 - 320px **不需要新增任何 CSS**：現有 `@media (max-width:380px)`（`index.html:1705`）收斂後，頂欄 `320 vs 320`、底部 4 鍵 `70/70/70/70`（`296>296`）、球場 `276<=276` 全部自然成立 → 維持「不為單一機型加規則」。
 - 靜態檢查：CSS 大括號 **643／643**、`script0` 702 chars／`script1` 184220 chars 語法通過、`index.html ↔ dist` 雜湊一致（`22AB53C0C570`）；新增 `integrity.manifestFields`（`/ · /?v=2 · #EBF1F6 · standalone · 2 icons`）與 `integrity.manifestSynced`（`413D83306C37 × 3`）。
 - 未跑 `cloud`／`cloudwrite`（與 manifest／CSS 無關；`cloudwrite` 會寫 Supabase 測試列）。
+- **出貨**：`git commit 540e20d`（11 files, +823/−44）→ `git push origin main`；`origin/main` 已同步，同時把先前未推的 `0b0819a`（US-148 keep-alive workflow）一起帶上。
 
 ### 已知取捨／限制
 
