@@ -57,5 +57,43 @@ if (fs.existsSync(distPath)) {
   report('integrity.distSynced', false, 'dist/index.html 不存在');
 }
 
+/* 5. US-150：manifest 欄位守門 ＋ dist／frontend/site 三方一致
+   ─ 只驗「靜態可判定」的事實（iOS standalone 啟動底色、版本化 start_url、`./` 相對圖示） */
+const manifestPath = path.join(root, 'manifest.json');
+try {
+  const raw = fs.readFileSync(manifestPath, 'utf8');
+  const mf = JSON.parse(raw);
+  const fields = [
+    mf.id === '/',
+    mf.start_url === '/?v=2',
+    mf.background_color === '#EBF1F6',
+    mf.display === 'standalone',
+    mf.orientation === 'portrait',
+    Array.isArray(mf.icons) && mf.icons.length === 2 &&
+      mf.icons.every((ic) => typeof ic.src === 'string' && ic.src.startsWith('./')),
+  ];
+  const badIdx = fields.map((v, i) => (v ? '' : i)).filter(Boolean);
+  report('integrity.manifestFields', badIdx.length === 0,
+    badIdx.length ? 'idx ' + badIdx.join(',') + ' · ' + JSON.stringify({
+      id: mf.id, start_url: mf.start_url, background_color: mf.background_color,
+      display: mf.display, orientation: mf.orientation
+    }) : [mf.id, mf.start_url, mf.background_color, mf.display, mf.icons.length + ' icons'].join(' · '));
+
+  const baseHash = sha(fs.readFileSync(manifestPath));
+  const copies = [
+    path.join(root, 'dist', 'manifest.json'),
+    path.join(root, 'frontend', 'site', 'manifest.json'),
+  ];
+  const missing = copies.filter((p) => !fs.existsSync(p));
+  const drifted = copies.filter((p) => fs.existsSync(p) &&
+    sha(fs.readFileSync(p)) !== baseHash);
+  report('integrity.manifestSynced', missing.length === 0 && drifted.length === 0,
+    missing.length ? 'missing ' + missing.map((p) => path.relative(root, p)).join(',')
+      : drifted.length ? 'drift ' + drifted.map((p) => path.relative(root, p)).join(',')
+        : baseHash.slice(0, 12) + ' × 3');
+} catch (err) {
+  report('integrity.manifestFields', false, String((err && err.message) || err).slice(0, 200));
+}
+
 console.log(bad ? '\n' + bad + ' 項失敗' : '\n全部通過');
 process.exit(bad ? 1 : 0);

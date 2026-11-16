@@ -39,6 +39,16 @@ const PEN_PLAY_SETUP = '(function(){' +
   'setTimeout(function(){ renderFrame(0).then(function(){ tweenToFrame(0,1); }); },600);' +
   'return "mid-tween";})()';
 
+/* US-147：畫一條跑位線 ＋ 一條傳球線，然後真的按播放 —— 截圖應只見「傳球虛線」 */
+const PLAY_PASS_SETUP = '(function(){' +
+  'setTool("select");' +
+  'addStep();' +
+  'var p=findNode("off1"), q=findNode("off2");' +
+  'if(p) commitStrokeToStep("cut",{x:p.left,y:p.top},{x:p.left+140,y:p.top+70});' +
+  'if(p && q) commitStrokeToStep("pass",{x:p.left,y:p.top},{x:q.left,y:q.top});' +
+  'setTimeout(function(){ playAnimation(); },400);' +
+  'return "playing";})()';
+
 /* US-141：只鋪「步驟 2 的箭咀預覽」並把透明度拉滿 —— 檢查播放時看到的路徑外觀 */
 const PEN_PREVIEW_SETUP = '(function(){' +
   'setTool("select");' +
@@ -189,6 +199,17 @@ const SPECS = {
     name: 'us141-pen-390', width: 390, height: 844, mobile: true, query: '', hdr: 52,
     pre: CREATE_THEN_DRAW,
     post: PEN_SHOT_SETUP,
+  },
+  /* US-147：手機播放中只留傳球虛線（390 / 360） */
+  play390: {
+    name: 'us147-play-390', width: 390, height: 844, mobile: true, query: '', hdr: 52,
+    pre: CREATE_THEN_DRAW,
+    post: PLAY_PASS_SETUP,
+  },
+  play360: {
+    name: 'us147-play-360', width: 360, height: 740, mobile: true, query: '', hdr: 52,
+    pre: CREATE_THEN_DRAW,
+    post: PLAY_PASS_SETUP,
   },
   /* 只鋪上「步驟 2 的箭咀預覽」（播放時用的同一支函式），把透明度拉滿檢查外觀 */
   penpreview1440: {

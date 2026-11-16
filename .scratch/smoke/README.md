@@ -37,9 +37,11 @@ Windows 上 Edge／Chrome 的視窗最小寬度會被夾到約 500px，`--window
 | `1184x820` | 中桌機（`本機儲存` 膠囊仍在） |
 | `900x900` | 平板＝**768–1100px 抽屜帶**（右側工具改抽屜、`🛠` 切換鈕） |
 | `768x1024` | 平板最小寬（斷點邊界） |
+| `768x1024t` | 同上 ＋ **觸控模擬**（寬度 ≥768 走 `pointer:coarse` → 驗 US-149 的 16px 表單字級） |
 | `390x844` | 一般手機直向 |
 | `375x667` | 矮螢幕手機（`-webkit-line-clamp` 收斂、`is-dense`） |
 | `360x740` | 超窄機（≤380px 再縮一級） |
+| `320x568` | **US-150**：最窄機下限（iPhone SE 1st gen）→ 頂欄 `＋ 新增`／🔔 與底部 4 鍵仍不得溢出 |
 | `gif` | 390×844 ＋ `#gif`：`gifshot.createGIF` 以 stub 取代（headless 的 Worker 編碼不會 resolve），只驗證擷取 → dataUrl → 還原 → 分享／下載路徑 |
 | `cloud` | 390×844 ＋ `?cloud=1`（**US-146 只讀雲端探測**）：不設 `__MB_FORCE_LOCAL__`，驗 CDN 載入／`store.mode()`／膠囊文案／`sbList()` 是否真的讀得到 `tactics`；**不寫任何資料** |
 | `cloudwrite` | 390×844 ＋ `?cloud=1&write=1`（**US-146 App 儲存層端到端**）：在 `cloud` 的 5 條之上再跑 `store.save` → `list` → `load` → `rename` → `setStatus` → `remove`；會寫**一列**名稱帶 `SMOKE` 的測試資料並自清 |
@@ -65,7 +67,10 @@ Windows 上 Edge／Chrome 的視窗最小寬度會被夾到約 500px，`--window
 | `parity.*` | US-142：教練瀏覽 vs 球員瀏覽外框簽章相同 —— `coachVsPlayer`（display＋播放鍵尺寸）／`playerBadgeHidden`／`playerReviewBarHidden` |
 | `pending.*` | US-142：🔔 待批審核中心 —— `onePending`／`badgeShown`／`countMatches`／`sheetOpens`／`sheetScrim`／`itemRows`／`itemName`／`itemMeta`／`itemTag`／`sheetClosedAfterLoad`／`loadOnClick`／`reviewBarShown`／`reviewBtns`／`reviewMeta`／`reviewBtnsEnabled`／`approved`／`reviewBarHiddenAfter`／`badgeDecrement` |
 | `us144.*` | US-144／US-145：畫布只允許單選 ＋ 教練專屬刪除 —— `canvasSelectionOff`／`selectionKeyOff`／`altSelectionKeyOff`／`multiSelectCollapsed`（塞 ActiveSelection 只剩 1 個）／`playerNoActions`（球員 DOM 0 個 `.pb-act`）／`playerPendingGroupHidden`／`playerDeleteBlocked`／`playerDeleteAsksCoach`／`coachHasDelete`／`confirmShown`／`coachDeleteRemoved`／`coachDeleteRowGone`／`coachPendingGroup`／`pendingNotInMine`／`reviewRejectMentionsDelete`／`coachPendingGroupEmptyHidden`／`backToPlayer`／`playerPendingGroupHiddenAgain` |
-| `mobile.*` | 手機控制卡：`panelVisible`／`panelNoOverflow`／`editKeysFixed`／`keysEven`／`keysNoOverflow`／`stepAddAbovePanel`（US-140 加步驟條在面板之上）／`playKeysHidden`／`quickSaveRemoved`／`courtFitsViewport`／`rosterRendered`／`defenseButtons`／`toolsDrawerOpens`／`toolsDrawerCloses`／`exitLabelLong` … |
+| `mobile.*` | 手機控制卡：`panelVisible`／`panelNoOverflow`／`editKeysFixed`／`keysEven`／`keysNoOverflow`／`stepAddAbovePanel`（US-140 加步驟條在面板之上）／`playKeysHidden`／`quickSaveRemoved`／`courtFitsViewport`／`courtNoClip`（US-147 球場不超出可用高）／`cardToSafeBottom`（US-147 控制卡＋安全區＝視窗高）／`rosterRendered`／`defenseButtons`／`toolsDrawerOpens`／`toolsDrawerCloses`／`exitLabelLong` … |
+| `zoom.*` | US-147：縮放鎖死 —— `metaLocked`（`maximum-scale=1.0` ＋ `user-scalable=no` ＋ `viewport-fit=cover`）／`touchAction`（`body` 算出 `pan-x pan-y`）／`gestureHandler`（`lockViewportGestures` 存在） |
+| `safe.*` | US-147：安全區交給 `.app` —— `appPadding`（`padding-top/bottom` ＝ `--safe-top`／`--safe-bottom`） |
+| `play.*` | US-147 播放節奏與線條：`slowTween`（`PLAYBACK_DURATION===1300`）／`hold300`（`PLAYBACK_HOLD===300`）／`passOnly`（判斷式：只留 `pass`）／`previewKept`／`restoredStatic`／`canvasHidesCut`（真畫布：切入 0、傳球 1）／`canvasRestored`／`previewOnlyPass`（2 條線只鋪 1 條傳球預覽） |
 | `readonly.*` | 唯讀球員：`playKeysBack`／`editKeysHidden`／`panelHidden`／`shareKept`／`noProposeEntry`／`shareBack`／`metaDefenseKept` |
 | `home.*` | 隊徽即回首頁：`brandIsButton`／`notNestedInButton`／`splashOpened`／`splashedBodyMode`／`backToPlayer` |
 | `store.*` | US-146：儲存層被鎖在本機 —— `forcedLocal`（`store.mode() === 'local'`）／`pillLocal`（膠囊顯示「本機儲存」） |

@@ -234,6 +234,106 @@
   const vis = function (el) { return !!el && el.offsetParent !== null; };
   log.push('INFO viewport=' + window.innerWidth + 'x' + window.innerHeight + ' mobile=' + mobile);
 
+  /* ── US-147：縮放鎖死（meta ＋ CSS ＋ JS 三重） ── */
+  const vpMeta = document.querySelector('meta[name="viewport"]');
+  const vpContent = vpMeta ? (vpMeta.getAttribute('content') || '') : '';
+  ok('zoom.metaLocked',
+    /maximum-scale=1(\.0)?/.test(vpContent) && /user-scalable=no/.test(vpContent) &&
+    /viewport-fit=cover/.test(vpContent), vpContent || 'missing');
+  ok('zoom.touchAction', getComputedStyle(document.body).touchAction === 'pan-x pan-y',
+    getComputedStyle(document.body).touchAction);
+  ok('zoom.gestureHandler', typeof lockViewportGestures === 'function',
+    typeof lockViewportGestures);
+
+  /* ── US-149：教練模式的輸入框字級 ≥16px（iOS 聚焦不放大）＋ 全頁不得有橫向溢位 ── */
+  const pwFont = parseFloat(getComputedStyle($id('pwInput')).fontSize) || 0;
+  /* 與 CSS 的 @media 條件一致：手機或任何觸控裝置 → 必須 ≥16px（滑鼠裝置不受影響） */
+  const touchForm = window.matchMedia('(max-width:767px), (hover:none) and (pointer:coarse)').matches;
+  ok('input.noIosZoom', pwFont >= 16 || !touchForm,
+    pwFont + 'px · ' + (touchForm ? 'touch' : 'mouse'));
+  ok('layout.noHScroll',
+    document.documentElement.scrollWidth <= window.innerWidth + 1,
+    document.documentElement.scrollWidth + ' vs ' + window.innerWidth);
+  ok('layout.bodyNoHScroll',
+    document.body.scrollWidth <= document.body.clientWidth + 1,
+    document.body.scrollWidth + ' vs ' + document.body.clientWidth);
+  /* US-149：教練模式第一件事就是這張密碼框 —— 開著時也不得撐出橫向捲動／超出螢幕 */
+  const pwModal = $id('pwModal');
+  const pwCard = pwModal ? pwModal.querySelector('.modal-card') : null;
+  if (pwModal && pwCard) {
+    openModal('pwModal');
+    const cardRect = pwCard.getBoundingClientRect();
+    const cardFits = document.documentElement.scrollWidth <= window.innerWidth + 1 &&
+      cardRect.left >= -1 && cardRect.right <= window.innerWidth + 1;
+    const cardDetail = Math.round(cardRect.left) + '..' + Math.round(cardRect.right) +
+      ' / vw=' + window.innerWidth;
+    closeModal('pwModal');
+    ok('layout.pwModalFits', cardFits, cardDetail);
+  }
+
+  /* ── US-147：安全區交給 .app（header 不會被瀏海／狀態列蓋住） ── */
+  const rootStyle = getComputedStyle(document.documentElement);
+  const safeTopPx = parseFloat(rootStyle.getPropertyValue('--safe-top')) || 0;
+  const safeBotPx = parseFloat(rootStyle.getPropertyValue('--safe-bottom')) || 0;
+  const appStyle = getComputedStyle(document.querySelector('.app'));
+  ok('safe.appPadding',
+    Math.abs(parseFloat(appStyle.paddingTop) - safeTopPx) <= 0.5 &&
+    Math.abs(parseFloat(appStyle.paddingBottom) - safeBotPx) <= 0.5,
+    'top ' + appStyle.paddingTop + '/' + safeTopPx + ' · bottom ' + appStyle.paddingBottom + '/' + safeBotPx);
+
+  /* ── US-147：播放節奏（1.3 秒補間 ＋ 0.3 秒停頓） ── */
+  ok('play.slowTween', PLAYBACK_DURATION === 1300, PLAYBACK_DURATION + 'ms');
+  ok('play.hold300', PLAYBACK_HOLD === 300, PLAYBACK_HOLD + 'ms');
+
+  /* ── US-147：播放中只留傳球虛線（其餘線條隱藏、預覽線不受影響） ── */
+  const keepPlaying = state.playing;
+  state.playing = true;
+  const cutKept = lineVisibleWhilePlaying({ kind: 'line', lineType: 'cut', isPreview: false });
+  const passKept = lineVisibleWhilePlaying({ kind: 'line', lineType: 'pass', isPreview: false });
+  const defKept = lineVisibleWhilePlaying({ kind: 'line', lineType: 'def', isPreview: false });
+  const previewKept = lineVisibleWhilePlaying({ kind: 'line', lineType: 'cut', isPreview: true });
+  state.playing = keepPlaying;
+  const cutShown = lineVisibleWhilePlaying({ kind: 'line', lineType: 'cut', isPreview: false });
+  ok('play.passOnly', passKept && !cutKept && !defKept,
+    'pass=' + passKept + ' cut=' + cutKept + ' def=' + defKept);
+  ok('play.previewKept', previewKept);
+  ok('play.restoredStatic', cutShown);
+
+  /* 真的在畫布上驗一次：切入線 opacity→0、傳球線→1，停止後兩條都回到 1 */
+  const cutLine = makeAutoLine('cut', { x: 200, y: 200 }, { x: 460, y: 420 }, 0);
+  const passLine = makeAutoLine('pass', { x: 200, y: 200 }, { x: 460, y: 260 }, 0);
+  if (cutLine && passLine) {
+    state.playing = true;
+    syncPlaybackLineOpacity();
+    const cutOp = typeof cutLine.opacity === 'number' ? cutLine.opacity : 1;
+    const passOp = typeof passLine.opacity === 'number' ? passLine.opacity : 1;
+    state.playing = false;
+    syncPlaybackLineOpacity();
+    ok('play.canvasHidesCut', cutOp === 0 && passOp === 1, 'cut=' + cutOp + ' pass=' + passOp);
+    ok('play.canvasRestored',
+      cutLine.opacity === 1 && passLine.opacity === 1,
+      cutLine.opacity + '/' + passLine.opacity);
+
+    /* 補間預覽只鋪傳球（previewStepLines 會 enliven 一次，故用序列化資料當 frame） */
+    try {
+      const serProps = ['kind', 'nodeId', 'lineType', 'team', 'rosterNo', 'playerName', 'autoLine'];
+      const fakeFrame = { objects: [cutLine.toObject(serProps), passLine.toObject(serProps)] };
+      state.playing = true;
+      const previews = await previewStepLines(fakeFrame);
+      ok('play.previewOnlyPass', previews.length === 1,
+        previews.length + ' preview');
+      removePreviewLines(previews);
+    } catch (err) {
+      ok('play.previewOnlyPass', false, String((err && err.message) || err));
+    }
+    state.playing = false;
+    canvas.remove(cutLine);
+    canvas.remove(passLine);
+    canvas.requestRenderAll();
+  }
+  state.playing = keepPlaying;
+  syncPlaybackLineOpacity();
+
   await stopPlayback();
   await sleep(300);
   $id('btnNewTactic').click();
@@ -371,6 +471,17 @@
     tbRight ? Math.round(tbRect.right - rOf(tbRight).right) + 'px gutter' : 'n/a');
   ok('topbar.noOverflow', !!topbar && topbar.scrollWidth <= topbar.clientWidth + 1,
     topbar ? topbar.scrollWidth + ' vs ' + topbar.clientWidth : 'n/a');
+  /* US-149：教練模式多一顆 🔔 待批 → 頂欄不得因此溢出（.topbar-right 是 flex:0 0 auto）
+     徽章只在「教練身分＋有待批」時出現，這裡暫時強制顯示量最壞情況，量完立刻還原 */
+  const pendBtn = $id('btnPending');
+  if (topbar && pendBtn) {
+    const pendWasHidden = pendBtn.hidden;
+    pendBtn.hidden = false;
+    const pendFits = topbar.scrollWidth <= topbar.clientWidth + 1;
+    const pendDetail = topbar.scrollWidth + ' vs ' + topbar.clientWidth;
+    pendBtn.hidden = pendWasHidden;
+    ok('topbar.pendingNoOverflow', pendFits, pendDetail);
+  }
   /* US-139：此刻在繪製模式 → 右上角是「✕ 退出」（唯讀時才是「＋ 新增」，見 exit.labelBack） */
   ok('topbar.exitLabel', !!newBtn && /退出/.test(newBtn.textContent || ''),
     newBtn ? (newBtn.textContent || '').trim() : 'n/a');
@@ -420,6 +531,15 @@
     ok('mobile.stepListVisible', vis($id('stepList')));
     ok('mobile.courtFitsViewport', $id('board').getBoundingClientRect().height > 120,
       String(Math.round($id('board').getBoundingClientRect().height)));
+    /* US-147：球場不超出可用高度、控制卡貼齊（安全區內的）螢幕底 */
+    const bwRect = document.querySelector('.board-wrap').getBoundingClientRect();
+    const brRect = document.querySelector('.board-restrict').getBoundingClientRect();
+    ok('mobile.courtNoClip', bwRect.bottom <= brRect.bottom + 1,
+      Math.round(bwRect.bottom) + '<=' + Math.round(brRect.bottom));
+    const barRect147 = document.querySelector('.stepbar').getBoundingClientRect();
+    ok('mobile.cardToSafeBottom',
+      Math.abs(barRect147.bottom + safeBotPx - window.innerHeight) <= 1.5,
+      Math.round(barRect147.bottom) + '+' + safeBotPx + ' vs ' + window.innerHeight);
 
     /* 👥 球員陣容：面板接手步驟清單的位置（決策 A） */
     $id('ekRoster').click();

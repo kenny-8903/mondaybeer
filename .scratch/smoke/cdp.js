@@ -25,9 +25,13 @@ const SPECS = {
   '1184x820': { width: 1184, height: 820, mobile: false, query: '?full=1' },
   '900x900': { width: 900, height: 900, mobile: false, query: '?full=1' },
   '768x1024': { width: 768, height: 1024, mobile: false, query: '?full=1' },
+  /* US-149：iPad 觸控（寬度 ≥768 但 pointer:coarse）→ 驗 16px 規則的觸控分支 */
+  '768x1024t': { width: 768, height: 1024, mobile: true, query: '?full=1' },
   '390x844': { width: 390, height: 844, mobile: true, query: '' },
   '375x667': { width: 375, height: 667, mobile: true, query: '' },
   '360x740': { width: 360, height: 740, mobile: true, query: '' },
+  /* US-150：最窄機下限（iPhone SE 1st gen 320×568）→ 驗 topbar／底部 4 鍵仍不溢出 */
+  '320x568': { width: 320, height: 568, mobile: true, query: '' },
   gif: { width: 390, height: 844, mobile: true, query: '#gif' },
   /* US-146：只讀的雲端連線探測（不寫任何資料），見 harness.js 的 CLOUD_PROBE */
   cloud: { width: 390, height: 844, mobile: true, query: '?cloud=1' },

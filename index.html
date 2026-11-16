@@ -2,7 +2,9 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- US-147：鎖死縮放 —— maximum-scale=1.0 / user-scalable=no 擋掉雙擊與雙指放大
+     （iOS 10+ 會忽略這兩個值，所以 CSS touch-action ＋ JS gesturestart 另外補；見 §1 與 lockViewportGestures） -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <!-- ══════════ PWA ＆ iOS Safari 主畫面配置（manifest 與圖示都在專案根目錄，
      以 ./ 相對路徑引用 → scripts/build-static.mjs／sync-site.mjs 會一併複製到 dist/） ══════════ -->
 <meta name="theme-color" content="#EA580C">
@@ -47,11 +49,21 @@
   --font-ui:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Segoe UI",system-ui,sans-serif;
   --shadow-lg:0 20px 46px rgba(31,42,55,.14);
   --shadow-md:0 10px 24px rgba(31,42,55,.12);
+  /* US-147：iPhone 瀏海／Home Indicator 安全區（單一來源；桌機與模擬器一律 0px）
+     `env()` 在 :root 宣告只在「使用時」解析 → 同一個變數可同時餵給 padding 與 calc() */
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
 }
 
 *,*::before,*::after{box-sizing:border-box}
 
-html,body{height:100%}
+html,body{
+  height:100%;
+  /* US-147：鎖死縮放 —— pan-x／pan-y 仍可正常捲動，但整份文件不再允許 pinch-zoom；
+     再配 <meta maximum-scale=1.0,user-scalable=no> 與 lockViewportGestures() 三重保險 */
+  touch-action:pan-x pan-y;
+  -webkit-text-size-adjust:100%;text-size-adjust:100%;
+}
 body{
   margin:0;
   font-family:var(--font-ui);
@@ -90,7 +102,18 @@ body[data-edit="1"] .sidebar{display:flex !important}
   display:flex;
   flex-direction:column;
   min-height:0;
+  /* US-147：瀏海／Home Indicator 全部留在安全區內 —— header 不會再被狀態列蓋住。
+     box-sizing:border-box（見全域 *）→ 100dvh 已含 padding，總高度不變。 */
+  padding-top:var(--safe-top);
+  padding-bottom:var(--safe-bottom);
 }
+/* US-147：底部安全區的「白底延伸」—— padding 讓控制卡離螢幕底 34px，
+   這條 fixed 白條把那 34px 填成卡片的一部分，看起來仍是一張貼齊底部的卡 */
+.app::after{
+  content:"";position:fixed;left:0;right:0;bottom:0;height:var(--safe-bottom);
+  background:#FFFFFF;z-index:39;pointer-events:none;display:none;
+}
+@media (max-width:767px){ .app::after{display:block} }
 
 /* ── 頂部導航列 ── */
 .topbar{
@@ -292,7 +315,9 @@ body[data-edit="1"] .sidebar{display:flex !important}
 .board-wrap{
   position:relative;width:100%;
   --board-h-chrome:258px;
-  max-width:min(100%, calc((100dvh - var(--board-h-chrome)) * 1.0638));
+  /* US-147：球場＝相對比例 —— 可用高 = 視窗高 − 上下安全區 − 其他固定 chrome，
+     再乘 1.0638（1000:940）換算成等比寬度；min(100%) 保證不超出容器。 */
+  max-width:min(100%, calc((100dvh - var(--safe-top) - var(--safe-bottom) - var(--board-h-chrome)) * 1.0638));
   border-radius:16px;
   border:1px solid rgba(123,140,158,.45);
   background:#EBF1F6;
@@ -1288,7 +1313,7 @@ body[data-keys="edit"] .board-wrap{--board-h-chrome:390px}
 
   /* ── 1) Header：只留隊徽 + 簡稱 + 身分切換 ── */
   .topbar{
-    gap:8px;padding:calc(6px + env(safe-area-inset-top)) 12px 6px;
+    gap:8px;padding:6px 12px;
     min-height:44px;
     box-shadow:0 2px 10px rgba(31,42,55,.08);
   }
@@ -1335,7 +1360,8 @@ body[data-keys="edit"] .board-wrap{--board-h-chrome:390px}
   .board-wrap{
     --board-h-chrome:230px;
     width:100%;
-    max-width:min(100%, calc((100dvh - var(--board-h-chrome)) * 1.0638));
+    /* US-147：同桌機公式，但預算扣掉 iPhone 上下安全區 → 瀏海機也不裁切、不變形 */
+    max-width:min(100%, calc((100dvh - var(--safe-top) - var(--safe-bottom) - var(--board-h-chrome)) * 1.0638));
     border:0;border-radius:0;box-shadow:none;
   }
   .board-overlay{inset:6px 6px auto 6px;gap:6px}
@@ -1362,7 +1388,7 @@ body[data-keys="edit"] .board-wrap{--board-h-chrome:390px}
     align-content:stretch;
     align-items:stretch;
     gap:6px;
-    padding:8px 12px calc(8px + env(safe-area-inset-bottom));
+    padding:8px 12px;
     background:#FFFFFF;
     border-top:1px solid rgba(31,42,55,.08);
     border-bottom:0;
@@ -1651,6 +1677,19 @@ body[data-keys="edit"] .board-wrap{--board-h-chrome:390px}
 
   /* 提示條：一次只顯示 1 顆、1.5 秒淡出，浮在控制卡下半部不擋按鈕 */
   .toast-stack{bottom:calc(var(--stepbar-h, 101px) + 12px);width:min(90vw,360px)}
+}
+
+/* ── US-149：iOS／iPadOS 聚焦 <16px 的表單元素會自動放大整個 visual viewport，
+      而且關 Modal／收鍵盤後不復原 → 看起來就像「教練模式被橫向撐爆、要雙指縮細」。
+      （球員模式沒有任何 input，所以永遠不會觸發；教練模式一開就跳密碼框，必然中招。）
+      meta viewport 的 maximum-scale／user-scalable 攔不住「聚焦放大」，只能在源頭改字級。
+      → 手機（≤767px）＋ 所有觸控裝置（iPad 即使 ≥768px）一律 16px；滑鼠裝置維持原字級。 */
+@media (max-width:767px), (hover:none) and (pointer:coarse){
+  .input,
+  .tp-input,
+  select.input { font-size:16px; }
+  .tp-input { height:32px; }                  /* 16px 字級下維持原本行高視覺（原 30px／12.5px） */
+  .input { padding:10px 13px; }               /* 補償放大後的高度（原 11px 13px），Modal 不變高 */
 }
 
 /* 矮螢幕（≤760px 高，例如 375×667／360×740）
@@ -2517,8 +2556,8 @@ const COURT_THREE_JOIN_Y = COURT.rim.y +
   Math.sqrt(Math.pow(COURT.threeR, 2) - Math.pow(BASE_W / 2 - COURT.cornerX, 2));
 
 /* ── 動畫 / GIF 參數 ── */
-const PLAYBACK_DURATION = 900;   // 單次步驟過場毫秒
-const PLAYBACK_HOLD = 260;       // 每步停留毫秒
+const PLAYBACK_DURATION = 1300;  // US-147：單次步驟過場毫秒（原 900 → 放慢，走位更好辨識）
+const PLAYBACK_HOLD = 300;       // US-147：每步到達終點後停頓毫秒（0.3 秒）
 const LOOP_GAP = 620;            // 循環播放的重播間隔毫秒
 const GIF_SAMPLES = 9;           // 每段過場插入的補間影格數
 const GIF_SCALE = 0.64;          // 匯出縮放（1000 × 0.64 = 640px 寬）
@@ -2556,6 +2595,31 @@ const LINE_COLORS = {
 };
 const LINE_LABELS = { cut: '切入', pass: '傳球', dribble: '運球', screen: '擋拆', def: '防守移動' };
 const LINE_TOOLS = ['cut', 'pass', 'dribble', 'screen'];
+
+/* ── US-147：播放中的線條可見性 ──
+   播放時只保留「傳球虛線箭頭」；跑位／切入／運球／掩護／防守線全部暫時隱藏
+   （球員本身就在跑，畫面上不再殘留多餘走位線）。停止播放或靜態檢視 → 全部恢復。
+   播放中也不畫殘影軌跡：它在補間開始時就把整條「起點→終點」虛線畫滿，
+   正是需求要消掉的「殘留走位線」。要開回來把 PLAYBACK_TRAILS 設 true 即可。 */
+const PLAYBACK_LINE_KEEP = 'pass';
+const PLAYBACK_TRAILS = false;
+
+/* true＝這條線在目前狀態下應該看得見（預覽線由 previewStepLines 自己管） */
+function lineVisibleWhilePlaying(obj) {
+  if (!obj || obj.isPreview) return true;
+  if (!state.playing) return true;
+  return obj.lineType === PLAYBACK_LINE_KEEP;
+}
+
+/* 立即同步「真正的線」的透明度（預覽線另由 tweenToFrame 淡入淡出） */
+function syncPlaybackLineOpacity() {
+  if (!canvas) return;
+  canvas.getObjects().forEach(function (obj) {
+    if (!obj || obj.kind !== 'line' || obj.isPreview) return;
+    obj.set('opacity', lineVisibleWhilePlaying(obj) ? 1 : 0);
+  });
+  canvas.requestRenderAll();
+}
 
 /* ── 預設站位（進攻往上方籃框：籃框 y=105、禁區 337–663 × 0–387） ── */
 const OFF_SPOTS = {
@@ -3981,9 +4045,15 @@ function renderFrame(index, options) {
 function fadeInLines() {
   const lines = canvas.getObjects().filter(function (obj) { return obj.kind === 'line'; });
   if (!lines.length) return;
-  lines.forEach(function (obj) { obj.set('opacity', 0); });
+  /* US-147：播放中只淡入「傳球虛線」，其餘線條直接鎖在 opacity 0（不殘留走位線） */
+  const shown = [];
+  lines.forEach(function (obj) {
+    obj.set('opacity', 0);
+    if (lineVisibleWhilePlaying(obj)) shown.push(obj);
+  });
+  if (!shown.length) { canvas.requestRenderAll(); return; }
   animateValue(320, function (eased) {
-    lines.forEach(function (obj) { obj.set('opacity', eased); });
+    shown.forEach(function (obj) { obj.set('opacity', eased); });
     canvas.requestRenderAll();
   });
 }
@@ -4128,6 +4198,8 @@ function setTool(tool) {
 function setPlaying(playing) {
   state.playing = playing;
   if (!playing) state.stopRequested = false;
+  /* US-147：播放＝只留傳球虛線；停止＝全部恢復（停止後 playAnimation 會重載該步） */
+  syncPlaybackLineOpacity();
   const disable = playing || state.exporting;
   ['#btnGif', '#btnGifSheet', '#btnGifBook', '#btnAddStep', '#btnDupStep', '#btnDupStepSheet',
     '#btnDelStep', '#btnDelStepSheet', '#btnPrev', '#btnNext', '#btnShare',
@@ -5380,7 +5452,8 @@ function makeTrailSegment(from, to, width, color, dash) {
 }
 
 function startTrails(fromMap, toMap) {
-  if (!canvas || prefersReducedMotion()) return [];
+  /* US-147：播放中不畫殘影軌跡（見 PLAYBACK_TRAILS 的說明） */
+  if (!PLAYBACK_TRAILS || !canvas || prefersReducedMotion()) return [];
   const trails = [];
   Object.keys(toMap).forEach(function (key) {
     const a = fromMap[key];
@@ -5422,12 +5495,14 @@ function fadeOutTrails(trails) {
 
 /* US-141：播放時先把「目標步驟」的箭咀鋪到畫面上（isPreview，不入庫）。
    補間期間球員／籃球就是沿著這些箭咀走，畫布與動作 100% 對得上。
+   US-147：播放中只鋪「傳球虛線」，其餘線條不鋪 → 畫面上不留多餘走位線。
    任何異常（fabric 版本、資料壞掉）都回空陣列 → 完全退回原本的淡出路徑。 */
 function previewStepLines(frame) {
   return new Promise(function (resolve) {
     if (!canvas || !frame || !Array.isArray(frame.objects)) { resolve([]); return; }
     const specs = cloneObjects(frame.objects).filter(function (obj) {
-      return obj && obj.kind === 'line';
+      return obj && obj.kind === 'line' &&
+        (!state.playing || obj.lineType === PLAYBACK_LINE_KEEP);
     });
     if (!specs.length || typeof fabric === 'undefined' || !fabric.util ||
       typeof fabric.util.enlivenObjects !== 'function') { resolve([]); return; }
@@ -6848,7 +6923,8 @@ function updateSheetLimit() {
   const board = document.querySelector('.board-wrap');
   if (!board) return;
   const bottom = board.getBoundingClientRect().bottom;
-  const avail = Math.round(window.innerHeight - bottom - 12);
+  /* US-147：扣掉 `.app` 的底部安全區，抽屜才不會頂出 Home Indicator */
+  const avail = Math.round(window.innerHeight - bottom - appBottomInsetPx() - 12);
   /* 下限 150px：矮視窗（例如 1280×720 筆電、手機橫向）仍可操作，抽屜內容自身可捲動 */
   const max = Math.max(150, Math.min(560, avail));
   root.style.setProperty('--sheet-max', max + 'px');
@@ -7084,7 +7160,11 @@ function requestCoachMode() {
   $('#pwError').textContent = '';
   $('#pwInput').classList.remove('is-invalid');
   openModal('pwModal');
-  setTimeout(function () { $('#pwInput').focus(); }, 40);
+  /* US-149：觸控／無 hover 裝置不自動 focus —— iOS 一聚焦就會放大 visual viewport；
+     桌面仍自動 focus 方便直接打字（字級另有 §6.5 的 16px 規則兜底）。 */
+  const finePointer = !!(window.matchMedia &&
+    window.matchMedia('(hover:hover) and (pointer:fine)').matches);
+  if (finePointer) setTimeout(function () { $('#pwInput').focus(); }, 40);
 }
 
 function submitPassword(event) {
@@ -7429,13 +7509,33 @@ function syncStepsScrollFade() {
   list.classList.toggle('is-scrollable', more);
 }
 
+/* US-147：`--stepbar-h` 的語義＝「視窗底 → 控制卡上緣」。
+   手機上 `.app` 吃掉了 bottom 安全區（padding-bottom），控制卡不再貼齊視窗底，
+   所以改用 innerHeight − top 量測（＝卡片高度 ＋ 安全區），toast／pwa-tip／批核列
+   才不會壓到卡片上緣。桌機的 stepbar 不在視窗底 → 沿用原本的高度值。 */
+function stepbarOffsetPx() {
+  const bar = document.querySelector('.stepbar');
+  if (!bar) return 0;
+  if (window.innerWidth < 768) {
+    return Math.max(0, Math.round(window.innerHeight - bar.getBoundingClientRect().top));
+  }
+  return Math.round(bar.getBoundingClientRect().height);
+}
+
+/* `.app` 目前吃掉的底部安全區像素（桌機／模擬器＝0） */
+function appBottomInsetPx() {
+  const app = document.querySelector('.app');
+  const v = app ? parseFloat(getComputedStyle(app).paddingBottom) : 0;
+  return isFinite(v) && v > 0 ? v : 0;
+}
+
 /* 把底部控制卡高度寫進 CSS 變數，讓 toast／浮層永遠貼在卡片上方 */
 function initStepbarMetrics() {
   const bar = $('.stepbar');
   const list = $('#stepList');
   const root = document.documentElement;
   const sync = function () {
-    const h = bar ? Math.round(bar.getBoundingClientRect().height) : 0;
+    const h = stepbarOffsetPx();
     root.style.setProperty('--stepbar-h', h + 'px');
     syncStepbarDense();
     syncStepsScrollFade();
@@ -7482,9 +7582,8 @@ function showPwaTip() {
   if (!el || !el.hidden) return;
   /* 出場前再量一次底部控制卡高度：步驟文字換行／密集模式切換時，
      ResizeObserver 可能還沒回報 → --stepbar-h 會偏舊，提示卡就壓到卡片上緣 */
-  const bar = document.querySelector('.stepbar');
-  if (bar && window.innerWidth < 768) {
-    const h = Math.round(bar.getBoundingClientRect().height);
+  if (window.innerWidth < 768) {
+    const h = stepbarOffsetPx();          /* US-147：含底部安全區 */
     if (h > 0) document.documentElement.style.setProperty('--stepbar-h', h + 'px');
   }
   el.hidden = false;
@@ -7529,7 +7628,19 @@ function initPwaTip() {
   setTimeout(waitEnter, 1500);
 }
 
+/* US-147：鎖死縮放（JS 層）—— iOS 10+ 會忽略 <meta user-scalable=no>／maximum-scale，
+   所以在文件層明確擋掉 Safari 的 pinch 手勢（gesturestart/change/end）與雙擊放大。
+   只擋「手勢」不擋 click → 按鈕連點、球場拖曳、抽屜滑動完全不受影響。 */
+function lockViewportGestures() {
+  const stop = function (e) { if (e.cancelable) e.preventDefault(); };
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (type) {
+    document.addEventListener(type, stop, { passive: false });
+  });
+  document.addEventListener('dblclick', stop, { passive: false });
+}
+
 function boot() {
+  lockViewportGestures();
   showSplash();
   if (typeof fabric === 'undefined') {
     setHint('Canvas 繪圖套件（fabric.js）載入失敗，請確認網路連線後重新整理。', true);

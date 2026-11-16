@@ -1993,7 +1993,7 @@ US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布�
 
 | Requirement ID | Requirement Description | Feature/Module |
 | --- | --- | --- |
-| FR-285 | **Web App Manifest**：根目錄 `manifest.json`＝`name`「MondayBeer 戰術板」／`short_name`「MondayBeer」／`start_url` `/`／`display` `standalone`／`orientation` `portrait`／`background_color` `#0F172A`／`theme_color` `#EA580C`／icons `./icon-192.png`、`./icon-512.png`。圖示必須用 `./` 相對路徑，`scripts/build-static.mjs`／`sync-site.mjs` 才會把 manifest 與兩張 PNG 一起複製到 `dist/`、`frontend/site/` | `manifest.json`／`scripts/build-static.mjs`／`scripts/sync-site.mjs` |
+| FR-285 | **Web App Manifest**：根目錄 `manifest.json`＝`name`「MondayBeer 戰術板」／`short_name`「MondayBeer」／**`id` `/`（US-150 新增，釘住 App 身分）**／**`start_url` `/?v=2`（US-150：版本化，配合 Vercel `must-revalidate` 做快取破壞）**／`display` `standalone`／`orientation` `portrait`／**`background_color` `#EBF1F6`（US-150：原 `#0F172A`，改與 body 漸層起點一致，消除 iOS standalone 啟動深色閃光）**／`theme_color` `#EA580C`／icons `./icon-192.png`、`./icon-512.png`。圖示必須用 `./` 相對路徑，`scripts/build-static.mjs`／`sync-site.mjs` 才會把 manifest 與兩張 PNG 一起複製到 `dist/`、`frontend/site/` | `manifest.json`／`scripts/build-static.mjs`／`scripts/sync-site.mjs` |
 | FR-286 | **iOS 主畫面 meta**：`<head>` 加入 `mobile-web-app-capable=yes`、`apple-mobile-web-app-capable=yes`、`apple-mobile-web-app-status-bar-style=black-translucent`、`apple-mobile-web-app-title=MondayBeer`、`theme-color=#EA580C`（原 `#EBF1F6`），並補 `link[rel=manifest]`（`./manifest.json`）、`apple-touch-icon`（`./icon-192.png`）、`icon` 512（`./icon-512.png`） | `index.html` §head |
 | FR-287 | **主畫面圖示**：`icon-192.png`／`icon-512.png` 由隊徽原圖（`WhatsApp Image …jpeg` 1408×768）置中裁成 768×768 正方形後以 HighQualityBicubic 縮圖（不透明 PNG），避免 iOS／Android 主畫面圖示被拉長或裁掉隊名 | `icon-192.png`／`icon-512.png` |
 | FR-288 | **iOS 安裝引導卡**：`#pwaTip`（`.pwa-tip`）固定貼在底部控制卡上方（`bottom: calc(var(--stepbar-h,101px) + 10px)`、`z-index:61`），內容＝「📲 安裝為原生 App 體驗」標題＋分享 inline SVG＋「加入主畫面」粗體文字＋`✕`；`showPwaTip()`／`hidePwaTip()` 用 `.is-open` 做 320ms 滑入淡出，`body.has-pwa-tip` 同步把 `.toast-stack` 上移 | `#pwaTip`／CSS §7／`showPwaTip()`／`hidePwaTip()` |
@@ -2300,4 +2300,371 @@ US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布�
 4. **publishable key 不是 `anon` JWT**：Supabase 新版 publishable key 在 REST 上等價於 `anon` 角色；若日後改回 legacy `anon` JWT 或啟用 Auth，記得同步 `index.html` 與 `.env.example`。
 5. **`?local=1` 是公開後門的「降級開關」**：任何使用者都能用它把資料留在本機（不會破壞雲端資料，只是該次不寫入）。若這在正式訓練時會造成混淆，可考慮只在 `location.hostname === 'localhost'` 或 `file:` 時允許。
 
+
+---
+
+## 🆕 本輪需求（US-147：iPhone Safari 播放體驗 — 只留傳球虛線、放慢節奏、安全區與縮放鎖死）
+
+### 使用者故事
+
+**US-147** — 作為**在 iPhone Safari 上單手看戰術的教練／球員**，我希望**播放動畫時畫面只剩「球怎麼傳」的虛線（跑位／切入／掩護／防守線不再疊在球場上）、每一步過場放慢到看得清走位、Header 不會被瀏海／狀態列蓋住、也不怕手一抖就雙擊放大或雙指縮放**，這樣**在球場邊昏暗嘈雜的環境下也能一眼看懂戰術，不會因為畫面太亂或誤觸縮放而錯過關鍵走位**。
+
+### 需求
+
+#### 功能需求（Functional Requirements）
+
+| Requirement ID | 需求 | Feature/Module | Status |
+| --- | --- | --- | --- |
+| FR-314 | **播放中只保留「傳球」箭頭**：`state.playing === true` 時，`kind === 'line'` 且 `lineType !== 'pass'` 的物件一率 `opacity 0`；判斷集中在 `lineVisibleWhilePlaying()` 一處 | `lineVisibleWhilePlaying()`／`syncPlaybackLineOpacity()`／`fadeInLines()` | Verified |
+| FR-315 | **補間預覽只鋪傳球**：`tweenToFrame()` 經 `previewStepLines()` 鋪上的 `isPreview` 線條，播放中只 enliven `pass` 規格 | `previewStepLines()` | Verified |
+| FR-316 | **靜態檢視／停止播放即恢復全部線條**：`playAnimation()` 的 `finally` → `setPlaying(false)` → `syncPlaybackLineOpacity()` ＋ `renderFrame(restoreIndex)` 重載該步 | `setPlaying()`／`playAnimation()` | Verified |
+| FR-317 | **播放中不畫殘影軌跡**：它在補間開始就把整條「起點→終點」虛線畫滿，正是需求要消掉的「殘留走位線」；用 `PLAYBACK_TRAILS = false` 保留可逆性 | `startTrails()` | Verified |
+| FR-318 | **播放節奏放慢**：單步過場 `900ms → 1300ms`、到達後停頓 `260ms → 300ms`（`LOOP_GAP` 不變） | `PLAYBACK_DURATION`／`PLAYBACK_HOLD` | Verified |
+| FR-319 | **安全區交給 `.app`**：`:root` 新增 `--safe-top`／`--safe-bottom`（`env(safe-area-inset-*)`），`.app` 吃 `padding-top/bottom`；手機 `.topbar`、`.stepbar` 原本各自的 inset padding 移除（不重複計算） | CSS `:root`／`.app`／`.topbar`／`.stepbar` | Verified |
+| FR-320 | **底部安全區白底延伸**：`.app::after` 以 fixed 白條填滿 `--safe-bottom`（僅 ≤767px 顯示），控制卡看起來仍貼齊螢幕底 | CSS `.app::after`／`--safe-bottom` | Verified |
+| FR-321 | **球場＝相對比例**：`max-width:min(100%, calc((100dvh − --safe-top − --safe-bottom − --board-h-chrome) × 1.0638))`，桌機與手機兩處公式同步，任何 iPhone 都等比、不變形、不裁切 | CSS `.board-wrap` | Verified |
+| FR-322 | **浮層避讓跟著改**：`--stepbar-h` 語義改為「視窗底 → 控制卡上緣」，由 `stepbarOffsetPx()`（手機 `innerHeight − top`、桌機 `height`）統一供應 `toast`／`pwa-tip`／`review-bar` | `stepbarOffsetPx()`／`initStepbarMetrics()`／`showPwaTip()` | Verified |
+| FR-323 | **抽屜不頂出 Home Indicator**：`updateSheetLimit()` 的可用高扣掉 `appBottomInsetPx()` | `updateSheetLimit()`／`appBottomInsetPx()` | Verified |
+| FR-324 | **縮放鎖死（三重）**：① meta `maximum-scale=1.0, user-scalable=no, viewport-fit=cover`；② CSS `html,body{touch-action:pan-x pan-y}`（仍可捲動、禁 pinch）；③ JS `lockViewportGestures()` 攔 `gesturestart/change/end` ＋ `dblclick` | `<meta viewport>`／CSS §1／`lockViewportGestures()` | Verified |
+| FR-325 | **冒煙測試新增 11 條斷言**（`zoom.*` 3／`safe.*` 1／`play.*` 7（含真畫布與預覽過濾）＋ `mobile.*` 2），並在 README 補分組說明 | `.scratch/smoke/harness.js`、`README.md` | Verified |
+
+#### 非功能需求（Non-Functional Requirements）
+
+| Requirement ID | 需求 | Status |
+| --- | --- | --- |
+| NFR-156 | **總高度不變**：安全區只是從 `.topbar`／`.stepbar` 的 padding 搬進 `.app`（`box-sizing:border-box` → `100dvh` 已含 padding），已調校的 `--board-h-chrome`（230／336／390px）不必重調 | Verified |
+| NFR-157 | **只擋手勢、不擋 click**：`lockViewportGestures()` 只 preventDefault 手勢事件，按鈕連點、球場拖曳、清單／抽屜滑動行為不變（手機 spec 270 條全綠即為證據） | Verified |
+| NFR-158 | **桌機零回歸**：1440×900／1184×820／900×900／768×1024 四個 spec 全綠，`--safe-*` 在桌機解析為 `0px` | Verified |
+
+#### 限制與約束（Constraints）
+
+| Requirement ID | 內容 | Status |
+| --- | --- | --- |
+| C-150 | iOS Safari **自 iOS 10 起忽略** `user-scalable=no`／`maximum-scale=1`（無障礙政策），所以 meta 只能當第一層保險，真正生效的是 CSS `touch-action` ＋ JS `gesturestart` 攔截 | Accepted |
+| C-151 | 「比分」浮動元件**不存在**：全檔搜尋 `比分／score` 為 0 筆（球場上只有 `.badge-tool`「繪製中」與 `.cue-tag`），故本輪沒有對應的移除動作 | Accepted |
+| C-152 | `PLAYBACK_TRAILS = false` 是刻意的最小改動：保留軌跡程式碼與 260ms 淡出流程，要恢復只需把常數改 `true` | Accepted |
+
+#### 驗收條件（Acceptance Criteria）
+
+- **AC-244** 播放中只留傳球：`play.passOnly`（`pass=true`、`cut=false`、`def=false`）＋ 真畫布 `play.canvasHidesCut`（切入 `opacity=0`、傳球 `opacity=1`）＋ 預覽過濾 `play.previewOnlyPass`（2 條線只鋪 1 條傳球預覽）。
+- **AC-245** 停止後完全復原：`play.canvasRestored`（兩條線都回到 `1`）／`play.restoredStatic`（非播放時切入線可見）／既有的 `play.previewLinesShown`＋`play.previewCleared` 仍為 2 preview／0 殘留。
+- **AC-246** 節奏：`play.slowTween`（1300ms）／`play.hold300`（300ms）。
+- **AC-247** 安全區：`safe.appPadding`（`.app` 的 `padding-top/bottom` ＝ `--safe-top`／`--safe-bottom`）＋ `mobile.cardToSafeBottom`（控制卡下緣 ＋ 安全區 ＝ 視窗高，誤差 ≤1.5px）＋ `mobile.courtNoClip`（球場下緣不超出 `.board-restrict`）。
+- **AC-248** 縮放鎖死：`zoom.metaLocked`（meta 含三個關鍵值）／`zoom.touchAction`（`body` 算出 `pan-x pan-y`）／`zoom.gestureHandler`（`lockViewportGestures` 存在）。
+- **AC-249** 全 spec 綠：8 個響應式 spec 皆 `FAIL=0`，`integrity.js` 的雜湊／括號／`node --check` 全綠。
+
+#### 需求追溯矩陣（RTM）
+
+| Requirement ID | Requirement Description | Feature/Module | User Story Reference | Status |
+| --- | --- | --- | --- | --- |
+| FR-314 | 播放中只留傳球虛線 | `lineVisibleWhilePlaying()` | US-147 | Verified |
+| FR-315 | 補間預覽只鋪傳球 | `previewStepLines()` | US-147 | Verified |
+| FR-316 | 停止／靜態恢復全部線條 | `setPlaying()`／`playAnimation()` | US-147 | Verified |
+| FR-317 | 播放中不畫殘影軌跡 | `startTrails()`／`PLAYBACK_TRAILS` | US-147 | Verified |
+| FR-318 | 1.3 秒過場 ＋ 0.3 秒停頓 | `PLAYBACK_DURATION`／`PLAYBACK_HOLD` | US-147 | Verified |
+| FR-319 | 安全區由 `.app` 統一處理 | CSS `:root`／`.app` | US-147 | Verified |
+| FR-320 | 底部安全區白底延伸 | CSS `.app::after` | US-147 | Verified |
+| FR-321 | 球場比例公式扣安全區 | CSS `.board-wrap` | US-147 | Verified |
+| FR-322 | 浮層避讓（`--stepbar-h` 新語義） | `stepbarOffsetPx()` | US-147 | Verified |
+| FR-323 | 抽屜高度扣安全區 | `updateSheetLimit()` | US-147 | Verified |
+| FR-324 | 縮放鎖死三重保險 | meta／CSS／`lockViewportGestures()` | US-147 | Verified |
+| FR-325 | 冒煙測試 11 條新斷言 | `.scratch/smoke/harness.js` | US-147 | Verified |
+| NFR-156 | 總高度不變、`--board-h-chrome` 不重調 | CSS | US-147 | Verified |
+| NFR-157 | 只擋手勢不擋 click | `lockViewportGestures()` | US-147 | Verified |
+| NFR-158 | 桌機零回歸 | 4 個桌機 spec | US-147 | Verified |
+| C-150 | iOS 10+ 忽略 meta 縮放鎖 | `<meta viewport>` | US-147 | Accepted |
+| C-151 | 本 App 無「比分」元件 | —（0 筆） | US-147 | Accepted |
+| C-152 | `PLAYBACK_TRAILS` 可逆開關 | `startTrails()` | US-147 | Accepted |
+| AC-244～AC-249 | 驗收 | 見下方「驗收紀錄（本輪：US-147）」 | US-147 | Verified |
+
+### 驗收紀錄（本輪：US-147）
+
+**日期**：2026-11-10 ｜ **方式**：`npm run build` → `npm run sync:site` → `node .scratch/smoke/integrity.js`（靜態）→ `node .scratch/smoke/build.js`（重建測試頁）→ `node .scratch/smoke/cdp.js`（8 個 spec）。
+
+| 規格 | 視窗 | 結果 |
+| --- | --- | --- |
+| `1440x900` | 1440×900（`?full=1` 桌機三欄） | **PASS=244 · FAIL=0** |
+| `1184x820` | 1184×820（中桌機） | **PASS=244 · FAIL=0** |
+| `900x900` | 900×900（平板抽屜帶） | **PASS=246 · FAIL=0** |
+| `768x1024` | 768×1024（斷點邊界） | **PASS=246 · FAIL=0** |
+| `390x844` | 390×844（iPhone 14） | **PASS=270 · FAIL=0** |
+| `375x667` | 375×667（矮螢幕，`is-dense`） | **PASS=270 · FAIL=0** |
+| `360x740` | 360×740（超窄機） | **PASS=270 · FAIL=0** |
+| `gif` | 390×844 ＋ `#gif`（GIF 擷取路徑） | **PASS=14 · FAIL=0** |
+
+- 新增斷言（手機 14 條／桌機 12 條）：`zoom.metaLocked`／`zoom.touchAction`／`zoom.gestureHandler`／`safe.appPadding`／`play.slowTween`／`play.hold300`／`play.passOnly`／`play.previewKept`／`play.restoredStatic`／`play.canvasHidesCut`／`play.canvasRestored`／`play.previewOnlyPass`，手機再加 `mobile.courtNoClip`／`mobile.cardToSafeBottom`（256→270、232→244、234→246）。
+- 靜態檢查：CSS 大括號 **639／639** 平衡、兩段 inline script `node --check` 通過（`script1` 183967 chars）、`index.html`／`dist/index.html`／`frontend/site/index.html` 雜湊一致（`4434B3EC870F`）。
+
+### 已知取捨／限制
+
+1. **iOS 的縮放鎖有三層，缺一不可**（C-150）：移除 `<meta>` 或 `touch-action` 任一層，真機仍可能被 pinch 放大；`dblclick` 與 `gesture*` 攔截只 preventDefault 手勢事件，不影響 click（NFR-157）。若日後有人在 `document` 上另加 `touchend` 的 `preventDefault`，按鈕連點會失效——請維持現行寫法。
+2. **播放中看不到軌跡**（FR-317）：為了貫徹「不殘留走位線」，`PLAYBACK_TRAILS` 預設 `false`；要恢復「彗星尾」視覺把常數改 `true` 即可，淡出 260ms 與 `isTrail` 不入庫的邏輯都還在。
+3. **`--board-h-chrome` 仍是人工預算值**（NFR-156）：安全區只是搬家，公式另外扣 `--safe-*`；日後若再往控制卡加一列，仍要同步調整 336／390，否則 `mobile.courtNoClip` 會先亮紅燈。
+4. **`.app::after` 是視覺補丁**：底部 inset 的白條用 fixed 定位，`z-index:39` 刻意低於 `.stepbar`（40）、高於球場；若動到 `.stepbar` 的 z-index 請一併檢查這條。
+
+
+
+
+
+
+---
+
+## 🆕 本輪需求（US-148：Supabase 免費專案自動保活 — GitHub Actions 每 3 天 ping 一次）
+
+### 使用者故事
+
+**US-148** — 作為**維運者（教練本人）**，我希望**GitHub Actions 每 3 天自動對 Supabase 的 `tactics` 表發一次查詢**，這樣**免費方案不會因為連續 7 天沒有活動被自動 Pause（暫停），比賽前打開戰術板時不會突然發現「Supabase 雲端」失效、手機上編好的戰術掉回本機儲存**。
+
+### 需求
+
+#### 功能需求（Functional Requirements）
+
+| Requirement ID | 需求 | Feature/Module | Status |
+| --- | --- | --- | --- |
+| FR-326 | **保活排程**：新增 workflow `.github/workflows/supabase-keepalive.yml`——`on.schedule.cron = '0 0 */3 * *'`（UTC 每月 1／4／7…31 日 00:00，最長間隔 3 天）＋ `on.workflow_dispatch`；單一 job `ping-supabase` 於 `ubuntu-latest` 對 `${SUPABASE_URL}/rest/v1/tactics?select=id&limit=1` 發 GET，同時帶 `apikey` 與 `Authorization: Bearer`（同一顆 publishable key，與 `index.html` §1 出貨值一致） | `.github/workflows/supabase-keepalive.yml` | Verified |
+| FR-327 | **失敗必須看得見（不准假綠）**：`set -euo pipefail` ＋ `curl -sS -f`（HTTP ≥ 400 直接讓 job 紅燈）＋ `--max-time 30 --retry 3 --retry-delay 5`；成功時把完整 response header 與 `tactics id count` 印進 log | 同上（`run:` 區塊） | Verified |
+| FR-328 | **最小權限與不重疊**：`permissions: contents: read`（純對外 GET，不需寫 repo）、`concurrency.group: supabase-keepalive` ＋ `cancel-in-progress: false`（排程延遲時不中斷前一輪）、`timeout-minutes: 5` | 同上 | Verified |
+| FR-329 | **回報 id 筆數且容忍空表**：以 `Prefer: count=exact` 讓 PostgREST 回 `Content-Range: start-end/total`；`tactics` 目前 0 筆時 header 為 `*/0`，**仍屬成功**（保活只需要「資料庫被查詢過」），不可因 0 筆而紅燈 | 同上（`awk` 解析 `Content-Range`） | Verified |
+
+#### 非功能需求（Non-Functional Requirements）
+
+| Requirement ID | 需求 | Status |
+| --- | --- | --- |
+| NFR-159 | **成本可忽略**：單次執行 < 1 分鐘（實測 2 秒內完成 GET），每月約 10 次；零額外依賴（只用 runner 內建的 `curl`／`awk`／`date`／`tr`，不裝套件、不加 npm/pip 步驟） | Verified |
+| NFR-160 | **與現有 CI 完全解耦**：`ci.yml`（backend ruff／frontend lint+build）不受影響；本輪**零前端改動**，不碰 `.env`、`devops/`、`scripts/`、`index.html` | Verified |
+
+#### 限制與約束（Constraints）
+
+| Requirement ID | 內容 | Status |
+| --- | --- | --- |
+| C-153 | GitHub 的 `schedule` 與 `workflow_dispatch` **只在 default branch（`main`）推出後才生效**；且 repo **連續 60 天沒有 commit** 時，GitHub 會自動停用所有 scheduled workflow（保活會悄悄停止，需回 Actions 頁按 *Enable workflow*） | Accepted |
+| C-154 | 金鑰自此存在**第三處**（`index.html` §1、`frontend/.env`、本 workflow）；輪替金鑰時三處都要改。此處只能放 publishable key —— **絕不可**改放 `service_role`／secret key | Accepted |
+| C-155 | 「對 REST API 發一次 GET 就算活動」是 **Supabase 平台行為，不是程式碼契約**；若官方改變 Pause 判定方式（例如只認 Dashboard 登入），本排程即失效，真正的保險仍是升級付費方案 | Accepted |
+| C-156 | GitHub cron 為 best-effort（常延遲 5～60 分鐘、極端時略過一次）；3 天節奏足以吸收，最壞情況總間隔仍遠低於 7 天 | Accepted |
+
+#### 驗收條件（Acceptance Criteria）
+
+- **AC-250** 設定檔合法：`python -c "import yaml; yaml.safe_load(...)"` 可解析出 `schedule: [{cron: '0 0 */3 * *'}]`、`workflow_dispatch`、`jobs.ping-supabase.runs-on=ubuntu-latest`，且 `steps[0].env` 含 `SUPABASE_URL`／`SUPABASE_ANON_KEY`。
+- **AC-251** 腳本可執行：把 `steps[0].run` 原封不動丟給 `bash`（帶上 `env:`）執行，**exit code 0**、log 出現 `HTTP/1.1 200 OK`、`tactics id count = …`、`OK — tactics table touched (HTTP 200)`。
+- **AC-252** 雲端可達：回應 header 需含 `sb-project-ref: zxjlhxozuyadqomgfodk`、`preference-applied: count=exact`、`Content-Range: …`（證明打到正確專案、且 `public read` RLS 政策放行）。
+- **AC-253** 上線後：GitHub → Actions → *Keep Supabase Alive* → **Run workflow** 綠燈，且 `gh run list --workflow=supabase-keepalive.yml` 能看到 `schedule` 事件的成功紀錄。
+
+#### 需求追溯矩陣（RTM）
+
+| Requirement ID | Requirement Description | Feature/Module | User Story Reference | Status |
+| --- | --- | --- | --- | --- |
+| FR-326 | 每 3 天自動 GET `tactics?select=id&limit=1`＋可手動 dispatch | `.github/workflows/supabase-keepalive.yml` | US-148 | Verified |
+| FR-327 | `curl -f` 讓 4xx/5xx 紅燈、重試與 timeout、log 留證據 | 同上（`run:`） | US-148 | Verified |
+| FR-328 | 最小權限（read）＋ concurrency ＋ timeout 5 分鐘 | 同上 | US-148 | Verified |
+| FR-329 | `Prefer: count=exact` 回報筆數，空表 `*/0` 不算失敗 | 同上（`awk`） | US-148 | Verified |
+| NFR-159 | 單次 < 1 分鐘、每月約 10 次、零外部依賴 | runner 內建工具 | US-148 | Verified |
+| NFR-160 | 與 `ci.yml` 解耦、零前端改動 | `.github/workflows/ci.yml` | US-148 | Verified |
+| C-153 | 只在 default branch 生效；60 天無 commit 會被停用 | GitHub Actions 平台規則 | US-148 | Accepted |
+| C-154 | 金鑰第三處，輪替需三處同改；禁 service_role | `index.html` §1／`frontend/.env`／workflow | US-148 | Accepted |
+| C-155 | 「GET 即活動」非契約，平台判定可能改變 | — | US-148 | Accepted |
+| C-156 | GitHub cron 延遲／略過 | — | US-148 | Accepted |
+| AC-250～AC-253 | 驗收 | 見下方「驗收紀錄（本輪：US-148）」 | US-148 | Verified／Pending（AC-253 待 push 後） |
+
+### 驗收紀錄（本輪：US-148）
+
+**日期**：2026-11-16 ｜ **方式**：PyYAML 解析 workflow → 以 Git Bash（`C:\Program Files\Git\bin\bash.exe`）原封不動執行 `steps[0].run` 並注入 `steps[0].env` → 比對 response header。
+
+| 檢查 | 結果 |
+| --- | --- |
+| YAML 解析（PyYAML 6.0.3） | **OK** — `KEYS: ['name', True, 'permissions', 'concurrency', 'jobs']`（PyYAML 把 `on` 視為 YAML 1.1 的 `True`，屬正常）、`TRIGGERS: ['schedule', 'workflow_dispatch']`、`CRON: [{'cron': '0 0 */3 * *'}]`、`RUNS-ON: ubuntu-latest` |
+| `run:` 區塊實跑（bash，注入 env） | **BASH EXIT: 0** — `HTTP/1.1 200 OK`、body `[]`、`tactics id count = */0`、`OK — tactics table touched (HTTP 200)` |
+| 是否打到正確專案 | **OK** — header 含 `sb-project-ref: zxjlhxozuyadqomgfodk`、`sb-gateway-version: 1` |
+| 筆數回報是否生效 | **OK** — header 含 `preference-applied: count=exact`、`Content-Range: */0`（空表） |
+| `set -u` 守門 | **OK** — 首次預演未注入 `env:` 時立即以 `SUPABASE_URL: unbound variable` 失敗，證明環境變數漏設不會被靜默吞掉 |
+| 上線後（AC-253） | **Pending** — 檔案尚未 push 到 `main`，GitHub 端尚無 `schedule` 紀錄 |
+
+- 本輪**未修改任何前端／後端程式碼**：`index.html`／`dist/`／`frontend/`／`scripts/`／`backend/` 皆未動，冒煙測試（`.scratch/smoke/*`）不需重跑。
+
+### 已知取捨／限制
+
+1. **60 天無 commit 會被 GitHub 自動停用**（C-153）：這是實務上最可能讓保活「悄悄失效」的原因；若超過兩個月沒動 code，請回 GitHub → Actions 按 *Enable workflow*。
+2. **空資料表也能保活**（FR-329）：`tactics` 目前 0 筆，回的是 `Content-Range: */0`；這是刻意設計——保活只要求「Postgres 真的被查詢一次」，不是要求有資料。
+3. **失敗不會主動通知你**：`curl -f` 讓 job 紅燈，但 GitHub 免費方案的失敗通知只留在 Actions 頁／帳號 email；若要做到「紅燈就叫」，可日後加一條 webhook（Discord／Slack）步驟，本輪未做。
+4. **保活不是 SLA**（C-155）：Supabase 隨時可能調整 Pause 判定方式；升付費方案才是根本解。
+5. **金鑰從兩處變三處**（C-154）：與既有 C-149 同一個坑——日後輪替 publishable key 時，`index.html` §1、`frontend/.env`、`.github/workflows/supabase-keepalive.yml` 三處都要同步。
+
+---
+
+## 🆕 本輪需求（US-149：教練模式在 iPhone 上被橫向撐爆 — iOS 聚焦自動放大）
+
+### 使用者故事
+
+**US-149** — 作為**教練（iPhone 使用者）**，我希望**切換到教練模式時頁面維持滿版 1:1，不要被橫向撐爆、不必雙指縮細才看得到全貌**，這樣**我在場邊能直接用單手看／改戰術，不用先手動縮放畫面**。
+
+### 問題現象與根因（排查紀錄）
+
+- **現象**：球員模式在 iPhone 完全正常（滿版、無溢位）；切到「教練模式」後整個頁面被橫向撐爆、右側超出螢幕，必須雙指縮細才看得到全貌。
+- **根因**：教練模式是**唯一會出現表單輸入框**的路徑——`requestCoachMode()` → `openModal('pwModal')` → 40ms 後自動 `focus()` 密碼框。**iOS Safari 對「正在聚焦且 `font-size < 16px`」的輸入框會自動放大 visual viewport**，且關 Modal／收鍵盤後**不復原** → 使用者看到的就是「頁面被橫向撐爆」。球員模式全程沒有任何 `input`，所以永遠不會觸發。
+- **字級證據**：`.input` = 13.5px、`.tp-input` = 12.5px、`select.input` = 13.5px；全站 9 個表單元件（`#pwInput`／`#tpStepName`／`#tpStepDesc`／`#textInput`／`#saveName`／`#savePerson`／`#saveCode`／`#createName`／`#createPerson`）**全部 < 16px**。
+- **為何既有防護無效**：`meta viewport` 的 `maximum-scale=1.0`／`user-scalable=no` 只約束**雙指手勢縮放**（iOS 10+ 更直接忽略 `user-scalable`），對「聚焦自動放大」完全無效；`body{overflow:hidden}` 也攔不住 visual viewport 的放大。
+- **結論**：這**不是** layout 溢位（`documentElement.scrollWidth` 一直等於 `innerWidth`），而是 Safari 放大了視覺視口。修法必須打在「字級」與「自動 focus」這兩個觸發點上。
+
+### 需求
+
+#### 功能需求（Functional Requirements）
+
+| Requirement ID | 需求 | Feature/Module | Status |
+| --- | --- | --- | --- |
+| FR-330 | **觸控裝置表單字級 ≥16px**：`@media (max-width:767px), (hover:none) and (pointer:coarse)` 內把 `.input`／`.tp-input`／`select.input` 設為 `font-size:16px`（iPad 即使 ≥768px 也一併涵蓋）；`.tp-input` 高度 30→32px、`.input` padding 11px→10px 補償高度 | `index.html` §6.5 之後的新 media 區塊 | Verified |
+| FR-331 | **觸控裝置不自動 focus**：`requestCoachMode()` 只在 `(hover:hover) and (pointer:fine)` 才 `setTimeout(focus,40)`；手機／平板改由使用者手動點輸入框 | `requestCoachMode()` | Verified |
+| FR-332 | **教練密碼框不得撐出橫向捲動**：`#pwModal` 開啟時 `documentElement.scrollWidth ≤ innerWidth+1` 且 `.modal-card` 左右緣落在視口內（沿用既有 `.modal{padding:20px}` ＋ `.modal-card{width:min(100%,420px)}`） | `.modal` / `.modal-card` | Verified |
+| FR-333 | **教練專屬 🔔 待批徽章不得撐爆頂欄**：`#btnPending` 顯示時 `.topbar.scrollWidth ≤ clientWidth+1`（`.topbar-right` 為 `flex:0 0 auto`，屬已知風險點） | `.topbar` / `.topbar-right` / `.pending-btn` | Verified |
+
+#### 非功能需求（Non-Functional Requirements）
+
+| Requirement ID | 需求 | Status |
+| --- | --- | --- |
+| NFR-161 | **全尺寸無橫向溢位**：`documentElement.scrollWidth ≤ innerWidth+1` 且 `body.scrollWidth ≤ body.clientWidth+1`，於 **`320×568`（US-150 追加）**／390×844／375×667／360×740／768×1024／768×1024t／900×900／1184×820／1440×900 全部成立 | Verified |
+| NFR-162 | **桌機視覺零變化**：滑鼠裝置（`hover:hover` + `pointer:fine`）輸入框維持 13.5px／12.5px，不因本輪修正變大 | Verified |
+
+#### 限制與約束（Constraints）
+
+| Requirement ID | 內容 | Status |
+| --- | --- | --- |
+| C-157 | iOS／iPadOS **忽略 `user-scalable=no`**，且聚焦放大**不受 `maximum-scale` 約束** → 只能在源頭改字級（≥16px）與移除觸發點（不自動 focus）；**已放大的 visual viewport 無法用 JS 復原**，所以不能靠 `visualViewport.scale` 之類的補救 | Accepted |
+| C-158 | **刻意不採用**的解法（避免日後被改回去）：① `touch-action:pan-y` —— 既有 `pan-x pan-y` 本身已排除 `pinch-zoom`，改 `pan-y` 零收益卻會殺掉 `.steps{overflow-x:auto}` 的橫向滑動並使 `zoom.touchAction` 斷言 FAIL；② `max-width:100vw` —— 桌機 `100vw` 含捲軸寬度，反而製造 1–17px 溢出；③ `html{overflow-x:hidden}` —— 會讓 `html` 變成滾動容器，影響 `100dvh`／`sticky`（真要保險應用 `overflow-x:clip`）；④ `#root` —— 本專案是單檔 `index.html`，沒有 `#root` | Accepted |
+
+#### 驗收條件（Acceptance Criteria）
+
+- **AC-254** `input.noIosZoom`：390／375／360 的 `#pwInput` computed `font-size` = **16px**（輸出帶 `· touch`）；桌機為 13.5px 且標記 `· mouse`。
+- **AC-255** `layout.noHScroll` / `layout.bodyNoHScroll`：上列 8 個尺寸實測值全部等於視口寬（例：`320 vs 320`、`390 vs 390`、`1440 vs 1440`）。
+- **AC-256** `layout.pwModalFits`：強制開啟 `#pwModal` 時卡片落在 `24..367`（390）／`23..337`（360），且無橫向捲動。
+- **AC-257** `topbar.pendingNoOverflow`：強制顯示 🔔 徽章量最壞情況，`390 vs 390`／`375 vs 375`／`360 vs 360` 仍不外溢。
+- **AC-258** 全 spec `FAIL=0`（見下方驗收紀錄）＋ `integrity.js` 全綠（CSS 括號、`node --check`、三方雜湊一致）＋ 實機 iPhone 清單全數通過。
+
+#### 需求追溯矩陣（RTM）
+
+| Requirement ID | Requirement Description | Feature/Module | User Story Reference | Status |
+| --- | --- | --- | --- | --- |
+| FR-330 | 觸控裝置（≤767px 或 coarse pointer）表單字級 ≥16px | `index.html` §6.5 後 `@media (max-width:767px), (hover:none) and (pointer:coarse)` | US-149 | Verified |
+| FR-331 | 觸控裝置不自動 focus 教練密碼框，滑鼠裝置保留 | `requestCoachMode()` | US-149 | Verified |
+| FR-332 | 教練密碼框開啟時不產生橫向捲動／卡片不超出視口 | `.modal` / `.modal-card` | US-149 | Verified |
+| FR-333 | 教練 🔔 待批徽章顯示時頂欄不溢出 | `.topbar` / `.topbar-right` | US-149 | Verified |
+| NFR-161 | 7 個尺寸 `scrollWidth == innerWidth`（無橫向溢位） | `.scratch/smoke/harness.js` `layout.*` | US-149 | Verified |
+| NFR-162 | 桌機輸入框字級不變（13.5px／12.5px） | 同上 `input.noIosZoom · mouse` | US-149 | Verified |
+| C-157 | iOS 忽略 `user-scalable`、聚焦放大不受 `maximum-scale` 約束 | 平台行為 | US-149 | Accepted |
+| C-158 | 否決 `touch-action:pan-y` / `100vw` / `html{overflow-x:hidden}` / `#root` 的理由 | — | US-149 | Accepted |
+| AC-254～AC-258 | 驗收 | 見下方「驗收紀錄（本輪：US-149）」 | US-149 | Verified（AC-258 實機項目待使用者確認） |
+
+### 驗收紀錄（本輪：US-149）
+
+**日期**：2026-11-16 ｜ **方式**：`node .scratch/smoke/build.js` 重建測試頁 → `node .scratch/smoke/cdp.js <specs>`（headless Edge ＋ CDP `Emulation.setDeviceMetricsOverride`）→ `node .scratch/smoke/integrity.js`。
+
+| spec | 尺寸 | 結果 |
+| --- | --- | --- |
+| `390x844` | iPhone 14/15 直向 | **PASS=275 · FAIL=0** |
+| `375x667` | iPhone SE 直向（矮螢幕） | **PASS=275 · FAIL=0** |
+| `360x740` | Android 窄機 | **PASS=275 · FAIL=0** |
+| `320x568` | iPhone SE 1st gen（**US-150 追加：最窄機下限**） | **PASS=275 · FAIL=0** |
+| `768x1024` | iPad 直向（滑鼠模擬） | **PASS=251 · FAIL=0** |
+| `768x1024t` | iPad 直向（**觸控**模擬，寬度 ≥768 走 `pointer:coarse` 分支） | **PASS=251 · FAIL=0**（`input.noIosZoom [16px · touch]`） |
+| `900x900` | 窄桌機 | **PASS=251 · FAIL=0** |
+| `1184x820` | 筆電 | **PASS=249 · FAIL=0** |
+| `1440x900` | 桌機 | **PASS=249 · FAIL=0** |
+| `gif` | 390×844 ＋ `#gif` | **PASS=14 · FAIL=0** |
+| `cloud` | 390×844 ＋ `?cloud=1`（只讀探測） | **PASS=6 · FAIL=0** |
+
+- 新增斷言（5 條）：`input.noIosZoom`（`16px · touch`／`13.5px · mouse`）、`layout.noHScroll`、`layout.bodyNoHScroll`、`layout.pwModalFits`、`topbar.pendingNoOverflow`（🔔 暫時強制顯示量最壞情況，量完立即還原）；US-150 追加靜態斷言 `integrity.manifestFields`、`integrity.manifestSynced`。
+- 實測數值：`layout.noHScroll` = `320/390/375/360/768/900/1184/1440 vs 同值`；`layout.pwModalFits` = `24..367 / vw=390`、`23..337 / vw=360`、`23..297 / vw=320`；`topbar.pendingNoOverflow` = `320 vs 320`、`390 vs 390`、`375 vs 375`、`360 vs 360`。
+- 靜態檢查：CSS 大括號 **643／643** 平衡、兩段 inline script `node --check` 通過（`script0` 702 chars／`script1` 184220 chars）、`index.html`／`dist/index.html`／`frontend/site/index.html` 雜湊一致（`22AB53C0C570`）。
+- 出貨同步：`npm run sync:site`（1 HTML ＋ 4 資源）＋ `npm run build`（`dist/`）皆成功。
+- `cloudwrite` spec 本輪未跑（會對 Supabase 寫入測試列，與本次純 CSS／focus 修正無關）。
+
+**iPhone 實機驗收清單（待使用者確認）**：① 切教練模式 → 密碼框出現**不會放大**；② 點密碼框打字 → **不放大**；③ 關 Modal 後頁面維持 1:1；④ 編輯步驟名稱／走位說明 → **不放大**；⑤ 球員模式、底部 4 鍵、球場比例完全不變。
+
+### 已知取捨／限制
+
+1. **手機／平板的輸入框字變大**（13.5px → 16px，約 1.19 倍）：這是 iOS 不作聚焦放大的**唯一可靠代價**；已用 `.input{padding:10px 13px}`、`.tp-input{height:32px}` 補償，Modal 與工具面板高度不變。
+2. **桌機刻意不動**（NFR-162）：滑鼠裝置的字級維持原樣，避免影響原本的視覺節奏。
+3. **沒有用 `visualViewport` 之類的 JS 補救**（C-157）：iOS 一旦放大就無法由 JS 還原（而且在 PWA standalone 模式下行為不同），所以修在源頭。
+4. **`meta viewport` 與 `touch-action` 保持現狀**：`index.html:7` 已是 `width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover`；`:64` 已是 `touch-action:pan-x pan-y`（已排除 `pinch-zoom`）。這兩項由 `zoom.metaLocked`／`zoom.touchAction` 斷言持續守護，**不要再改成 `pan-y`**（見 C-158）。
+
+
+---
+
+## 🆕 本輪需求（US-150：iOS PWA 收尾 — manifest 啟動體驗、版本化 start_url、320px 下限）
+
+### 使用者故事
+
+**US-150** — 作為**把戰術板加到 iPhone 主畫面的教練**，我希望**從主畫面開啟時不會先閃一片深色、而且每次改版後開起來就是新版（不是舊快取）**，這樣**在球場邊點開就能直接看到最新戰術，不會懷疑「怎麼還是舊畫面」**。
+
+### 需求
+
+#### 功能需求（Functional Requirements）
+
+| Requirement ID | 需求 | Feature/Module | Status |
+| --- | --- | --- | --- |
+| FR-334 | **版本化 start_url ＋ 釘住 App 身分**：`manifest.json` 加 `"id": "/"`、`start_url` `/` → `/?v=2`（新快取鍵；配合 Vercel `/index.html` 的 `max-age=0, must-revalidate`） | `manifest.json` | Verified |
+| FR-335 | **啟動底色對齊**：`background_color` `#0F172A` → `#EBF1F6`（＝`body` 漸層起點），消除 iOS standalone 冷啟動的深色閃光 | `manifest.json` | Verified |
+| FR-336 | **320×568 納入回歸**：`cdp.js` 新增 spec；頂欄（品牌＋滑塊＋「＋ 新增」＋🔔）與底部 4 鍵在 320px 仍 `scrollWidth === clientWidth` | `.scratch/smoke/cdp.js`／`.scratch/smoke/README.md` | Verified |
+| FR-337 | **靜態守門**：`integrity.js` 驗 manifest 關鍵欄位（`id`／`start_url`／`background_color`／`display`／`orientation`／2 個 `./` 圖示）＋ `manifest.json`／`dist`／`frontend/site` 三方雜湊一致 | `.scratch/smoke/integrity.js` | Verified |
+
+#### 非功能需求（Non-Functional Requirements）
+
+| Requirement ID | 需求 | Status |
+| --- | --- | --- |
+| NFR-163 | **零視覺回歸**：320～1440 共 9 個 spec 全綠；≥360px 排版與字級完全不變（320 不需任何額外 media query） | Verified |
+| NFR-164 | **零新增請求**：不引入 service worker、不加外部 CDN；快取破壞只靠 manifest 欄位與既有 HTTP 標頭 | Verified |
+
+#### 限制與約束（Constraints）
+
+| Requirement ID | 內容 | Status |
+| --- | --- | --- |
+| C-159 | **已加到主畫面的圖示不會自動套用新 `start_url`**：iOS 記住安裝當下的 URL，要享受版本化需「移除圖示 → 重新加入主畫面」；`id` 只有 Chromium 系（Android／桌面）用來穩定身分，iOS 忽略 | Accepted |
+| C-160 | **`theme_color`／`<meta theme-color>` 保持 `#EA580C`**：`pwa.metaTags` 斷言綁死此值，且狀態列與頂欄橘線本來同一色系；改色需同步改斷言與 FR-286 | Accepted |
+| C-161 | **app 範圍仍為站台根 `/`**：`start_url` 只加了 query，`id` 亦為 `/`；若日後改部署在子路徑，三者要一起改 | Accepted |
+
+#### 驗收條件（Acceptance Criteria）
+
+- **AC-259** `integrity.manifestFields` = `[/ · /?v=2 · #EBF1F6 · standalone · 2 icons]`；`integrity.manifestSynced` 三方同雜湊（`413D83306C37`）。
+- **AC-260** `320x568` spec **PASS=275 · FAIL=0**；關鍵值：`layout.noHScroll 320 vs 320`、`topbar.noOverflow 320 vs 320`、`topbar.pendingNoOverflow 320 vs 320`、`mobile.keysNoOverflow 296>296`（4 鍵各 70px）、`mobile.courtNoClip 276<=276`、`mobile.cardToSafeBottom 568+0 vs 568`、`input.noIosZoom 16px · touch`。
+- **AC-261** 其餘 9 個 spec 全數 `FAIL=0`（390／375／360 = 275、768／768t／900 = 251、1184／1440 = 249、gif 14）。
+- **AC-262** 實機：主畫面移除舊圖示 → 重新加入 → 冷啟動**無深色閃光**且載入最新版（待使用者確認）。
+
+#### 需求追溯矩陣（RTM）
+
+| Requirement ID | Requirement Description | Feature/Module | User Story Reference | Status |
+| --- | --- | --- | --- | --- |
+| FR-334 | `id` ＋ 版本化 `start_url` | `manifest.json` | US-150 | Verified |
+| FR-335 | `background_color` → `#EBF1F6` | `manifest.json` | US-150 | Verified |
+| FR-336 | 320×568 spec | `.scratch/smoke/cdp.js`／`README.md` | US-150 | Verified |
+| FR-337 | manifest 靜態守門 ＋ 三方雜湊 | `.scratch/smoke/integrity.js` | US-150 | Verified |
+| NFR-163 | 9 個 spec 零回歸 | `.scratch/smoke/*` | US-150 | Verified |
+| NFR-164 | 不加 SW／CDN | — | US-150 | Verified |
+| C-159 | iOS 已安裝圖示不換 start_url | 平台行為 | US-150 | Accepted |
+| C-160 | `theme_color` 不動 | `index.html` §head | US-150 | Accepted |
+| C-161 | app 範圍仍為 `/` | `manifest.json` | US-150 | Accepted |
+| AC-259～AC-262 | 驗收 | 見下方「驗收紀錄（本輪：US-150）」 | US-150 | Verified（AC-262 待實機） |
+
+### 驗收紀錄（本輪：US-150）
+
+**日期**：2026-11-16 ｜ **方式**：改 `manifest.json` → `npm run sync:site`（同步 `frontend/site/manifest.json`）→ `npm run build`（`dist/manifest.json`）→ `node .scratch/smoke/integrity.js` → `node .scratch/smoke/build.js` → `node .scratch/smoke/cdp.js`（10 個 spec）。
+
+| spec | 尺寸 | 結果 |
+| --- | --- | --- |
+| `320x568` | iPhone SE 1st gen（本輪新增） | **PASS=275 · FAIL=0** |
+| `390x844` | iPhone 14/15 直向 | **PASS=275 · FAIL=0** |
+| `375x667` | iPhone SE 直向（矮螢幕） | **PASS=275 · FAIL=0** |
+| `360x740` | Android 窄機 | **PASS=275 · FAIL=0** |
+| `768x1024` | iPad 直向（滑鼠模擬） | **PASS=251 · FAIL=0** |
+| `768x1024t` | iPad 直向（觸控模擬） | **PASS=251 · FAIL=0** |
+| `900x900` | 窄桌機 | **PASS=251 · FAIL=0** |
+| `1184x820` | 筆電 | **PASS=249 · FAIL=0** |
+| `1440x900` | 桌機 | **PASS=249 · FAIL=0** |
+| `gif` | 390×844 ＋ `#gif` | **PASS=14 · FAIL=0** |
+
+- 320px **不需要新增任何 CSS**：現有 `@media (max-width:380px)`（`index.html:1705`）收斂後，頂欄 `320 vs 320`、底部 4 鍵 `70/70/70/70`（`296>296`）、球場 `276<=276` 全部自然成立 → 維持「不為單一機型加規則」。
+- 靜態檢查：CSS 大括號 **643／643**、`script0` 702 chars／`script1` 184220 chars 語法通過、`index.html ↔ dist` 雜湊一致（`22AB53C0C570`）；新增 `integrity.manifestFields`（`/ · /?v=2 · #EBF1F6 · standalone · 2 icons`）與 `integrity.manifestSynced`（`413D83306C37 × 3`）。
+- 未跑 `cloud`／`cloudwrite`（與 manifest／CSS 無關；`cloudwrite` 會寫 Supabase 測試列）。
+
+### 已知取捨／限制
+
+1. **iOS 的 `start_url` 更新要「下次重新加入主畫面」才生效**（C-159）：這是平台行為，不是快取 bug。要讓舊圖示立即換版，只能改「圖示指向的網址本身」，但會逼所有已安裝使用者重加，故不做。
+2. **快取破壞 ≠ 離線可用**：本專案沒有 service worker（FR-292／NFR-148 決策不變），離線開啟仍會失敗；`?v=` 只是換快取鍵。
+3. **`background_color` 只影響啟動畫面**：Android／Chromium 的 splash 與 iOS 的啟動底色；進站後仍由 `body` 漸層決定，兩者刻意對齊 `#EBF1F6`。
 
