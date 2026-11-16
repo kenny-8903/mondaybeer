@@ -2669,3 +2669,92 @@ US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布�
 2. **快取破壞 ≠ 離線可用**：本專案沒有 service worker（FR-292／NFR-148 決策不變），離線開啟仍會失敗；`?v=` 只是換快取鍵。
 3. **`background_color` 只影響啟動畫面**：Android／Chromium 的 splash 與 iOS 的啟動底色；進站後仍由 `body` 漸層決定，兩者刻意對齊 `#EBF1F6`。
 
+---
+
+## 🆕 本輪需求（US-151：清空預設／雲端戰術、教練自建分類、批核時指定分類）
+
+### 使用者故事
+
+**US-151** — 作為**球隊教練**，我希望**手冊一開始是空的、可以自己建立分類，並在批核球員提案時直接指定分類**，這樣**手冊只留下我們真的在用的戰術，分類也完全由我定義**。
+
+### 需求
+
+#### 功能需求（Functional Requirements）
+
+| Requirement ID | 需求 | Feature/Module | Status |
+| --- | --- | --- | --- |
+| FR-338 | **清空內建戰術**：`TACTIC_LIBRARY = []`（原 7 套 × 3 分類全部移除）；`renderLibrary()` 不再依賴靜態 `.pb-cat` 節點 | `index.html` §5.5 | Verified |
+| FR-339 | **清空雲端戰術**：一次性腳本以 PostgREST `DELETE /rest/v1/tactics?id=neq.<zero-uuid>` 清空 `public.tactics`（執行前 1 筆 → 執行後 0 筆，腳本用完即刪、未進版控） | `scripts/.tmp-purge-supabase.mjs`（一次性） | Verified |
+| FR-340 | **保留 3 個預設分類**（破 2-1-2 聯防／破 3-2 聯防／底線開球），即使沒有戰術也顯示，內文「尚無戰術，點擊新增」 | `index.html` `DEFAULT_CATEGORIES` | Verified |
+| FR-341 | **教練新增分類**：手冊「戰術分類」右側 `＋ 新增分類`（僅 `[data-mode="coach"]` 可見）；`promptText` 輸入名稱 → 寫入 `localStorage` `mbab:tactic-categories`；名稱 ≤20 字、最多 20 個自訂分類、同標籤去重（空白／重複會 toast 提示且不寫入） | `index.html` `addCategory()`／`#pbAddCat` | Verified |
+| FR-342 | **分類清單動態聯集**：`refreshCategories()` ＝ 預設 3 類 ＋ 自訂（localStorage）＋ 雲端 `meta.category`，以標籤去重；自訂分類 key 用 djb2 雜湊（`c…`，ASCII-safe，可直接放 `data-cat`／selector） | `index.html` `LIB_CATEGORIES`／`categoryHash()` | Verified |
+| FR-343 | **已批核戰術自動歸類**：`categoryEntries()` 以 `meta.category` 比對分類標籤，命中且 `status === 'approved'` 的戰術列在該分類內（桌機 Accordion／手機第二層清單皆可點擊載入，`is-active` 同步） | `index.html` `renderLibrary()`／`renderPlaybookCategoryList()` | Verified |
+| FR-344 | **批核時指定分類**：右下批核浮條新增「分類」`<select id="rvCategory">`；`✅ 批准發布` 與 `✏️ 微調後發布` 都會把選到的標籤寫進 `meta.category`（本機 `localSetStatus`／雲端 `sbSetStatus` 皆走 jsonb，無 migration） | `index.html` `syncReviewBar()`／`approveTactic()`／`approveAfterEdit()` | Verified |
+
+#### 非功能需求（Non-Functional Requirements）
+
+| Requirement ID | 需求 | Status |
+| --- | --- | --- |
+| NFR-165 | **免資料庫 migration**：分類沿用 `meta` jsonb（`category` 純字串），新舊紀錄（無 `meta.category`）仍可載入／批核 | Verified |
+| NFR-166 | **分類節點可安全重建**：動態分類以 `createElement` ＋ 事件委派（`#pbScroll` 上 `closest('.pb-cat > summary')`）綁定，重繪不會累積 listener；`details.open` 依 key 保留收合狀態 | Verified |
+| NFR-167 | **窄機不溢出**：批核浮條手機改兩列（資訊＋分類／三顆按鈕），320×568 實測浮條 `12…308`（寬 296、內部 `scrollWidth === clientWidth`）；`.rv-select` 觸控字級 16px（不觸發 iOS 聚焦放大） | Verified |
+
+#### 限制與約束（Constraints）
+
+| Requirement ID | 內容 | Status |
+| --- | --- | --- |
+| C-162 | **自訂分類是裝置本地的**：`mbab:tactic-categories` 只存在這台裝置；要在其他裝置出現，必須有戰術以該分類批核（靠 `meta.category` 回到分類聯集） | Accepted |
+| C-163 | **一套戰術只屬於一個分類**（單一字串標籤）：改分類＝重新批核或微調後發布；不做多標籤 | Accepted |
+| C-164 | **分類改名／刪除未提供**：改名等同新分類（舊標籤會由 `meta.category` 長回來）；要清掉自訂分類需清 localStorage | Accepted |
+| C-165 | **雲端清空不寫進前端**：`public.tactics` 的清空是一次性腳本＋手動 SQL（`delete from public.tactics;`），前端刻意不做自動刪除 API，避免誤刪全隊正式戰術 | Accepted |
+
+#### 驗收條件（Acceptance Criteria）
+
+- **AC-263** `TACTIC_LIBRARY.length === 0`；手冊分類卡固定 3 張（預設），內文 `尚無戰術，點擊新增`；球員看不到 `＋ 新增分類`（`display:none`），教練看得到。
+- **AC-264** 教練新增「快攻」→ 分類卡變 4 張、`localStorage` 寫入 `[{"label":"快攻","en":"","custom":true}]`、自訂 key `c3zirv`（`/^c[0-9a-z]+$/`）；重複「快攻」與空白輸入都被拒絕且不新增。
+- **AC-265** 批核浮條分類下拉＝4 個選項且選中「快攻」；按批准後紀錄 `meta.status === 'approved'`、`meta.category === '快攻'`、`state.tacticCategory === '快攻'`、浮條自動收起。
+- **AC-266** `node .scratch/smoke/integrity.js` 全綠：CSS 大括號 `657/657`、`script1` 188015 chars 語法通過、`index.html ↔ dist` 同雜湊（`8B80174CDAEA`）。
+- **AC-267** 煙霧測試 `390x844`／`320x568` **PASS=275 · FAIL=0**、`1440x900` **PASS=249 · FAIL=0**（`pending.*`／`parity.*`／`layout.noHScroll`／`input.noIosZoom` 皆未回歸）。
+- **AC-268** 320×568 實測批核浮條 `left=12`、`right=308`（`innerWidth=320`）、`barOverflow=0`、`selectHeight=32`、`selectFont=16px`。
+
+#### 需求追溯矩陣（RTM）
+
+| Requirement ID | Requirement Description | Feature/Module | User Story Reference | Status |
+| --- | --- | --- | --- | --- |
+| FR-338 | 清空內建 7 套戰術 | `index.html` §5.5 | US-151 | Verified |
+| FR-339 | 清空雲端 `public.tactics` | 一次性 PostgREST 腳本 | US-151 | Verified |
+| FR-340 | 保留 3 個預設分類 | `DEFAULT_CATEGORIES` | US-151 | Verified |
+| FR-341 | 教練自建分類（localStorage） | `#pbAddCat`／`addCategory()` | US-151 | Verified |
+| FR-342 | 分類清單動態聯集 | `refreshCategories()` | US-151 | Verified |
+| FR-343 | 已批核戰術依 `meta.category` 歸類 | `renderLibrary()` | US-151 | Verified |
+| FR-344 | 批核浮條分類下拉 → `meta.category` | `#rvCategory`／`approveTactic()` | US-151 | Verified |
+| NFR-165 | 免 migration（jsonb meta） | `sbSetStatus()`／`localSetStatus()` | US-151 | Verified |
+| NFR-166 | 動態節點重建＋事件委派 | `index.html` bindUI | US-151 | Verified |
+| NFR-167 | 320px 浮條不溢出、16px 字級 | `index.html` §6.5 | US-151 | Verified |
+| C-162 | 自訂分類裝置本地 | `mbab:tactic-categories` | US-151 | Accepted |
+| C-163 | 單一標籤分類 | `meta.category` | US-151 | Accepted |
+| C-164 | 分類不可改名／刪除 | UI 未提供 | US-151 | Accepted |
+| C-165 | 雲端清空走手動腳本 | 一次性腳本 | US-151 | Accepted |
+| AC-263～AC-268 | 驗收 | 見下方「驗收紀錄（本輪：US-151）」 | US-151 | Verified |
+
+### 驗收紀錄（本輪：US-151）
+
+**日期**：2026-11-16 ｜ **方式**：清空雲端 → 改 `index.html` → `npm run sync:site` → `npm run build` → `node .scratch/smoke/integrity.js` → `node .scratch/smoke/build.js` → `node .scratch/smoke/cdp.js 390x844,320x568,1440x900` → 一次性 CDP 腳本驗 US-151 行為（跑完即刪）。
+
+| 檢查 | 結果 |
+| --- | --- |
+| 雲端 `public.tactics` | `before: 1 rows` → `deleted: 1 rows` → `after: 0 rows`（OK） |
+| `integrity.*` | `noCorruption`／`cssBraces 657/657`／`script0 702`／`script1 188015`／`distSynced 8B80174CDAEA`／manifest 全 PASS |
+| `390x844` | **PASS=275 · FAIL=0** |
+| `320x568` | **PASS=275 · FAIL=0** |
+| `1440x900` | **PASS=249 · FAIL=0** |
+| US-151 行為（16 項） | 全 PASS：`library.empty`／`categories.threeDefaults`／`cards.dynamic`／`empty.copy`／`addCoachOnly`／`add.ok`／`add.validation`／`add.persisted`／`select.options`／`select.keyAscii`／`approve.metaCategory`／`approve.state`／`approve.barHidden`／`layout.barShown320`／`layout.barFits320`／`layout.selectNoZoom` |
+
+- 未跑 `cloud`／`cloudwrite`：`cloudwrite` 會寫 Supabase 測試列，且分類只改 `meta`（本機與雲端同一條 `store.setStatus` 路徑）。
+
+### 已知取捨／限制
+
+1. **自訂分類不會跨裝置同步**（C-162）：分類本身沒有資料表，只有「有戰術用過」才會透過 `meta.category` 出現在其他裝置。
+2. **分類改名／刪除要手動處理**（C-164）：目前只能改 localStorage；已批核戰術的舊標籤會讓舊分類繼續出現。
+3. **`＋ 新增分類` 只給教練**（`[data-mode="coach"]`）：球員連 DOM 都看不到（`display:none`），但仍不是伺服器端權限控制——與既有 `✎ 改名`／`🗑 刪除` 同一信任模型。
+

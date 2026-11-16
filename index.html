@@ -713,6 +713,20 @@ body:not([data-mode="coach"]) .pb-actions{display:none}
   font-size:9.5px;font-weight:800;
 }
 .pb-cat-list{display:flex;flex-direction:column;gap:4px;padding:5px}
+/* US-151：動態分類清單（預設＋教練自訂＋雲端）＋ 教練「＋ 新增分類」 */
+.pb-cats{display:flex;flex-direction:column;gap:5px}
+.pb-add-cat{
+  margin-left:auto;flex:0 0 auto;align-self:center;height:20px;padding:0 7px;border-radius:6px;
+  border:1px solid rgba(47,111,168,.35);background:rgba(47,111,168,.08);
+  color:var(--blue);font-size:9.5px;font-weight:800;letter-spacing:.02em;
+  line-height:1;cursor:pointer;white-space:nowrap;
+}
+.pb-add-cat:hover{border-color:var(--brick);color:var(--brick);background:rgba(180,70,47,.08)}
+body:not([data-mode="coach"]) .pb-add-cat{display:none}
+.pb-cat-empty{
+  padding:9px 8px;border-radius:8px;text-align:center;line-height:1.6;
+  font-size:10.5px;color:var(--muted);border:1px dashed var(--line);
+}
 .pb-lib{
   display:flex;align-items:center;gap:6px;text-align:left;
   padding:6px 8px;border-radius:8px;cursor:pointer;
@@ -1195,7 +1209,7 @@ body[data-keys="edit"] #toolPanel{display:flex;order:-1;flex-basis:100%}
 .review-bar{
   position:fixed;right:16px;bottom:16px;z-index:62;
   display:flex;align-items:center;gap:8px;
-  max-width:min(620px,94vw);padding:8px 10px;
+  max-width:min(760px,94vw);padding:8px 10px;
   border:1px solid rgba(47,111,168,.3);border-radius:14px;
   background:linear-gradient(180deg,#FFFFFF,#F4F9FD);
   box-shadow:0 14px 34px rgba(31,42,55,.22);
@@ -1209,6 +1223,15 @@ body[data-keys="edit"] #toolPanel{display:flex;order:-1;flex-basis:100%}
   font-size:10px;color:var(--muted);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
+/* US-151：批核前指定分類（寫進 meta.category） */
+.rv-cat{display:flex;align-items:center;gap:4px;flex:0 0 auto;min-width:0}
+.rv-cat > span{font-size:10px;font-weight:800;color:var(--muted);white-space:nowrap}
+.rv-select{
+  height:30px;width:112px;max-width:42vw;padding:0 6px;border-radius:8px;
+  border:1px solid rgba(31,42,55,.16);background:#FFFFFF;color:var(--ink-soft);
+  font-size:11.5px;font-weight:700;cursor:pointer;
+}
+.rv-select:disabled{opacity:.55;cursor:default}
 .rv-acts{display:flex;align-items:center;gap:6px}
 .rv-btn{
   flex:0 0 auto;height:32px;padding:0 11px;border-radius:9px;
@@ -1249,9 +1272,15 @@ body[data-keys="edit"] #toolPanel{display:flex;order:-1;flex-basis:100%}
     left:12px;right:12px;bottom:calc(var(--stepbar-h, 101px) + 10px);
     max-width:none;padding:7px 8px;gap:6px;
   }
+  /* US-151：分類下拉獨立一列（資訊＋分類／按鈕兩列），浮條不橫向撐破 320px */
+  .review-bar{flex-wrap:wrap;row-gap:6px}
+  .rv-info{flex:1 1 auto}
   .rv-info b{max-width:none}
+  .rv-cat > span{font-size:11px}
+  .rv-select{height:32px;width:112px;max-width:40vw}
+  .rv-acts{flex:1 1 100%;justify-content:space-between}
   .rv-btn{height:30px;padding:0 8px;font-size:10.5px}
-  body.has-review .toast-stack{bottom:calc(var(--stepbar-h, 101px) + 78px)}
+  body.has-review .toast-stack{bottom:calc(var(--stepbar-h, 101px) + 104px)}
 }
 
 /* 面板出現時球場縮一級，避免 .board-restrict 裁切（US-140：多一列「＋ 加步驟」條） */
@@ -1687,7 +1716,8 @@ body[data-keys="edit"] .board-wrap{--board-h-chrome:390px}
 @media (max-width:767px), (hover:none) and (pointer:coarse){
   .input,
   .tp-input,
-  select.input { font-size:16px; }
+  select.input,
+  .rv-select { font-size:16px; }
   .tp-input { height:32px; }                  /* 16px 字級下維持原本行高視覺（原 30px／12.5px） */
   .input { padding:10px 13px; }               /* 補償放大後的高度（原 11px 13px），Modal 不變高 */
 }
@@ -2167,34 +2197,12 @@ body.has-review .pwa-tip{bottom:calc(var(--stepbar-h, 101px) + 68px)}
       <div class="pb-views">
         <div class="pb-view pb-main-view">
           <div class="pb-scroll" id="pbScroll">
-            <p class="pb-group-title">經典戰術 <span id="pbLibCount">7 套</span></p>
+            <p class="pb-group-title">戰術分類 <span id="pbLibCount">0 類</span>
+              <button type="button" class="pb-add-cat" id="pbAddCat" title="新增戰術分類">＋ 新增分類</button>
+            </p>
 
-            <details class="pb-cat" data-cat="beat212" open>
-              <summary>
-                <span class="pb-cat-label">破 2-1-2 聯防</span>
-                <span class="pb-cat-en">BEAT 2-1-2</span>
-                <span class="pb-cat-count" data-cat="beat212">2</span>
-              </summary>
-              <div class="pb-cat-list" data-cat="beat212"></div>
-            </details>
-
-            <details class="pb-cat" data-cat="beat32" open>
-              <summary>
-                <span class="pb-cat-label">破 3-2 聯防</span>
-                <span class="pb-cat-en">BEAT 3-2</span>
-                <span class="pb-cat-count" data-cat="beat32">2</span>
-              </summary>
-              <div class="pb-cat-list" data-cat="beat32"></div>
-            </details>
-
-            <details class="pb-cat" data-cat="blob" open>
-              <summary>
-                <span class="pb-cat-label">底線開球</span>
-                <span class="pb-cat-en">BLOB</span>
-                <span class="pb-cat-count" data-cat="blob">3</span>
-              </summary>
-              <div class="pb-cat-list" data-cat="blob"></div>
-            </details>
+            <!-- US-151：分類改為動態（預設＋教練自訂＋雲端 meta.category），由 renderLibrary() 重建 -->
+            <div class="pb-cats" id="pbCatList"></div>
 
             <!-- US-144：教練視角獨立出「待審核戰術」分組（球員看不到這一組） -->
             <p class="pb-group-title" id="pbPendingTitle" hidden>待審核戰術 <span id="pbPendingCount">0</span></p>
@@ -2217,7 +2225,7 @@ body.has-review .pwa-tip{bottom:calc(var(--stepbar-h, 101px) + 68px)}
         <div class="pb-view pb-sub-view" id="pbSubView" hidden>
           <header class="pb-sub-head">
             <button type="button" class="pb-back" id="pbSubBack">‹ 返回分類</button>
-            <b class="pb-sub-title" id="pbSubTitle">經典戰術</b>
+            <b class="pb-sub-title" id="pbSubTitle">戰術分類</b>
             <span class="pb-sub-en" id="pbSubEn"></span>
             <span class="pb-cat-count" id="pbSubCount">0</span>
           </header>
@@ -2346,6 +2354,10 @@ body.has-review .pwa-tip{bottom:calc(var(--stepbar-h, 101px) + 68px)}
   <!-- 2) 批核浮條：載入待批提案後浮在球場右下（不擋走位影格與底部 4 鍵） -->
   <div class="review-bar" id="reviewBar" role="group" aria-label="待批戰術批核" hidden>
     <span class="rv-info"><b id="rvName">未命名戰術</b><span class="rv-meta" id="rvMeta"></span></span>
+    <label class="rv-cat" for="rvCategory">
+      <span>分類</span>
+      <select id="rvCategory" class="rv-select" aria-label="指定戰術分類"></select>
+    </label>
     <div class="rv-acts">
       <button type="button" class="rv-btn is-primary" id="rvApprove" title="批准納入官方手冊">✅ 批准發布</button>
       <button type="button" class="rv-btn" id="rvEdit" title="微調後再發布">✏️ 微調後發布</button>
@@ -2750,6 +2762,7 @@ const state = {
   tacticName: '',
   tacticDefense: '212',    /* US-137：最近一次套用的防守陣型 key（寫進 meta.defense） */
   tacticAuthor: null,      /* US-137：建立新戰術時選的提議球員 { no, name, pos } */
+  tacticCategory: '',      /* US-151：目前戰術的分類標籤（寫進 meta.category） */
   toolPanel: 'step',       /* US-139：中間面板視圖 'step' | 'roster' | 'defense' */
   returnTo: null,          /* US-139：進編輯前的快照，「✕ 退出」時原樣還原 */
   playbookItems: [],
@@ -2964,10 +2977,10 @@ function lsSet(key, value) {
    為什麼寫在程式裡？Supabase 未設定時，自訂戰術只存在「這台裝置」的
    localStorage（mbab:tactics:index ＋ mbab:tactic:<id>），伺服器端沒有資料可刪，
    所以只能由 App 自己在第一次載入時清。
-   手冊上的 7 套經典戰術是程式內建的 TACTIC_LIBRARY（不在儲存層）→ 清完仍保留。
-   ※ US-146 起 Supabase 已正式對接：本機這支遷移只清「這台裝置」的舊資料，
-      雲端 tactics 表（對接時實測 0 筆）若要清空，請自行在 SQL Editor 執行：
-        delete from tactics;
+   手冊上的內建戰術是程式內建的 TACTIC_LIBRARY（不在儲存層）→ 清完仍保留。
+   ※ US-146 起 Supabase 已正式對接：本機這支遷移只清「這台裝置」的舊資料。
+   ※ US-151（2026-11）：TACTIC_LIBRARY 已清空、雲端 tactics 表已清空；
+      往後要清空雲端，請自行在 SQL Editor 執行：delete from public.tactics;
    （刻意不在前端自動打刪除 API，避免誤刪全隊的正式戰術） */
 const LS_PURGE_FLAG = 'mbab:migrate:purge-test-tactics:2026-11';
 
@@ -3027,7 +3040,8 @@ function localSave(payload) {
     name: record.name,
     updated_at: record.updated_at,
     status: meta.status || 'approved',
-    authorLabel: meta.authorLabel || ''
+    authorLabel: meta.authorLabel || '',
+    category: meta.category || ''
   });
   lsSet(LS_INDEX_KEY, JSON.stringify(index.slice(0, 100)));
   return record;
@@ -3062,27 +3076,36 @@ function localRename(id, name) {
   return { id: id, name: clean, updated_at: now };
 }
 
-/* 本機批核：同步更新單筆紀錄的 meta.status 與索引（US-134） */
-function localSetStatus(id, status) {
+/* 本機批核：同步更新單筆紀錄的 meta.status／meta.category 與索引（US-134 / US-151） */
+function localSetStatus(id, status, category) {
   const next = status === 'pending' ? 'pending' : 'approved';
+  const cleanCategory = String(category || '').trim();
   const now = new Date().toISOString();
   const raw = lsGet(LS_TACTIC_PREFIX + id);
+  let savedCategory = cleanCategory;
   if (raw) {
     try {
       const record = JSON.parse(raw);
-      record.meta = Object.assign({}, record.meta || {}, {
+      const meta = Object.assign({}, record.meta || {}, {
         status: next,
         approvedAt: next === 'approved' ? now : null
       });
+      if (cleanCategory) meta.category = cleanCategory;
+      savedCategory = meta.category || '';
+      record.meta = meta;
       record.updated_at = now;
       lsSet(LS_TACTIC_PREFIX + id, JSON.stringify(record));
     } catch (err) { /* 損壞的紀錄就只更新索引 */ }
   }
   const index = localIndex().map((item) => (item.id === id
-    ? Object.assign({}, item, { status: next, updated_at: now })
+    ? Object.assign({}, item, {
+      status: next,
+      updated_at: now,
+      category: savedCategory || item.category || ''
+    })
     : item));
   lsSet(LS_INDEX_KEY, JSON.stringify(index.slice(0, 100)));
-  return { id: id, status: next, updated_at: now };
+  return { id: id, status: next, category: savedCategory, updated_at: now };
 }
 
 /* ── Supabase CRUD ── */
@@ -3134,8 +3157,8 @@ async function sbRename(id, name) {
   if (res.error) throw res.error;
   return res.data;
 }
-/* 雲端批核：讀回 meta 後只改 status／approvedAt（jsonb，不需 migration） */
-async function sbSetStatus(id, status) {
+/* 雲端批核：讀回 meta 後只改 status／approvedAt／category（jsonb，不需 migration） */
+async function sbSetStatus(id, status, category) {
   const client = getSupabaseClient();
   if (!client) throw new Error('Supabase 未設定');
   const current = await sbLoad(id);
@@ -3143,6 +3166,8 @@ async function sbSetStatus(id, status) {
     status: status === 'pending' ? 'pending' : 'approved',
     approvedAt: status === 'pending' ? null : new Date().toISOString()
   });
+  const cleanCategory = String(category || '').trim();
+  if (cleanCategory) meta.category = cleanCategory;
   const res = await client.from(SUPABASE_TABLE)
     .update({ meta: meta, updated_at: new Date().toISOString() })
     .eq('id', id).select().single();
@@ -3176,7 +3201,8 @@ const store = {
           id: row.id, name: row.name, updated_at: row.updated_at,
           source: 'supabase',
           status: (row.meta && row.meta.status) || 'approved',
-          authorLabel: (row.meta && row.meta.authorLabel) || ''
+          authorLabel: (row.meta && row.meta.authorLabel) || '',
+          category: (row.meta && row.meta.category) || ''
         }));
       } catch (err) {
         console.warn('[supabase] list failed', err);
@@ -3187,7 +3213,8 @@ const store = {
       id: item.id, name: item.name, updated_at: item.updated_at,
       source: 'local',
       status: item.status || 'approved',
-      authorLabel: item.authorLabel || ''
+      authorLabel: item.authorLabel || '',
+      category: item.category || ''
     }));
     return items.sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
   },
@@ -3220,18 +3247,23 @@ const store = {
     return localRename(id, name);
   },
 
-  /* 批核 / 退回（US-134）：只有教練會呼叫，但 API 本身與身分無關 */
-  async setStatus(id, source, status) {
+  /* 批核 / 退回（US-134）：只有教練會呼叫，但 API 本身與身分無關
+     US-151：可同時指定分類 → 寫進 meta.category（不傳就保留原分類） */
+  async setStatus(id, source, status, category) {
     const next = status === 'pending' ? 'pending' : 'approved';
     if (source === 'supabase' && supabaseReady()) {
       try {
-        const row = await sbSetStatus(id, next);
-        return { id: row.id, status: (row.meta && row.meta.status) || next };
+        const row = await sbSetStatus(id, next, category);
+        return {
+          id: row.id,
+          status: (row.meta && row.meta.status) || next,
+          category: (row.meta && row.meta.category) || ''
+        };
       } catch (err) {
         console.warn('[supabase] setStatus failed, fallback to local', err);
       }
     }
-    return localSetStatus(id, next);
+    return localSetStatus(id, next, category);
   }
 };
 
@@ -3637,7 +3669,7 @@ function buildLineObj(type, p1, p2) {
   return group;
 }
 /* ============================================================
-   §5.5 經典戰術庫（13 套 · 四大分類）
+   §5.5 戰術分類資料（US-151：內建戰術庫已清空，分類改為預設＋自訂＋雲端）
    ── 以座標資料描述，載入時用 §5 的工廠即時生成，
       輸出物件格式與「儲存戰術」完全相同，可直接播放／匯出 GIF。
    ============================================================ */
@@ -3735,11 +3767,108 @@ function deriveDefense(defKey, off, ball) {
   return out;
 }
 
-const LIB_CATEGORIES = [
+/* US-151：分類清單＝預設 3 類 ＋ 教練自訂（localStorage）＋ 雲端 meta.category 去重聯集。
+   TACTIC_LIBRARY 清空後分類仍保留，讓教練把批核的戰術歸類；自訂分類只存在這台裝置，
+   其他裝置要等有戰術以該分類批核後才會由雲端 meta.category 長回來。 */
+const DEFAULT_CATEGORIES = [
   { key: 'beat212', label: '破 2-1-2 聯防', en: 'BEAT 2-1-2' },
   { key: 'beat32', label: '破 3-2 聯防', en: 'BEAT 3-2' },
   { key: 'blob', label: '底線開球', en: 'BLOB' }
 ];
+const LIB_CATEGORIES = DEFAULT_CATEGORIES.map(function (cat) { return Object.assign({}, cat); });
+const LS_CATEGORIES = 'mbab:tactic-categories';
+const CATEGORY_LIMIT = 20;
+
+function normCategoryLabel(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+/* 自訂分類的 key 必須是 ASCII（會進 data-cat／selector），用 label 雜湊即可穩定 */
+function categoryHash(label) {
+  const src = normCategoryLabel(label);
+  let hash = 5381;
+  for (let i = 0; i < src.length; i += 1) {
+    hash = ((hash << 5) + hash + src.charCodeAt(i)) >>> 0;
+  }
+  return 'c' + hash.toString(36);
+}
+function readCustomCategories() {
+  let raw = '';
+  try { raw = lsGet(LS_CATEGORIES) || ''; } catch (err) { return []; }
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(function (cat) {
+      return cat && typeof cat.label === 'string' && cat.label.trim();
+    }).map(function (cat) {
+      const label = String(cat.label).trim().slice(0, 20);
+      return { key: categoryHash(label), label: label, en: '', custom: true };
+    }).slice(0, CATEGORY_LIMIT);
+  } catch (err) {
+    return [];
+  }
+}
+function writeCustomCategories(list) {
+  try { lsSet(LS_CATEGORIES, JSON.stringify(list.slice(0, CATEGORY_LIMIT))); } catch (err) { /* noop */ }
+}
+/* 重建 LIB_CATEGORIES（就地更新，其他模組持有的參考不會失效） */
+function refreshCategories() {
+  const seen = Object.create(null);
+  const next = [];
+  const push = function (cat) {
+    const label = String((cat && cat.label) || '').trim();
+    if (!label) return;
+    const norm = normCategoryLabel(label);
+    if (!norm || seen[norm]) return;
+    seen[norm] = true;
+    next.push({
+      key: cat.key || categoryHash(label),
+      label: label,
+      en: cat.en || '',
+      custom: !!cat.custom
+    });
+  };
+  DEFAULT_CATEGORIES.forEach(push);
+  readCustomCategories().forEach(push);
+  (state.playbookItems || []).forEach(function (item) {
+    if (item && item.category) push({ label: item.category });
+  });
+  LIB_CATEGORIES.length = 0;
+  next.forEach(function (cat) { LIB_CATEGORIES.push(cat); });
+  return LIB_CATEGORIES;
+}
+function categoryLabelOf(key) {
+  for (let i = 0; i < LIB_CATEGORIES.length; i += 1) {
+    if (LIB_CATEGORIES[i].key === key) return LIB_CATEGORIES[i].label;
+  }
+  return '';
+}
+function categoryKeyOfLabel(label) {
+  const norm = normCategoryLabel(label);
+  for (let i = 0; i < LIB_CATEGORIES.length; i += 1) {
+    if (normCategoryLabel(LIB_CATEGORIES[i].label) === norm) return LIB_CATEGORIES[i].key;
+  }
+  return '';
+}
+/* 教練新增分類：回傳 { ok, label } 或 { ok:false, error } */
+function addCategory(label) {
+  const clean = String(label || '').trim().replace(/\s+/g, ' ');
+  if (!clean) return { ok: false, error: '請輸入分類名稱。' };
+  if (clean.length > 20) return { ok: false, error: '分類名稱最多 20 個字。' };
+  refreshCategories();
+  const norm = normCategoryLabel(clean);
+  if (LIB_CATEGORIES.some(function (cat) { return normCategoryLabel(cat.label) === norm; })) {
+    return { ok: false, error: '分類「' + clean + '」已存在。' };
+  }
+  const custom = readCustomCategories();
+  if (custom.length >= CATEGORY_LIMIT) {
+    return { ok: false, error: '最多 ' + CATEGORY_LIMIT + ' 個自訂分類。' };
+  }
+  custom.push({ label: clean, en: '', custom: true });
+  writeCustomCategories(custom);
+  refreshCategories();
+  return { ok: true, label: clean };
+}
 
 /* 步驟工廠：name / cue（機會標籤）/ desc（解說）/ 進攻 / 防守 / 球 / 線條 */
 function mkStep(name, cue, desc, off, def, ball, lines) {
@@ -3750,132 +3879,7 @@ function mkStep(name, cue, desc, off, def, ball, lines) {
   };
 }
 
-const TACTIC_LIBRARY = [
-
-  /* ── 一、破 2-1-2 聯防（2 套） ────────────────── */
-  {
-    key: 'beat212-elbow', cat: 'beat212', name: '破 2-1-2：雙肘區策應', en: 'BEAT 2-1-2 · ELBOWS',
-    tag: '破 2-1-2', desc: '2-1-2 的縫隙在兩個肘區與底角：雙肘接球逼中央上提，再分底角或內傳內。',
-    def: 'zone212',
-    base: { 1: LIB_SPOT.top3, 2: LIB_SPOT.corL, 3: LIB_SPOT.corR, 4: LIB_SPOT.elbowL, 5: LIB_SPOT.elbowR },
-    ball: [500, 555],
-    steps: [
-      mkStep('雙肘落位', '肘區空檔', '2-1-2 的縫隙在兩個肘區：4、5 號分站左右肘，2、3 號沉底角拉開寬度。',
-        null, null, [500, 555], []),
-      mkStep('球進左肘', '罰球線策應', '1 號把球送進左肘的 4 號，2-1-2 的中央防守被迫上提。',
-        { 4: [350, 330] }, null, [350, 340], [['pass', 1, 4]]),
-      mkStep('底角分球', '底角 3 分', '中央防守上提後底角門戶大開，4 號甩給沉底角的 2 號。',
-        null, null, [95, 150], [['pass', 4, 2]]),
-      mkStep('內傳內放籃', '籃下真空', '底線防守撲出、籃下真空，5 號滑到籃下接回傳放進。',
-        { 5: [470, 190] }, null, [470, 200], [['pass', 2, 5], ['cut', 5, LIB_SPOT.rim]])
-    ]
-  },
-  {
-    key: 'beat212-highlow', cat: 'beat212', name: '破 2-1-2：高低位內傳內', en: 'BEAT 2-1-2 · HIGH-LOW',
-    tag: '破 2-1-2', desc: '2-1-2 的中央只有一人：用高位策應把人拉高，再由高位直接高吊低位完成內傳內。',
-    def: 'zone212',
-    base: { 1: LIB_SPOT.top3, 2: LIB_SPOT.corL, 3: LIB_SPOT.corR, 4: LIB_SPOT.elbowL, 5: LIB_SPOT.blkR },
-    ball: [500, 555],
-    steps: [
-      mkStep('高低位落位', '高位策應', '4 號站左肘高位、5 號卡右側低位（block），2-1-2 的中央防守被拉成上下兩段。',
-        null, null, [500, 555], []),
-      mkStep('球進高位', '罰球線接球', '1 號把球送進高位的 4 號，5 號同時把防守員頂在身後要位。',
-        { 4: [350, 330] }, null, [350, 340], [['pass', 1, 4]]),
-      mkStep('低位更往下卡', '低位要球', '5 號更往籃框卡一步，把低位防守完全壓在背後。',
-        { 5: [520, 210] }, null, [350, 340], [['cut', 5, [520, 210]]]),
-      mkStep('高吊內傳內', '籃下放籃', '4 號越過 2-1-2 中央防守高吊，5 號一步放進。',
-        { 5: [505, 175] }, null, [510, 185], [['pass', 4, 5], ['cut', 5, LIB_SPOT.rim]])
-    ]
-  },
-  /* ── 二、破 3-2 聯防（2 套） ──────────────────── */
-  {
-    key: 'beat32-skip', cat: 'beat32', name: '破 3-2：底角 Skip Pass', en: 'BEAT 3-2 · SKIP PASS',
-    tag: '破 3-2', desc: '3-2 的底層只有兩人：先把球塞進底角把人吸過去，再大對角橫傳另一邊底角。',
-    def: 'zone32',
-    base: { 1: LIB_SPOT.top3, 2: [95, 150], 3: [905, 150], 4: [300, 170], 5: [700, 170] },
-    ball: [500, 555],
-    steps: [
-      mkStep('3-2 落位', '底角拉寬', '面對 3-2：2、3 號沉到底角把寬度撐滿，4、5 號藏在短角區。',
-        null, null, [500, 555], []),
-      mkStep('球送左底角', '底層被吸過去', '1 號傳給左底角的 2 號，3-2 的底層防守必須橫移撲出。',
-        null, null, [95, 190], [['pass', 1, 2]]),
-      mkStep('大對角 Skip', 'Skip Pass', '左側三人被吸住後，2 號用 Skip Pass 大對角橫傳右底角的 3 號。',
-        null, null, [905, 190], [['pass', 2, 3]]),
-      mkStep('底角 3 分', '空檔出手', '3 號接球已有乾淨視野，5 號上提做最後一道掩護讓他從容出手。',
-        { 5: [700, 200] }, null, [905, 185], [['screen', 5, 3]])
-    ]
-  },
-  {
-    key: 'beat32-shortcorner', cat: 'beat32', name: '破 3-2：短角區突擊', en: 'BEAT 3-2 · SHORT CORNER',
-    tag: '破 3-2', desc: '3-2 上層三人、底層只有兩人：把 4 號藏進短角區接球，一步切入直接攻擊護框長人。',
-    def: 'zone32',
-    base: { 1: LIB_SPOT.top3, 2: [95, 150], 3: [905, 150], 4: LIB_SPOT.shortCorL, 5: LIB_SPOT.ftC },
-    ball: [500, 555],
-    steps: [
-      mkStep('短角埋伏', '藏在底線', '4 號躲進左短角區（3-2 底層兩人之間的空隙），5 號上到罰球線把中央拉空。',
-        null, null, [500, 555], []),
-      mkStep('球送短角', '防線被切開', '1 號把球塞進短角區的 4 號，底層防守被迫從底角趕來補位。',
-        { 4: [150, 175] }, null, [150, 185], [['pass', 1, 4]]),
-      mkStep('底線突擊', '一步切入', '4 號沿底線跨步直殺籃下，正好踩在 3-2 兩位底層防守的中縫。',
-        { 4: [340, 180] }, null, [340, 190], [['cut', 4, [340, 180]]]),
-      mkStep('擦板或分小球', '籃下終結', '護框長人補防時擦板，或分小球給跟進的 5 號完成終結。',
-        { 4: [440, 170] }, null, [450, 180], [['cut', 4, LIB_SPOT.rim], ['pass', 4, 5]])
-    ]
-  },
-  /* ── 三、底線開球 BLOB（3 套） ────────────────── */
-  {
-    key: 'blob-stack', cat: 'blob', name: '直線排開 Stack', en: 'BLOB · STACK',
-    tag: '底線開球', desc: '四人沿禁區一列排開（Stack），第一人借背擋繞出 45 度，列尾順下滑向籃框。',
-    def: 'blob',
-    base: { 1: LIB_SPOT.base, 2: [590, 300], 3: [590, 380], 4: [590, 460], 5: [590, 540] },
-    ball: [500, 45],
-    steps: [
-      mkStep('一字排開', '直線 Stack', '2、3、4、5 號在禁區一側排成一列，把防守全部壓在籃下。',
-        null, null, [500, 45], []),
-      mkStep('第一人繞出', '借背擋繞出', '2 號借 4 號的背擋繞到左翼 45 度，一整列人把追防擋住。',
-        { 2: [260, 430] }, null, [500, 45], [['screen', 4, 2]]),
-      mkStep('發球進場', '45 度接球', '1 號把球發給繞出的 2 號，第一波進攻成形。',
-        { 4: [520, 400] }, null, [260, 440], [['pass', 1, 2]]),
-      mkStep('列尾順下', '籃下高吊', '5 號從列尾順下滑向籃框，2 號高吊籃下輕鬆放進。',
-        { 5: [500, 190], 3: [870, 150] }, null, [500, 200], [['pass', 2, 5], ['cut', 5, LIB_SPOT.rim]])
-    ]
-  },
-  {
-    key: 'blob-box', cat: 'blob', name: '盒子站位 Box', en: 'BLOB · BOX',
-    tag: '底線開球', desc: 'Box 方陣發球，雙下掩護讓兩翼繞出，長人再轉身卡位接高吊。',
-    def: 'blob',
-    base: { 1: LIB_SPOT.base, 2: [390, 300], 3: [610, 300], 4: [390, 430], 5: [610, 430] },
-    ball: [500, 45],
-    steps: [
-      mkStep('盒子落位', 'Box 方陣', '2、3 號站肘區、4、5 號站低位，形成標準 Box 方陣。',
-        null, null, [500, 45], []),
-      mkStep('雙下掩護', '兩翼繞出', '4、5 號同時上擋，2、3 號分別往兩側 45 度繞出。',
-        { 2: [200, 380], 3: [800, 380], 4: [440, 320], 5: [560, 320] }, null, [500, 45],
-        [['screen', 4, 2], ['screen', 5, 3]]),
-      mkStep('45 度接球', '第一時間出手', '1 號把球發給左側 45 度的 2 號，直接形成空檔。',
-        null, null, [200, 370], [['pass', 1, 2]]),
-      mkStep('長人卡位', '籃下高吊', '4 號轉身卡住防守要球，2 號高吊籃下完成終結。',
-        { 4: [470, 200] }, null, [470, 210], [['pass', 2, 4], ['cut', 4, LIB_SPOT.rim]])
-    ]
-  },
-  {
-    key: 'blob-elevator', cat: 'blob', name: '電梯門 Elevator', en: 'BLOB · ELEVATOR',
-    tag: '底線開球', desc: '射手穿過雙塔之間的電梯門，關門擋住追防後在弧頂接球出手。',
-    def: 'blob',
-    base: { 1: LIB_SPOT.base, 2: [300, 130], 3: [800, 300], 4: [450, 330], 5: [550, 330] },
-    ball: [500, 45],
-    steps: [
-      mkStep('雙塔就位', '電梯門', '4、5 號在罰球線上方並排留出通道，2 號藏在底角。',
-        null, null, [500, 45], []),
-      mkStep('穿越通道', '2 號穿門', '2 號從底線加速穿過 4、5 號之間的通道。',
-        { 2: [500, 250] }, null, [500, 45], [['cut', 2, [500, 250]]]),
-      mkStep('關門夾擊', '門關上', '4、5 號同時合攏關門，把追防的防守員擋在身後。',
-        { 4: [478, 320], 5: [522, 320] }, null, [500, 45], [['screen', 4, 2], ['screen', 5, 2]]),
-      mkStep('弧頂出手', '弧頂 3 分', '2 號跑回弧頂接 1 號發球，完全空檔三分。',
-        { 2: [500, 560] }, null, [500, 570], [['pass', 1, 2]])
-    ]
-  }
-];
+const TACTIC_LIBRARY = [];
 
 
 /* ── 戰術庫 → 影格：借用 §5 工廠即時生成，輸出格式與「儲存戰術」一致 ── */
@@ -5070,6 +5074,7 @@ async function startDrawingFlow(name, personNo) {
   state.approveOnSave = false;
   state.tacticDefense = key;
   state.customDefense = false;
+  state.tacticCategory = '';     /* US-151：新戰術先用第一個分類（儲存時決定） */
   state.tacticAuthor = coachAuthor
     ? { coach: true }
     : (entry ? { no: entry.no, name: entry.name, pos: entry.pos } : null);
@@ -5967,6 +5972,8 @@ async function saveTacticNamed(name, publish) {
       },
       /* US-134：批核狀態／提案人放在 meta，Supabase 不需 migration */
       status: status,
+      /* US-151：分類（純文字標籤）→ 手冊「戰術分類」直接以 meta.category 分組 */
+      category: state.tacticCategory || (LIB_CATEGORIES[0] && LIB_CATEGORIES[0].label) || '',
       authorLabel: info.authorLabel || (status === 'approved' ? '教練' : ''),
       author: info.author || state.tacticAuthor || null,
       approvedAt: status === 'approved' ? now : null
@@ -6194,6 +6201,7 @@ function snapshotBeforeEdit() {
     tacticStatus: state.tacticStatus,
     tacticAuthor: state.tacticAuthor ? Object.assign({}, state.tacticAuthor) : null,
     tacticDefense: state.tacticDefense,
+    tacticCategory: state.tacticCategory,
     customDefense: !!state.customDefense
   };
 }
@@ -6220,6 +6228,7 @@ async function exitEditMode() {
     state.tacticStatus = snap.tacticStatus;
     state.tacticAuthor = snap.tacticAuthor;
     state.tacticDefense = snap.tacticDefense || '212';
+    state.tacticCategory = snap.tacticCategory || '';
     state.customDefense = !!snap.customDefense;
     state.returnTo = null;
     applyMode();
@@ -6229,6 +6238,7 @@ async function exitEditMode() {
     await renderPlaybook();
   } else {
     state.returnTo = null;
+    state.tacticCategory = '';
     applyMode();
     renderStepUI();
   }
@@ -6380,6 +6390,24 @@ async function selectPendingItem(item) {
   syncEditUI();
 }
 
+/* US-151：把分類清單灌進下拉選單，並盡量選回目前分類 */
+function fillCategoryOptions(select, selectedLabel) {
+  if (!select) return '';
+  const desired = String(selectedLabel || '').trim();
+  select.innerHTML = '';
+  LIB_CATEGORIES.forEach(function (cat) {
+    const opt = document.createElement('option');
+    opt.value = cat.key;
+    opt.textContent = cat.label;
+    opt.title = cat.label;
+    select.appendChild(opt);
+  });
+  let key = categoryKeyOfLabel(desired);
+  if (!key && LIB_CATEGORIES.length) key = LIB_CATEGORIES[0].key;
+  select.value = key;
+  return key;
+}
+
 /* 右下批核浮條：教練 + 瀏覽狀態 + 目前載入的是待批提案 → 顯示 */
 function syncReviewBar() {
   const bar = $('#reviewBar');
@@ -6399,6 +6427,13 @@ function syncReviewBar() {
     if (item) parts.push('提交：' + (formatTime(item.updated_at) || '—'));
     metaEl.textContent = parts.join(' · ');
   }
+  /* US-151：批核前可指定分類（預設沿用提案分類 → 目前選取 → 第一個分類） */
+  const catSel = $('#rvCategory');
+  if (catSel) {
+    refreshCategories();
+    fillCategoryOptions(catSel, state.tacticCategory || (item && item.category) || '');
+    catSel.disabled = state.playing || state.exporting;
+  }
   ['#rvApprove', '#rvEdit', '#rvReject'].forEach(function (sel) {
     const el = $(sel);
     if (el) el.disabled = state.playing || state.exporting;
@@ -6417,7 +6452,8 @@ function rejectPending(item) {
   });
 }
 
-/* 教練一口批准：item 可省略（＝目前載入的戰術）→ 直接改 meta.status = approved（不進編輯） */
+/* 教練一口批准：item 可省略（＝目前載入的戰術）→ 直接改 meta.status = approved（不進編輯）
+   US-151：同時把浮條選到的分類寫進 meta.category */
 async function approveTactic(item) {
   if (!isCoach()) { requestCoachMode(); return; }
   const rec = item && item.id
@@ -6428,11 +6464,17 @@ async function approveTactic(item) {
   if (!rec || !rec.id) return;
   if (state.playing || state.exporting) return;
   const label = rec.name || state.tacticName || '未命名戰術';
+  const catSel = $('#rvCategory');
+  const catKey = catSel ? catSel.value : '';
+  const catLabel = (catKey && categoryLabelOf(catKey)) ||
+    state.tacticCategory || (rec.category || '') ||
+    (LIB_CATEGORIES[0] && LIB_CATEGORIES[0].label) || '';
   showLoader('批核中…', 45);
   try {
-    await store.setStatus(rec.id, rec.source, 'approved');
+    await store.setStatus(rec.id, rec.source, 'approved', catLabel);
     if (state.tacticId === rec.id) {
       state.tacticStatus = 'approved';
+      state.tacticCategory = catLabel;
       state.approveOnSave = false;
     }
     closePendingSheet();
@@ -6440,7 +6482,7 @@ async function approveTactic(item) {
     if (typeof closePlaybookDrawer === 'function') closePlaybookDrawer();
     await renderPlaybook();
     syncEditUI();
-    toast('已批准「' + label + '」· 已進官方手冊', 'success');
+    toast('已批准「' + label + '」' + (catLabel ? ' · 歸入「' + catLabel + '」' : ''), 'success');
   } catch (err) {
     console.error('[approve]', err);
     toast('批核失敗：' + (err && err.message ? err.message : '未知錯誤'), 'error');
@@ -6449,10 +6491,13 @@ async function approveTactic(item) {
   }
 }
 
-/* 修改後批核：先解鎖編輯，改了再按「🚀 發布」→ 儲存時自動改成已批核 */
+/* 修改後批核：先解鎖編輯，改了再按「🚀 發布」→ 儲存時自動改成已批核
+   US-151：先記住浮條選的分類，發布時寫進 meta.category */
 function approveAfterEdit() {
   if (!isCoach()) { requestCoachMode(); return; }
   if (!state.tacticId) return;
+  const catSel = $('#rvCategory');
+  if (catSel) state.tacticCategory = categoryLabelOf(catSel.value) || state.tacticCategory;
   snapshotBeforeEdit();          /* US-139：按「✕ 退出」可回到批核前的樣子 */
   state.approveOnSave = true;
   state.editing = true;
@@ -6502,6 +6547,7 @@ async function loadLibraryTactic(key) {
     applyMode();
     state.tacticDefense = '212';       /* US-137：經典戰術庫固定首選 2-1-2 起手 */
     state.tacticAuthor = null;
+    state.tacticCategory = '';         /* US-151：內建戰術沒有分類歸屬 */
     await renderFrame(0);
     renderLibrary();
     renderPlaybook();
@@ -6517,39 +6563,6 @@ async function loadLibraryTactic(key) {
   if (loaded) autoPlayLoaded(tactic.name);
 }
 
-/* 依分類把經典戰術灌進手冊（一次渲染，之後只切 is-active） */
-function renderLibrary() {
-  const totalEl = $('#pbLibCount');
-  if (totalEl) totalEl.textContent = TACTIC_LIBRARY.length + ' 套';
-  LIB_CATEGORIES.forEach(function (cat) {
-    const host = document.querySelector('.pb-cat-list[data-cat="' + cat.key + '"]');
-    if (!host) return;
-    const items = TACTIC_LIBRARY.filter(function (item) { return item.cat === cat.key; });
-    const count = document.querySelector('.pb-cat-count[data-cat="' + cat.key + '"]');
-    if (count) count.textContent = items.length;
-    if (host.dataset.rendered === '1') {
-      $$('.pb-lib', host).forEach(function (btn) {
-        btn.classList.toggle('is-active', state.tacticId === 'lib:' + btn.dataset.key);
-      });
-      return;
-    }
-    host.innerHTML = '';
-    items.forEach(function (item) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'pb-lib' + (state.tacticId === 'lib:' + item.key ? ' is-active' : '');
-      btn.dataset.key = item.key;
-      btn.title = item.name + ' — ' + item.desc;
-      btn.innerHTML = '<span class="pb-lib-name">' + escapeHtml(item.name) + '</span>' +
-        '<span class="pb-lib-meta"><b>' + escapeHtml(item.tag) + '</b>' + item.steps.length + ' 步</span>';
-      btn.addEventListener('click', function () { loadLibraryTactic(item.key); });
-      host.appendChild(btn);
-    });
-    host.dataset.rendered = '1';
-  });
-  syncSubActive();
-}
-
 /* ── 手機手冊第二層：點分類 → 整層切到子頁面清單（取代原地展開 Accordion） ── */
 function categoryByKey(key) {
   for (let i = 0; i < LIB_CATEGORIES.length; i++) {
@@ -6558,40 +6571,138 @@ function categoryByKey(key) {
   return null;
 }
 
+/* US-151：分類內容＝內建戰術（已清空）＋ 已批核且 meta.category 相同的戰術 */
+function categoryEntries(cat) {
+  const norm = normCategoryLabel(cat && cat.label);
+  const saved = (state.playbookItems || []).filter(function (item) {
+    return item && item.status === 'approved' && normCategoryLabel(item.category) === norm;
+  });
+  const library = TACTIC_LIBRARY.filter(function (item) { return item.cat === cat.key; });
+  return { library: library, saved: saved };
+}
+
+function libraryTacticButton(item) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'pb-lib' + (state.tacticId === 'lib:' + item.key ? ' is-active' : '');
+  btn.dataset.key = item.key;
+  btn.title = item.name + ' — ' + item.desc;
+  btn.innerHTML = '<span class="pb-lib-name">' + escapeHtml(item.name) + '</span>' +
+    '<span class="pb-lib-meta"><b>' + escapeHtml(item.tag) + '</b>' + item.steps.length + ' 步</span>';
+  btn.addEventListener('click', function () { loadLibraryTactic(item.key); });
+  return btn;
+}
+
+function savedTacticButton(item) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'pb-lib' + (state.tacticId === item.id ? ' is-active' : '');
+  btn.dataset.id = item.id;
+  btn.title = '載入「' + (item.name || '未命名戰術') + '」';
+  const name = document.createElement('span');
+  name.className = 'pb-lib-name';
+  name.textContent = item.name || '未命名戰術';
+  const meta = document.createElement('span');
+  meta.className = 'pb-lib-meta';
+  const tag = document.createElement('b');
+  tag.textContent = item.source === 'supabase' ? '雲端' : '本機';
+  meta.appendChild(tag);
+  meta.appendChild(document.createTextNode(item.authorLabel || '已批核'));
+  btn.appendChild(name);
+  btn.appendChild(meta);
+  btn.addEventListener('click', function () { loadTactic(item); });
+  return btn;
+}
+
+/* 依分類重建手冊清單（分類會因自訂／雲端而變動 → 每次重建，並保留收合狀態） */
+function renderLibrary() {
+  const totalEl = $('#pbLibCount');
+  refreshCategories();
+  if (totalEl) totalEl.textContent = LIB_CATEGORIES.length + ' 類';
+  const host = $('#pbCatList');
+  if (!host) { syncSubActive(); return; }
+  const openBefore = {};
+  $$('.pb-cat', host).forEach(function (el) { openBefore[el.dataset.cat] = el.open; });
+  host.innerHTML = '';
+
+  LIB_CATEGORIES.forEach(function (cat) {
+    const entries = categoryEntries(cat);
+    const total = entries.library.length + entries.saved.length;
+    const details = document.createElement('details');
+    details.className = 'pb-cat';
+    details.dataset.cat = cat.key;
+    details.open = openBefore[cat.key] !== false;
+
+    const summary = document.createElement('summary');
+    const label = document.createElement('span');
+    label.className = 'pb-cat-label';
+    label.textContent = cat.label;
+    const en = document.createElement('span');
+    en.className = 'pb-cat-en';
+    en.textContent = cat.custom ? 'CUSTOM' : (cat.en || '');
+    const count = document.createElement('span');
+    count.className = 'pb-cat-count';
+    count.textContent = String(total);
+    summary.appendChild(label);
+    summary.appendChild(en);
+    summary.appendChild(count);
+    details.appendChild(summary);
+
+    const list = document.createElement('div');
+    list.className = 'pb-cat-list';
+    list.dataset.cat = cat.key;
+    if (!total) {
+      const empty = document.createElement('div');
+      empty.className = 'pb-cat-empty';
+      empty.textContent = '尚無戰術，點擊新增';
+      list.appendChild(empty);
+      details.open = true;
+    } else {
+      entries.library.forEach(function (item) { list.appendChild(libraryTacticButton(item)); });
+      entries.saved.forEach(function (item) { list.appendChild(savedTacticButton(item)); });
+    }
+    details.appendChild(list);
+    host.appendChild(details);
+  });
+
+  syncSubActive();
+  const sub = $('#pbSubView');
+  const subHost = $('#pbSubList');
+  if (sub && !sub.hidden && subHost && subHost.dataset.cat) {
+    renderPlaybookCategoryList(subHost.dataset.cat);
+  }
+}
+
 function renderPlaybookCategoryList(key) {
   const host = $('#pbSubList');
   if (!host) return;
-  const items = TACTIC_LIBRARY.filter(function (item) { return item.cat === key; });
+  const cat = categoryByKey(key);
+  const entries = cat ? categoryEntries(cat) : { library: [], saved: [] };
+  const total = entries.library.length + entries.saved.length;
   const countEl = $('#pbSubCount');
-  if (countEl) countEl.textContent = items.length;
+  if (countEl) countEl.textContent = total;
   host.dataset.cat = key;
   host.innerHTML = '';
-  if (!items.length) {
+  if (!total) {
     const empty = document.createElement('div');
     empty.className = 'pb-sub-empty';
-    empty.textContent = '這個分類還沒有戰術。';
+    empty.textContent = '尚無戰術，點擊新增';
     host.appendChild(empty);
     return;
   }
-  items.forEach(function (item) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'pb-lib' + (state.tacticId === 'lib:' + item.key ? ' is-active' : '');
-    btn.dataset.key = item.key;
-    btn.title = item.name + ' — ' + item.desc;
-    btn.innerHTML = '<span class="pb-lib-name">' + escapeHtml(item.name) + '</span>' +
-      '<span class="pb-lib-meta"><b>' + escapeHtml(item.tag) + '</b>' + item.steps.length + ' 步</span>';
-    btn.addEventListener('click', function () { loadLibraryTactic(item.key); });
-    host.appendChild(btn);
-  });
+  entries.library.forEach(function (item) { host.appendChild(libraryTacticButton(item)); });
+  entries.saved.forEach(function (item) { host.appendChild(savedTacticButton(item)); });
 }
 
-/* 目前載入的戰術若在此分類，子頁面清單同步高亮 */
+/* 目前載入的戰術若在此分類，子頁面清單同步高亮（內建／已存戰術都支援） */
 function syncSubActive() {
   const host = $('#pbSubList');
   if (!host || !host.dataset.cat) return;
   $$('.pb-lib', host).forEach(function (btn) {
-    btn.classList.toggle('is-active', state.tacticId === 'lib:' + btn.dataset.key);
+    const active = btn.dataset.key
+      ? state.tacticId === 'lib:' + btn.dataset.key
+      : state.tacticId === btn.dataset.id;
+    btn.classList.toggle('is-active', active);
   });
 }
 
@@ -6643,6 +6754,9 @@ async function renderPlaybook() {
     console.warn('[playbook]', err);
   }
   state.playbookItems = items;
+  /* US-151：清單一更新就重建分類（自訂＋雲端 meta.category）與分類內的已批核戰術 */
+  refreshCategories();
+  renderLibrary();
   /* US-142：清單一抓到就同步右上角 🔔 待批 (N) 與右下批核浮條（不額外發請求） */
   updatePendingBadge();
   /* 已批核的排前面、未批核提案沉到最後（US-134）；同組內依更新時間新→舊 */
@@ -6851,6 +6965,8 @@ async function loadTactic(item) {
     /* US-137：載入時同步防守陣型與提議球員（舊紀錄沒有 meta.defense → 首選 2-1-2） */
     state.tacticDefense = (record.meta && record.meta.defense && record.meta.defense.key) || '212';
     state.tacticAuthor = (record.meta && record.meta.author) || null;
+    /* US-151：載入時同步分類（舊紀錄沒有 meta.category → 空字串，批核時再指定） */
+    state.tacticCategory = (record.meta && record.meta.category) || item.category || '';
     state.approveOnSave = false;
     state.editing = false;
     state.reviewDismissed = false;   /* US-142：換了戰術 → 批核浮條重新顯示 */
@@ -6892,6 +7008,7 @@ async function removeTactic(item, opts) {
       state.tacticSource = null;
       state.tacticStatus = null;
       state.tacticAuthor = null;
+      state.tacticCategory = '';
       state.approveOnSave = false;
     }
     toast(o.doneText || '已刪除', 'success');
@@ -7325,6 +7442,29 @@ function bindUI() {
       : null;
     if (rec) rejectPending(rec);
   });
+  /* US-151：浮條分類下拉 → 記住選擇（批准／微調後發布都會沿用） */
+  const rvCategoryEl = $('#rvCategory');
+  if (rvCategoryEl) {
+    rvCategoryEl.addEventListener('change', function () {
+      state.tacticCategory = categoryLabelOf(rvCategoryEl.value) || '';
+    });
+  }
+  /* US-151：教練「＋ 新增分類」→ 寫進 localStorage 後重建清單 */
+  bind('#pbAddCat', async function () {
+    if (!isCoach()) { requestCoachMode(); return; }
+    const value = await promptText({
+      title: '新增分類',
+      label: '分類名稱',
+      placeholder: '例：快攻 / 陣地戰 / 發球戰術',
+      okText: '新增'
+    });
+    if (value === null) return;
+    const result = addCategory(value);
+    if (!result.ok) { toast(result.error, 'warn'); return; }
+    renderLibrary();
+    syncReviewBar();
+    toast('已新增分類「' + result.label + '」', 'success');
+  });
   bind('#btnShare', shareTactic);            /* 播放 4 鍵：分享 GIF */
   bind('#btnGifBook', exportGif);            /* 手冊抽屜：儲存 GIF 到裝置 */
   bind('#ekAdd', addStep);                   /* US-140：球場下方的「＋ 加步驟」輕量條 */
@@ -7358,9 +7498,13 @@ function bindUI() {
     const pb = $('#playbook');
     openPlaybookDrawer(!(pb && pb.classList.contains('is-open')));
   });
-  /* 手機：分類列＝入口 → 切到第二層子頁面（桌機仍使用原本的 Accordion 展開） */
-  $$('.pb-cat > summary').forEach(function (summary) {
-    summary.addEventListener('click', function (event) {
+  /* 手機：分類列＝入口 → 切到第二層子頁面（分類節點是動態產生的 → 事件委派） */
+  const pbScrollEl = $('#pbScroll');
+  if (pbScrollEl) {
+    pbScrollEl.addEventListener('click', function (event) {
+      const target = event.target;
+      const summary = target && target.closest ? target.closest('.pb-cat > summary') : null;
+      if (!summary || !pbScrollEl.contains(summary)) return;
       const details = summary.parentElement;
       const key = details && details.dataset ? details.dataset.cat : '';
       if (!key || !isMobileSheet()) return;
@@ -7368,7 +7512,7 @@ function bindUI() {
       details.open = false;
       openPlaybookCategory(key);
     });
-  });
+  }
   bind('#pbSubBack', function () { closePlaybookCategory(); });
   bind('#pbClose', function () { openPlaybookDrawer(false); });
   bind('#pbScrim', function () {
@@ -7670,7 +7814,7 @@ function boot() {
   initPwaTip();
 
   if (purgedCount > 0) {
-    toast('已清除 ' + purgedCount + ' 套測試戰術 · 手冊只留 7 套經典戰術', 'success');
+    toast('已清除 ' + purgedCount + ' 套本機測試戰術', 'success');
   }
 
   setTimeout(function () {
