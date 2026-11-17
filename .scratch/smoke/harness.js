@@ -51,7 +51,8 @@
       gifshot.createGIF = function (opts, cb) {
         seen = opts;
         setTimeout(function () {
-          cb({ error: false, image: 'data:image/gif;base64,SMOKE' });
+          /* US-153：dataUrl 必須是合法 base64（新的 dataUrlToBlob() 會 atob） */
+          cb({ error: false, image: 'data:image/gif;base64,' + btoa('GIF89aSMOKE') });
         }, 10);
       };
     }
@@ -62,6 +63,24 @@
     const opened = [];
     window.open = function (url) { opened.push(url); return {}; };
 
+    /* US-153：headless Chrome 沒有原生檔案分享 → 自己 stub navigator.share／canShare */
+    const shareCalls = [];
+    let shareMode = 'ok';
+    Object.defineProperty(navigator, 'share', {
+      configurable: true, writable: true,
+      value: function (payload) {
+        shareCalls.push(payload);
+        if (shareMode === 'ok') return Promise.resolve();
+        const err = new Error('share blocked');
+        err.name = 'NotAllowedError';
+        return Promise.reject(err);
+      }
+    });
+    Object.defineProperty(navigator, 'canShare', {
+      configurable: true, writable: true,
+      value: function (payload) { return !!(payload && payload.files && payload.files.length); }
+    });
+
     let res = null;
     let gifErr = null;
     try { res = await captureGif(); } catch (e) { gifErr = e; }
@@ -69,6 +88,11 @@
     ok('gif.dataUrl', !!res && String(res.dataUrl).indexOf('data:image/gif') === 0,
       res ? String(res.dataUrl).slice(0, 26) : 'n/a');
     ok('gif.filename', !!res && /\.gif$/i.test(String(res.filename)), res ? res.filename : 'n/a');
+    ok('gif.blob', !!res && !!res.blob && res.blob.type === 'image/gif' && res.blob.size > 0,
+      res && res.blob ? res.blob.type + ' · ' + res.blob.size + 'B' : 'n/a');
+    ok('gif.file', !!res && typeof File === 'function' && res.file instanceof File &&
+      res.file.type === 'image/gif' && res.file.name === res.filename,
+      res && res.file ? res.file.name + ' · ' + res.file.type : 'n/a');
     ok('gif.captureArgs', !!seen && seen.images.length >= steps * 2 &&
       seen.gifWidth > 0 && seen.gifHeight > 0 && seen.interval === 0.1,
       seen ? (seen.images.length + ' imgs · ' + seen.gifWidth + 'x' + seen.gifHeight + ' · i=' + seen.interval) : 'n/a');
@@ -76,18 +100,52 @@
     ok('gif.exportingCleared', state.exporting === false);
     ok('gif.loaderHidden', $id('loader') ? $id('loader').hidden === true : true);
 
+    /* ① 成功路徑：只帶 files（不帶 text／url／title），成功後收 Loading、不彈 Modal */
+    shareMode = 'ok';
+    shareCalls.length = 0;
     let shareErr = null;
     try { await shareTactic(); } catch (e) { shareErr = e; }
     ok('share.noThrow', shareErr === null, shareErr ? String((shareErr && shareErr.message) || shareErr) : 'ok');
-    ok('share.downloaded', downloaded.length >= 1, downloaded.join(',') || 'none');
-    ok('share.whatsappOpened', opened.length >= 1 && /wa\.me/.test(opened[0] || ''),
-      (opened[0] || 'none').slice(0, 40));
+    ok('share.called', shareCalls.length === 1, 'n=' + shareCalls.length);
+    const payload = shareCalls[0] || {};
+    ok('share.filesOnly', Object.keys(payload).join(',') === 'files', Object.keys(payload).join(',') || 'none');
+    ok('share.gifFile', !!(payload.files && payload.files[0] instanceof File &&
+      payload.files[0].type === 'image/gif' && /\.gif$/i.test(payload.files[0].name)),
+      payload.files && payload.files[0] ? payload.files[0].name + ' · ' + payload.files[0].type : 'n/a');
+    ok('share.loaderHidden', $id('loader').hidden === true);
+    ok('share.previewHidden', $id('gifModal').hidden === true);
     ok('share.frameRestoredAgain', state.currentFrame === idxBefore, String(state.currentFrame));
     ok('share.exportingCleared', state.exporting === false);
+
+    /* ② 降級路徑：NotAllowedError → 預覽 Modal（blob URL、不下載、不開 wa.me） */
+    shareMode = 'fail';
+    shareCalls.length = 0;
+    downloaded.length = 0;
+    try { await shareTactic(); } catch (e) { shareErr = e; }
+    ok('share.fallbackNoThrow', shareErr === null);
+    ok('share.fallbackShown', $id('gifModal').hidden === false);
+    ok('share.fallbackImg', /^blob:/.test(String($id('gifPreview').src)),
+      String($id('gifPreview').src).slice(0, 24));
+    ok('share.fallbackMeta', /\.gif/.test($id('gifMeta').textContent || ''), $id('gifMeta').textContent);
+    ok('share.fallbackNoDownload', downloaded.length === 0, downloaded.join(',') || 'none');
+    ok('share.noWaPopup', opened.length === 0, opened.join(',') || 'none');
+
+    /* ③ Modal 內「立即分享」：同步觸發、仍只帶 files，成功後關 Modal 並釋放 blob URL */
+    shareMode = 'ok';
+    const beforeRetry = shareCalls.length;
+    $id('gifShare').click();
+    await sleep(150);
+    ok('share.retryCalled', shareCalls.length === beforeRetry + 1, 'n=' + (shareCalls.length - beforeRetry));
+    const retry = shareCalls[shareCalls.length - 1] || {};
+    ok('share.retryFilesOnly', Object.keys(retry).join(',') === 'files', Object.keys(retry).join(','));
+    ok('share.retryClosed', $id('gifModal').hidden === true);
+    ok('share.retryRevoked', $id('gifPreview').getAttribute('src') === null);
 
     if (realCreateGIF) gifshot.createGIF = realCreateGIF;
     window.downloadDataUrl = realDownload;
     window.open = realOpen;
+    delete navigator.share;
+    delete navigator.canShare;
 
     report();
     return;
@@ -1081,7 +1139,11 @@
   syncStepbarDense();
   ok('dense.noThrow', true, $id('stepList').className);
   ok('gif.helpers', typeof captureGif === 'function' && typeof shareTactic === 'function' &&
-    typeof gifshotReady === 'function');
+    typeof gifshotReady === 'function' && typeof dataUrlToBlob === 'function' &&
+    typeof makeGifFile === 'function' && typeof downloadBlob === 'function' &&
+    typeof canShareGifFile === 'function' && typeof openGifPreview === 'function' &&
+    typeof shareGifFromPreview === 'function' && !!$id('gifModal') && !!$id('gifPreview') &&
+    !!$id('gifShare'));
 
   /* ── 10. US-141：走位畫筆 → 步驟 keyframe 聯動 ＋ 播放期箭咀＝運動路徑 ── */
   enterCoachMode(true);

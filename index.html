@@ -548,6 +548,17 @@ select.input{
 .toast.is-warn::before{background:var(--orange)}
 @keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
+/* ── US-153：GIF 降級預覽（iOS PWA：長按存相片／再點一次立即分享） ── */
+.gif-card{width:min(100%,460px);max-height:calc(100dvh - 40px);overflow-y:auto}
+.gif-preview{
+  display:block;width:100%;height:auto;max-height:46dvh;object-fit:contain;
+  border-radius:12px;border:1px solid var(--line);background:#0B0F14;
+  /* 關鍵：允許 iOS 長按 callout（儲存到相片／拷貝） */
+  -webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto;
+  touch-action:manipulation;
+}
+.gif-meta{margin:8px 0 0;font-size:11px;color:var(--muted);text-align:center;word-break:break-all}
+
 .loader{
   position:fixed;inset:0;z-index:110;
   display:grid;place-items:center;
@@ -2549,6 +2560,21 @@ body.has-review .pwa-tip{bottom:calc(var(--stepbar-h, 101px) + 68px)}
   </div>
 </div>
 
+<!-- ══════════ US-153：iOS 降級預覽（長按存相片／再點一次立即分享） ══════════ -->
+<div class="modal" id="gifModal" hidden>
+  <div class="modal-card modal-wide gif-card" role="dialog" aria-modal="true" aria-labelledby="gifTitle">
+    <h2 id="gifTitle">動態戰術圖已生成</h2>
+    <p class="modal-desc">iPhone：長按下方圖片 ➔「儲存到相片」或「拷貝」。<br>
+      也可以直接按下方按鈕，立即叫出 WhatsApp 分享選單。</p>
+    <img id="gifPreview" class="gif-preview" alt="戰術動態圖預覽" draggable="false">
+    <p class="gif-meta" id="gifMeta"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" data-close="gifModal">關閉</button>
+      <button type="button" class="btn btn-primary" id="gifShare">📤 立即分享 / 儲存 GIF</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
 
 <div class="loader" id="loader" hidden>
@@ -2888,9 +2914,12 @@ function openModal(id) {
 function closeModal(id) {
   const el = document.getElementById(id);
   if (el) el.hidden = true;
+  if (id === 'gifModal') releaseGifPreview();   /* US-153：順手釋放 blob URL */
 }
 function closeAllModals() {
   if (textResolver) settleText(null);
+  const gifEl = $('#gifModal');
+  if (gifEl && !gifEl.hidden) releaseGifPreview();
   $$('.modal').forEach((el) => { el.hidden = true; });
 }
 
@@ -5881,8 +5910,44 @@ function gifshotReady() {
   return false;
 }
 
-/* 產生 GIF 並回傳 dataUrl（不下載）：exportGif 與 shareTactic 都走這裡 */
-async function captureGif() {
+/* ── US-153：同步把 dataURL 轉成 Blob／File ──
+   刻意不用 `await (await fetch(dataUrl)).blob()`：iOS PWA 在非同步等待後
+   會失去 User Activation，接著 navigator.share() 就拋 NotAllowedError。 */
+function dataUrlToBlob(dataUrl) {
+  const parts = String(dataUrl || '').split(',');
+  const mime = (String(parts[0] || '').match(/data:([^;]+)/) || [])[1] || 'image/gif';
+  const binary = atob(parts[1] || '');
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
+function makeGifFile(blob, filename) {
+  try {
+    return new File([blob], filename, { type: 'image/gif', lastModified: Date.now() });
+  } catch (err) {
+    return blob;   /* 極舊 Safari 沒有 File 建構子 → 退回 Blob */
+  }
+}
+
+/* 下載 Blob（不支援 navigator.share({files}) 時的最後手段） */
+function downloadBlob(blob, filename) {
+  if (!blob) return;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+}
+
+/* 產生 GIF 並回傳 dataUrl／blob／file（不下載）：exportGif 與 shareTactic 都走這裡
+   options.label      → loader 文案（分享流程＝「正在產生動態戰術圖…」）
+   options.holdLoader → true 時 finally 不收 loader（留給分享流程收尾） */
+async function captureGif(options) {
+  const opts = options || {};
   saveCurrentFrame();
   const frames = state.frames;
   if (!frames.length) throw new Error('目前沒有可匯出的步驟');
@@ -5893,11 +5958,20 @@ async function captureGif() {
   const interval = 0.1;
 
   setExporting(true);
-  showLoader('擷取影格…', 4);
+  showLoader(opts.label || '擷取影格…', 4);
 
   try {
+    /* 球場與球員全是 fabric 向量物件，canvas 從未畫過外部圖片 → 不會被跨域污染。
+       這裡仍攔一次 SecurityError：未來若有人塞了跨域圖，會給得出原因。 */
     const capture = function () {
-      return canvas.toDataURL({ format: 'png', multiplier: GIF_SCALE });
+      try {
+        return canvas.toDataURL({ format: 'png', multiplier: GIF_SCALE });
+      } catch (err) {
+        if (err && err.name === 'SecurityError') {
+          throw new Error('畫布被跨域圖片污染，無法匯出 GIF');
+        }
+        throw err;
+      }
     };
     const images = [];
 
@@ -5939,9 +6013,17 @@ async function captureGif() {
       });
     });
 
-    return { dataUrl: result.image, filename: tacticFileName('gif'), frames: images.length };
+    const filename = tacticFileName('gif');
+    const blob = dataUrlToBlob(result.image);
+    return {
+      dataUrl: result.image,
+      blob: blob,
+      file: makeGifFile(blob, filename),
+      filename: filename,
+      frames: images.length
+    };
   } finally {
-    hideLoader();
+    if (!opts.holdLoader) hideLoader();
     setExporting(false);
     await renderFrame(restoreIndex);
   }
@@ -5960,53 +6042,108 @@ async function exportGif() {
   }
 }
 
-/* 「💬 分享」：優先用手機原生分享（WhatsApp／IG 可直接收到 GIF），
-   桌機或瀏覽器不支援時 → 下載 GIF + 開 WhatsApp 對話，附上文案。 */
+/* ── US-153：GIF 降級預覽 Modal ──
+   iOS Standalone PWA 在 GIF 非同步編碼結束後常常已失去 User Activation，
+   第一次 navigator.share({ files }) 會被系統擋掉（NotAllowedError）。
+   此時把已生成的 GIF 顯示在 Modal：使用者可長按存相片／拷貝，
+   或再按一次「📤 立即分享 / 儲存 GIF」——這次是同步即時觸發，分享會成功。 */
+let pendingGif = null;   /* { file, blob, filename, url } */
+
+function releaseGifPreview() {
+  const img = $('#gifPreview');
+  if (img) img.removeAttribute('src');
+  if (pendingGif && typeof pendingGif.url === 'string' && pendingGif.url.indexOf('blob:') === 0) {
+    try { URL.revokeObjectURL(pendingGif.url); } catch (err) { /* 忽略 */ }
+  }
+  pendingGif = null;
+}
+
+function openGifPreview(out) {
+  releaseGifPreview();
+  const url = (typeof URL !== 'undefined' && URL.createObjectURL)
+    ? URL.createObjectURL(out.blob)
+    : out.dataUrl;
+  pendingGif = { file: out.file, blob: out.blob, filename: out.filename, url: url };
+  const img = $('#gifPreview');
+  if (img) img.src = url;
+  const meta = $('#gifMeta');
+  if (meta) meta.textContent = out.filename + ' · ' + out.frames + ' 影格';
+  openModal('gifModal');
+}
+
+function closeGifPreview() {
+  closeModal('gifModal');
+  releaseGifPreview();
+}
+
+/* 能不能把這個 GIF 檔交給系統分享面板（用真正的 File 偵測，不用空白 probe） */
+function canShareGifFile(file) {
+  if (!file || typeof navigator === 'undefined' || !navigator.share) return false;
+  if (navigator.canShare) {
+    try { return !!navigator.canShare({ files: [file] }); } catch (err) { return false; }
+  }
+  return true;   /* 有 share 但沒有 canShare：直接試，失敗會進 catch */
+}
+
+/* Modal 內的「立即分享」：這個 handler 內不能有任何 await，
+   navigator.share 必須同步呼叫才吃得到這次點擊的 User Activation。 */
+function shareGifFromPreview() {
+  const item = pendingGif;
+  if (!item) return;
+  if (!canShareGifFile(item.file)) {
+    downloadBlob(item.blob, item.filename);
+    toast('此瀏覽器不支援檔案分享，GIF 已下載', 'success');
+    return;
+  }
+  navigator.share({ files: [item.file] }).then(function () {
+    toast('已開啟分享', 'success');
+    closeGifPreview();
+  }).catch(function (err) {
+    if (err && err.name === 'AbortError') return;   /* 使用者自己取消 */
+    console.warn('[share:retry]', err);
+    toast('分享被系統阻擋，請長按圖片儲存', 'warn');
+  });
+}
+
+/* 「💬 分享」：先產生 GIF，再走系統原生檔案分享（只帶 files）。
+   iOS 上同時帶 files + text/url 會讓 WhatsApp 只擷取文字 → 這裡一律只傳 files。 */
 async function shareTactic() {
   if (state.playing || state.exporting) return;
   if (!gifshotReady()) return;
 
+  /* ① 先顯示 Loading（產生 GIF 可能要幾秒） */
+  showLoader('正在產生動態戰術圖…', 0);
+
   let out;
   try {
-    out = await captureGif();
+    out = await captureGif({ label: '正在產生動態戰術圖…', holdLoader: true });
   } catch (err) {
+    hideLoader();
     console.error('[share]', err);
     toast('分享前產生 GIF 失敗：' + (err && err.message ? err.message : '未知錯誤'), 'error');
     return;
   }
 
-  const name = state.tacticName || 'Monday Beer 戰術';
-  const text = '🏀 ' + name + '\n' + state.frames.length +
-    ' 個步驟｜MONDAY BEER & BASKETBALL 戰術板';
-
-  const canShareFiles = (function () {
+  /* ② 用真正的 GIF 檔偵測 → ③ 只傳 files（不帶 title／text／url） */
+  if (canShareGifFile(out.file)) {
     try {
-      return !!(navigator.canShare && navigator.share && navigator.canShare({
-        files: [new File([new Blob([''])], 'probe.gif', { type: 'image/gif' })]
-      }));
-    } catch (err) { return false; }
-  })();
-
-  if (canShareFiles) {
-    try {
-      const blob = await (await fetch(out.dataUrl)).blob();
-      const file = new File([blob], out.filename, { type: 'image/gif' });
-      await navigator.share({ files: [file], title: name, text: text });
+      setLoaderLabel('開啟系統分享…');
+      setLoaderProgress(100);
+      await navigator.share({ files: [out.file] });
+      hideLoader();
       toast('已開啟分享', 'success');
       return;
     } catch (err) {
-      if (err && err.name === 'AbortError') return;   /* 使用者自己取消 */
-      console.warn('[share]', err);
+      hideLoader();
+      if (err && err.name === 'AbortError') return;   /* 使用者取消 → 靜默 */
+      console.warn('[share]', err);                   /* NotAllowedError 等 → 降級 */
     }
+  } else {
+    hideLoader();
   }
 
-  downloadDataUrl(out.dataUrl, out.filename);
-  const wa = window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
-  if (wa) {
-    toast('GIF 已下載 · 在 WhatsApp 對話把 GIF 附上即可', 'success');
-  } else {
-    toast('GIF 已下載，請手動附到 WhatsApp', 'success');
-  }
+  /* ④ 100% 保證可存可傳：預覽 Modal（長按存相片／再點一次立即分享） */
+  openGifPreview(out);
 }
 
 /* 匯出當前步驟 PNG（加分功能，供教練截圖用） */
@@ -7814,6 +7951,7 @@ function bindUI() {
     toast(result.restored ? '已復原分類「' + result.label + '」' : '已新增分類「' + result.label + '」', 'success');
   });
   bind('#btnShare', shareTactic);            /* 播放 4 鍵：分享 GIF */
+  bind('#gifShare', shareGifFromPreview);    /* US-153：預覽 Modal 內「立即分享」 */
   bind('#btnGifBook', exportGif);            /* 手冊抽屜：儲存 GIF 到裝置 */
   bind('#ekAdd', addStep);                   /* US-140：球場下方的「＋ 加步驟」輕量條 */
   bind('#ekRoster', function () { setToolPanel('roster'); });   /* 👥 球員陣容 */
@@ -7959,6 +8097,7 @@ function bindUI() {
       if (event.target === modal) {
         if (modal.id === 'confirmModal') settleConfirm(false);
         else if (modal.id === 'textModal') settleText(null);
+        else if (modal.id === 'gifModal') closeGifPreview();
         else modal.hidden = true;
       }
     });

@@ -2854,3 +2854,87 @@ US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布�
 4. **教練身分仍是前端閘門**（C-169）：`🗑 刪除`／`🗑 刪` 都先用 `isCoach()` 檢查並在 DOM 不產生按鈕（球員連節點都沒有），但 Supabase RLS 仍是公開讀寫——與既有 US-144 同一信任模型。
 5. **`#saveModal` 與 `#publishModal` 並存**：前者只剩「教練暗號發布」與「名稱空白 fallback」兩條路徑，刻意不刪以縮小回歸面；未來可評估合併成同一個視窗。
 
+---
+
+## US-153：iPhone 主畫面 PWA 按「💬 分享」傳不出 GIF
+
+**日期**：2026-11-17 ｜ **狀態**：已實作 ｜ **範圍**：`index.html`（CSS／HTML／JS）、`.scratch/smoke/harness.js`、`.scratch/smoke/README.md`
+
+### 使用者故事
+
+**As a** 手機使用者（iPhone Safari／主畫面 PWA），**I want** 按一次「💬 分享」就把動態戰術 GIF 傳進 WhatsApp，**so that** 我不用先想辦法把 GIF 存到相片、再手動去對話裡找檔案。
+
+### 問題（四個根因）
+
+1. `navigator.share({ files, title, text })` 同時帶文字與檔案 → iOS 的 WhatsApp 分享擴充只取文字，GIF 被丟掉。
+2. `await (await fetch(dataUrl)).blob()` 排在 `navigator.share()` 之前 → GIF 編碼＋轉檔通常要數秒，**User Activation 早就過期** → `NotAllowedError`（主畫面 PWA 尤其明顯）。
+3. `navigator.canShare()` 用空白 `probe.gif` 偵測，不是真正的 GIF → 判斷不可靠；一旦回 `false` 就掉進桌面 fallback。
+4. 失敗時走 `downloadDataUrl()` ＋ `window.open('wa.me')`：iOS PWA 兩者都無效（下載被系統擋、`wa.me` 只帶文字不帶檔），使用者什麼都拿不到，也沒有任何提示。
+
+### 需求
+
+#### 功能需求（Functional Requirements）
+
+| Requirement ID | 內容 |
+| --- | --- |
+| FR-351 | **分享只傳 `files`**：`navigator.share({ files: [gifFile] })`，不帶 `title`／`text`／`url`，避免 iOS WhatsApp 只擷取文字而丟掉 GIF |
+| FR-352 | **GIF 轉檔全程同步**：新增 `dataUrlToBlob()`（`atob` → `Uint8Array` → `Blob`）與 `makeGifFile()`；`captureGif()` 直接回傳 `{ dataUrl, blob, file, filename, frames }`，分享路徑不再出現 `await fetch()`，把非同步空隙壓到只剩 GIF 編碼本身 |
+| FR-353 | **失敗必有著落**：`canShare` 不支援、或 `share()` 拋出非 `AbortError` → 開 `#gifModal` 預覽（`#gifPreview` 用 blob URL、`#gifMeta` 顯示檔名與影格數），可長按「儲存到相片」／「拷貝」，或按 `#gifShare` 再分享一次（此 handler 內零 `await`，同步觸發 `navigator.share`） |
+
+#### 非功能需求（Non-Functional Requirements）
+
+| Requirement ID | 內容 |
+| --- | --- |
+| NFR-171 | `captureGif({ label, holdLoader })` 維持單一擷取來源：`exportGif()`（下載 GIF）與 `shareTactic()`（分享）共用；`try/finally` 保證 `state.exporting` 歸零、畫面回到原本步驟，loader 由呼叫端用 `holdLoader` 決定何時收 |
+
+#### 限制與約束（Constraints）
+
+| Requirement ID | 內容 |
+| --- | --- |
+| C-170 | **真機行為無法自動化**：headless 只驗邏輯（`navigator.share`／`canShare` 由 harness stub）；iPhone 的長按 callout 選單、WhatsApp 是否真的收到 GIF、主畫面 PWA 的 User Activation 時序，仍需真機確認 |
+
+#### 驗收條件（Acceptance Criteria）
+
+- **AC-275** `#gif` 規格：`captureGif()` 回傳 `dataUrl`（`data:image/gif…`）、`blob`（`image/gif`、`size > 0`）、`file`（`File`、`name === filename`、`image/gif`）→ `gif.blob`／`gif.file` PASS；收尾行為不變（`gif.frameRestored`／`gif.exportingCleared`／`gif.loaderHidden`）。
+- **AC-276** 成功路徑：`shareTactic()` 只呼叫一次 `navigator.share`，payload 的 `Object.keys()` 恰為 `['files']`（`share.filesOnly`）、`files[0]` 是 `.gif` 的 `File`（`share.gifFile`）；結束後 loader 收起且不彈 Modal（`share.loaderHidden`／`share.previewHidden`）。
+- **AC-277** 降級路徑：`share()` 以 `NotAllowedError` 拒絕 → `#gifModal` 顯示（`share.fallbackShown`）、`#gifPreview.src` 是 `blob:`（`share.fallbackImg`）、`#gifMeta` 含檔名（`share.fallbackMeta`）、**不下載**（`share.fallbackNoDownload`）、**不開 `wa.me`**（`share.noWaPopup`）。
+- **AC-278** 預覽內重試：`#gifShare.click()` → 同步再呼叫一次 `navigator.share` 且仍只有 `files`（`share.retryCalled`／`share.retryFilesOnly`），成功後 Modal 關閉並清掉 `src`（`share.retryClosed`／`share.retryRevoked`）。
+
+#### 需求追溯矩陣（RTM）
+
+| Requirement ID | Requirement Description | Feature/Module | User Story Reference | Status |
+| --- | --- | --- | --- | --- |
+| FR-351 | 分享只帶 `files` | `shareTactic()`／`shareGifFromPreview()` | US-153 | Verified |
+| FR-352 | 同步 dataURL→Blob／File，無 `await fetch` | `dataUrlToBlob()`／`makeGifFile()`／`captureGif()` | US-153 | Verified |
+| FR-353 | 降級預覽 Modal（長按存相片／同步重試） | `#gifModal`／`openGifPreview()`／`releaseGifPreview()`／`closeGifPreview()` | US-153 | Verified |
+| NFR-171 | 擷取單一來源＋`try/finally` 收尾 | `captureGif({ label, holdLoader })`／`exportGif()`／`shareTactic()` | US-153 | Verified |
+| C-170 | 真機分享面板無法自動化 | 手動驗證（iPhone Safari ＋ 主畫面 PWA） | US-153 | Accepted |
+| AC-275～AC-278 | 驗收 | 見下方「驗收紀錄（本輪：US-153）」 | US-153 | Verified |
+
+> AC-175（US-135）的 fallback 斷言 `share.downloaded`／`share.whatsappOpened` 已被 AC-277／AC-278 取代——那是本輪刻意移除的行為，不是回歸。
+
+### 驗收紀錄（本輪：US-153）
+
+**日期**：2026-11-17 ｜ **方式**：改 `index.html`（CSS／HTML／JS）＋ `.scratch/smoke/harness.js` → `node .scratch/smoke/build.js` → `npm run sync:site` → `npm run build` → `node .scratch/smoke/integrity.js` → `node .scratch/smoke/cdp.js 390x844,375x667,1440x900,gif`。
+
+| 檢查 | 結果 |
+| --- | --- |
+| `integrity.*` | `noCorruption`／`cssBraces 674/674`／`script0 702`／`script1 202600`／`distSynced 77100CAD645A`／manifest 全 PASS |
+| `390x844` | **PASS=310 · FAIL=0** |
+| `375x667` | **PASS=310 · FAIL=0** |
+| `1440x900` | **PASS=284 · FAIL=0** |
+| `gif`（390×844 ＋ `#gif`） | **PASS=29 · FAIL=0**（原 14 項 → 29 項） |
+
+- 新增／改寫的 `#gif` 斷言全 PASS：`gif.blob`／`gif.file`（`image/gif`＋`File`＋檔名）；成功路徑 `share.called`／`share.filesOnly [files]`／`share.gifFile`／`share.loaderHidden`／`share.previewHidden`；降級路徑 `share.fallbackShown`／`share.fallbackImg [blob:…]`／`share.fallbackMeta`／`share.fallbackNoDownload`／`share.noWaPopup`；預覽重試 `share.retryCalled`／`share.retryFilesOnly [files]`／`share.retryClosed`／`share.retryRevoked`。
+- `gif.helpers` 同步擴充為 `dataUrlToBlob`／`makeGifFile`／`downloadBlob`／`canShareGifFile`／`openGifPreview`／`shareGifFromPreview` ＋ `#gifModal`／`#gifPreview`／`#gifShare` 存在檢查。
+- 版面規格數字與 US-152 完全相同（310／310／284），**沒有任何既有斷言改名或失效**；本輪未跑 `cloud`／`cloudwrite`（與分享路徑無關，且 `cloudwrite` 會寫 Supabase 測試列）。
+
+### 已知取捨／限制（US-153）
+
+1. **桌機不再自動「下載＋開 `wa.me`」**：不支援檔案分享的環境現在一律看到預覽 Modal，要按 `📤 立即分享 / 儲存 GIF` 才會下載（`shareGifFromPreview()` 內 `downloadBlob()`）。這是刻意的取捨——原本那條路徑在 iOS 上等於「什麼都沒發生」，而保留它會讓使用者誤以為 GIF 已送出。
+2. **真機仍需確認（C-170）**：harness 的 `navigator.share`／`canShare` 是 stub，驗的是「payload 只有 `files`」「失敗會開 Modal」「重試是同步觸發」這些我們能控制的部分；iPhone 的長按選單與 WhatsApp 是否真的收到 GIF，要在實機上按一次。
+3. **非同步空隙沒有完全消失**：GIF 編碼本身（`gifshot.createGIF`）仍是非同步，無法在點擊當下同步完成；本輪做的是「把可避免的 await 全部拿掉」，剩下的空隙由預覽 Modal 的第二次同步點擊補上。
+4. **預覽用 blob URL**：`openGifPreview()` 建立、`releaseGifPreview()` 撤銷（`closeModal('gifModal')`／`closeAllModals()`／背景點擊／`closeGifPreview()` 四條路徑都會走到），重複撤銷有 `try/catch` 保護；無 `URL.createObjectURL` 的環境退回 `data:` URL。
+
+
+
