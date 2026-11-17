@@ -21,7 +21,8 @@ jobs:
         run: uv sync
       - name: Lint with ruff
         working-directory: backend
-        run: uv run --with ruff ruff check .
+        # 版本釘死：ruff 0.16 大幅擴充預設規則集，浮動版本會讓 CI 無故變紅。
+        run: uv run --with "ruff==0.16.10" ruff check .
       - name: Import smoke test
         working-directory: backend
         run: uv run python -c "from main import app; print(app.title)"

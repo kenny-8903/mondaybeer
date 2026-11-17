@@ -18,3 +18,12 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["."]
+
+# Lint 契約顯式化：ruff 0.16 起預設啟用 413 條規則（原 59），
+# 浮動版本會讓 CI 在「沒改程式碼」的狀況下變紅。這裡把要檢查的
+# 規則集釘死，工具升級只會影響已選規則的修正，不會改變範圍。
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

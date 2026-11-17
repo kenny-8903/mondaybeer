@@ -2938,3 +2938,80 @@ US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布�
 
 
 
+---
+
+## US-154：`CI / backend` 因 ruff 預設規則擴充而無故紅燈
+
+**日期**：2026-11-17 ｜ **狀態**：已修復 ｜ **範圍**：`backend/database.py`、`backend/pyproject.toml`、`.github/workflows/ci.yml`、`.gitignore`
+
+### 使用者故事
+
+**As a** 專案維護者，**I want** CI 的 lint 結果只反映「程式碼有沒有問題」，**so that** 工具升級不會讓我在與功能無關的紅燈上耗時間。
+
+### 問題（證據）
+
+- `CI / backend` 在 `8e46ede`、`d0cf71c`、`60860e1` 三次 push 都停在 **[6] `Lint with ruff`**；[5] `Sync deps` 成功、[7] `Import smoke test` 被 skip → **不是**舊後端測試，**也不是**缺環境變數（`uv sync` 已通過；`database.py` 有 `sqlite:///` fallback，import 階段也不連線）。
+- 用 uv 快取中與 CI 同版的 ruff 在本機重現：`I001 Import block is un-sorted or un-formatted` @ `backend/database.py:1:1`（`create_async_engine, async_sessionmaker` 未依字母序），`EXIT=1`；`0.16.4` 與 `0.16.10` 結果相同。
+- **根因**：ruff `0.16.0`（2026-07-23）release notes 原文——「Ruff now enables a much larger set of rules by default (**413, up from 59**)」；workflow 用的是 `uv run --with ruff`（浮動版本），`backend/pyproject.toml` 又沒有 `[tool.ruff]` → **檢查範圍由 PyPI 當下最新版決定**，於是「沒改程式碼」也會變紅。
+- `backend/` 是 starter FastAPI＋SQLite scaffold（只有 `/health`），實際線上服務是靜態 `index.html` ＋ Supabase；但 `backend/`、`devops/backend/Dockerfile`、`scripts/start-backend.*`、`scripts/status.*` 仍在，故**保留 job**（不刪檢查），只把它變成可重現。
+
+### 需求
+
+#### 功能需求（Functional Requirements）
+
+| Requirement ID | 內容 |
+| --- | --- |
+| FR-354 | **lint 契約顯式化**：`backend/pyproject.toml` 新增 `[tool.ruff]`（`target-version = "py311"`）與 `[tool.ruff.lint] select = ["E4","E7","E9","F","I"]`——檢查集合固定，ruff 再擴充預設規則也不會改變本專案範圍；`I`（isort）刻意保留 |
+| FR-355 | **工具版本釘死**：CI 的 lint step 由 `uv run --with ruff` 改為 `uv run --with "ruff==0.16.10"`，避免 PyPI 新版本改變行為 |
+| FR-356 | **修掉真實違規**：`backend/database.py` 的 sqlalchemy import 依字母序排列（`async_sessionmaker, create_async_engine`），而不是用設定把 `I001` 關掉 |
+
+#### 非功能需求（Non-Functional Requirements）
+
+| Requirement ID | 內容 |
+| --- | --- |
+| NFR-172 | **可重現性**：相同 commit 在任何時間重跑 CI 得到相同 lint 結果；本機用同一顆 ruff 二進位雙版本驗證（`0.16.4`／`0.16.10` 皆 `All checks passed!`） |
+
+#### 限制與約束（Constraints）
+
+| Requirement ID | 內容 |
+| --- | --- |
+| C-171 | **backend 不是線上服務**：`backend/` 僅為 starter scaffold，實際資料流是靜態站 → Supabase；本輪不動 `backend/`、`devops/`、`scripts/` 的執行路徑，也不刪除該 job |
+
+#### 驗收條件（Acceptance Criteria）
+
+- **AC-279** `backend/` 下 `ruff check .` 以 `0.16.10` 與 `0.16.4` 執行皆 `All checks passed!`（exit 0），不再出現 `I001`。
+- **AC-280** CI 中被 skip 的 `Import smoke test` 已本機預驗：`backend/.venv/Scripts/python.exe -c "from main import app; print(app.title)"` → `py-workflow-system API`（exit 0）。
+- **AC-281** `.github/workflows/ci.yml` 仍可被 YAML 解析，`jobs = ['backend','frontend']`、backend steps 順序不變（checkout → setup-python → Install uv → Sync deps → Lint with ruff → Import smoke test），且 lint step 的 `run` 為 `uv run --with "ruff==0.16.10" ruff check .`。
+- **AC-282** push 後 GitHub Actions `CI` run 的 `backend` 與 `frontend` 兩個 job 皆 `success`。
+
+#### 需求追溯矩陣（RTM）
+
+| Requirement ID | Requirement Description | Feature/Module | User Story Reference | Status |
+| --- | --- | --- | --- | --- |
+| FR-354 | lint 契約顯式化（`select` 固定） | `backend/pyproject.toml` `[tool.ruff]` | US-154 | Verified |
+| FR-355 | ruff 版本釘死 | `.github/workflows/ci.yml` lint step | US-154 | Verified |
+| FR-356 | 修正 import 排序 | `backend/database.py` | US-154 | Verified |
+| NFR-172 | 可重現性 | ruff `0.16.4`／`0.16.10` 雙版本驗證 | US-154 | Verified |
+| C-171 | backend 非線上服務、job 保留 | `.github/workflows/ci.yml`（`backend` job 不動結構） | US-154 | Accepted |
+| AC-279～AC-282 | 驗收 | 見下方「驗收紀錄（本輪：US-154）」 | US-154 | Verified |
+
+### 驗收紀錄（本輪：US-154）
+
+**日期**：2026-11-17 ｜ **方式**：改 `backend/database.py`／`backend/pyproject.toml`／`.github/workflows/ci.yml`／`.gitignore` → 本機用 uv 快取中的 ruff 重跑 → PyYAML 解析 workflow → `git push` → GitHub Actions API 讀 run／job 結果。
+
+| 檢查 | 結果 |
+| --- | --- |
+| ruff `0.16.10`（`backend`） | **All checks passed!** EXIT=0（修前 `I001` EXIT=1） |
+| ruff `0.16.4`（`backend`） | **All checks passed!** EXIT=0 |
+| `Import smoke test`（CI step 7 預驗） | `py-workflow-system API` EXIT=0 |
+| workflow YAML（PyYAML） | 解析 OK、`JOBS: ['backend','frontend']`、backend 6 steps 順序不變 |
+| GitHub Actions `CI` | `backend` = **success**、`frontend` = **success**（run 見下方補記） |
+
+### 已知取捨／限制（US-154）
+
+1. **釘版本帶來手動升級成本**（FR-355）：ruff 停在 `0.16.10`，要升版時需同步改 workflow 的 pin 並本機重跑；換來的是「CI 不會因上游改預設值而紅燈」。
+2. **選擇修程式碼而不是關規則**（FR-356）：`I001` 只是 import 排序，一行可解；若改成 `select = ["E4","E7","E9","F"]`（ruff 0.15 以前的預設）雖然也能綠，但等於把 isort 檢查永久關掉。
+3. **backend job 仍在，但它守的是一段與線上服務無關的 scaffold**（C-171）：`backend/` 目前只有 `/health`，真正的資料流是靜態站 → Supabase。若未來確定要移除 FastAPI，正確做法是一次性清理 `backend/` ＋ `devops/backend/` ＋ `scripts/start-backend.*`／`status.*` ＋ `AGENTS.md`，再刪掉這個 job，而不是只把檢查拿掉留下死程式碼。
+4. **`.ruff_cache/` 已加入 `.gitignore`**：ruff 在本機執行會產生該目錄，避免不小心 commit。
+
+
