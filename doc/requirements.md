@@ -3005,7 +3005,7 @@ US-138 之後，建立對話框仍有「防守陣型」下拉（但其實畫布�
 | ruff `0.16.4`（`backend`） | **All checks passed!** EXIT=0 |
 | `Import smoke test`（CI step 7 預驗） | `py-workflow-system API` EXIT=0 |
 | workflow YAML（PyYAML） | 解析 OK、`JOBS: ['backend','frontend']`、backend 6 steps 順序不變 |
-| GitHub Actions `CI` | `backend` = **success**、`frontend` = **success**（run 見下方補記） |
+| GitHub Actions `CI` | **run 44028052070**（`6d6d5ec`）：`backend` = **success**（10/10 steps，含先前被 skip 的 `Import smoke test`）、`frontend` = **success**（10/10 steps） |
 
 ### 已知取捨／限制（US-154）
 
